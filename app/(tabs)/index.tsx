@@ -1,31 +1,53 @@
-import { StyleSheet } from 'react-native';
+import { useEffect, useState } from "react";
+import { StyleSheet, View, Text } from "react-native";
+import { HomeScreen } from "../../src/screens/HomeScreen";
+import { initDatabase } from "../../src/lib/database";
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
-
+/**
+ * Home tab - displays the main goal management screen
+ */
 export default function TabOneScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
-    </View>
-  );
+  const [dbInitialized, setDbInitialized] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
+
+  // Initialize database on component mount
+  useEffect(() => {
+    const initDb = async () => {
+      try {
+        await initDatabase();
+        setDbInitialized(true);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown database error";
+        setDbError(errorMessage);
+        console.error("Failed to initialize database:", error);
+      }
+    };
+
+    initDb();
+  }, []);
+
+  if (dbError) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Database Error: {dbError}</Text>
+      </View>
+    );
+  }
+
+  return <HomeScreen />;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+  errorText: {
+    color: "red",
+    fontSize: 16,
+    textAlign: "center",
   },
 });

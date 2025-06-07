@@ -1,27 +1,30 @@
 {
   "expo": {
     "name": "FocusTabs",
-    "slug": "FocusTabs",
+    "slug": "focustabs",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "focustabs",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.melihcandemir.focustabs"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.melihcandemir.focustabs"
     },
     "web": {
       "bundler": "metro",
@@ -33,6 +36,11 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "newArchEnabled": true,
+    "description": "A minimalist goal management app. Focus on what matters most with up to 3 daily goals. Completely offline and ad-free.",
+    "privacy": "unlisted",
+    "githubUrl": "https://github.com/melihcandemir/focustabs",
+    "sdkVersion": "52.0.0"
   }
 }
