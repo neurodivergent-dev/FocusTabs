@@ -11,6 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Check, Trash2, Edit2, X } from "lucide-react-native";
 import { Goal } from "../types/goal";
+import { useTheme } from "./ThemeProvider";
 
 interface GoalCardProps {
   goal: Goal;
@@ -19,13 +20,6 @@ interface GoalCardProps {
   onDelete: (id: string) => void;
   index: number;
 }
-
-// Gradient color sets for different card indexes
-const gradientSets = [
-  ["#6366F1", "#8B5CF6"], // Purple-Indigo
-  ["#EC4899", "#F472B6"], // Pink-Fuchsia
-  ["#F59E0B", "#FBBF24"], // Amber-Yellow
-];
 
 export const GoalCard: React.FC<GoalCardProps> = ({
   goal,
@@ -36,6 +30,14 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editText, setEditText] = useState<string>(goal.text);
+  const { colors } = useTheme();
+
+  // Tema renkleri kullanarak gradient setleri oluşturalım
+  const gradientSets = [
+    [colors.primary, colors.secondary], // Ana tema renkleri
+    [colors.secondary, colors.primary], // Tersine çevirilmiş
+    [colors.info, colors.primary], // Bilgi rengi ve ana renk
+  ];
 
   // Get the gradient colors based on the index
   const gradientColors = gradientSets[index % gradientSets.length];

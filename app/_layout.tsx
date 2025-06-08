@@ -5,10 +5,9 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack, SplashScreen as RouterSplashScreen } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
+import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { useAppColorScheme } from "../src/hooks/useAppColorScheme";
 import { ThemeProvider as CustomThemeProvider } from "../src/components/ThemeProvider";
 
@@ -20,17 +19,7 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-// Use try/catch instead of .catch() to handle potential issues
-try {
-  SplashScreen.preventAutoHideAsync();
-} catch (error) {
-  // Ignore errors - this means the splash screen has already been hidden
-  console.log("SplashScreen.preventAutoHideAsync() failed", error);
-}
-
 export default function RootLayout() {
-  const [isReady, setIsReady] = useState(false);
   const [fontError, setFontError] = useState<Error | null>(null);
 
   const [loaded, error] = useFonts({
@@ -46,34 +35,9 @@ export default function RootLayout() {
     }
   }, [error]);
 
-  useEffect(() => {
-    const prepare = async () => {
-      try {
-        // Keep the splash screen visible while we prepare resources
-        // Avoid calling preventAutoHideAsync again as it's already called above
-
-        // Wait for fonts to load or fail
-        if (loaded || fontError) {
-          // Hide the splash screen with try/catch
-          try {
-            await SplashScreen.hideAsync();
-          } catch (e) {
-            console.log("Error hiding splash screen:", e);
-            // Ignore errors if splash screen is already hidden
-          }
-          setIsReady(true);
-        }
-      } catch (e) {
-        console.error("Error in preparation:", e);
-        setIsReady(true); // Continue anyway to show the app
-      }
-    };
-
-    prepare();
-  }, [loaded, fontError]);
-
-  if (!isReady) {
-    return null;
+  // Wait for fonts to load before rendering the app
+  if (!loaded && !fontError) {
+    return null; // Expo will maintain the splash screen until we return something
   }
 
   // If there was a font loading error, render the app anyway
@@ -90,7 +54,14 @@ function RootLayoutNav() {
   return (
     <CustomThemeProvider>
       <ThemeProvider value={safeTheme}>
-        <Stack>
+        <Stack
+          screenOptions={{
+            // Varsayılan sayfa arka plan rengi için ThemeProvider'dan değer kullan
+            contentStyle: {
+              backgroundColor: colorScheme === "dark" ? "#121212" : "#FFFFFF",
+            },
+          }}
+        >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         </Stack>

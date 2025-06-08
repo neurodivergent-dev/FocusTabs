@@ -8,22 +8,14 @@ import {
   Image,
   TouchableOpacity,
   Linking,
-  useColorScheme,
 } from "react-native";
-import { useThemeStore } from "../store/themeStore";
 import { ChevronLeft, Github, Mail, Heart } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useTheme } from "../components/ThemeProvider";
 
 export const AboutScreen: React.FC = () => {
   const router = useRouter();
-  const { themeMode, isDarkMode } = useThemeStore();
-  const systemColorScheme = useColorScheme();
-
-  // Determine if we should use dark mode
-  const useDarkMode =
-    themeMode === "dark" ||
-    (themeMode === "system" && systemColorScheme === "dark") ||
-    isDarkMode;
+  const { colors, isDarkMode } = useTheme();
 
   const handleBack = () => {
     router.back();
@@ -39,37 +31,17 @@ export const AboutScreen: React.FC = () => {
 
   return (
     <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: useDarkMode ? "#121212" : "#FFFFFF" },
-      ]}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View
-        style={[
-          styles.header,
-          { borderBottomColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-        ]}
-      >
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ChevronLeft size={24} color={useDarkMode ? "#FFFFFF" : "#000000"} />
-          <Text
-            style={[
-              styles.backText,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+          <ChevronLeft size={24} color={colors.text} />
+          <Text style={[styles.backText, { color: colors.text }]}>
             Settings
           </Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text
-            style={[
-              styles.title,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
-            About
-          </Text>
+          <Text style={[styles.title, { color: colors.text }]}>About</Text>
         </View>
         <View style={styles.rightPlaceholder} />
       </View>
@@ -79,174 +51,91 @@ export const AboutScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.logoContainer}>
-          {/* Replace with your actual logo */}
-          <View
-            style={[
-              styles.logoPlaceholder,
-              { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-            ]}
-          >
-            <Text
-              style={[
-                styles.logoText,
-                { color: useDarkMode ? "#FFFFFF" : "#000000" },
-              ]}
-            >
-              FT
-            </Text>
-          </View>
-          <Text
-            style={[
-              styles.appName,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+          {/* App icon */}
+          <Image
+            source={require("../../assets/images/icon.png")}
+            style={styles.appIcon}
+            resizeMode="contain"
+          />
+          <Text style={[styles.appName, { color: colors.text }]}>
             FocusTabs
           </Text>
-          <Text
-            style={[
-              styles.version,
-              { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-            ]}
-          >
+          <Text style={[styles.version, { color: colors.subText }]}>
             Version 1.0.0
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             About
           </Text>
-          <Text
-            style={[
-              styles.description,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+          <Text style={[styles.description, { color: colors.text }]}>
             A premium minimalist productivity solution designed to enhance focus
             through simplicity. Our distraction-free environment allows you to
             prioritize up to three essential daily objectives.
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Features
           </Text>
           <View style={styles.featuresList}>
             <View style={styles.featureItem}>
-              <View style={[styles.bullet, { backgroundColor: "#6366F1" }]} />
-              <Text
-                style={[
-                  styles.featureText,
-                  { color: useDarkMode ? "#FFFFFF" : "#000000" },
-                ]}
-              >
+              <View
+                style={[styles.bullet, { backgroundColor: colors.primary }]}
+              />
+              <Text style={[styles.featureText, { color: colors.text }]}>
                 Daily goal tracking
               </Text>
             </View>
             <View style={styles.featureItem}>
-              <View style={[styles.bullet, { backgroundColor: "#10B981" }]} />
-              <Text
-                style={[
-                  styles.featureText,
-                  { color: useDarkMode ? "#FFFFFF" : "#000000" },
-                ]}
-              >
+              <View
+                style={[styles.bullet, { backgroundColor: colors.success }]}
+              />
+              <Text style={[styles.featureText, { color: colors.text }]}>
                 Minimalist distraction-free interface
               </Text>
             </View>
             <View style={styles.featureItem}>
-              <View style={[styles.bullet, { backgroundColor: "#F59E0B" }]} />
-              <Text
-                style={[
-                  styles.featureText,
-                  { color: useDarkMode ? "#FFFFFF" : "#000000" },
-                ]}
-              >
+              <View
+                style={[styles.bullet, { backgroundColor: colors.warning }]}
+              />
+              <Text style={[styles.featureText, { color: colors.text }]}>
                 Dark mode support
               </Text>
             </View>
             <View style={styles.featureItem}>
-              <View style={[styles.bullet, { backgroundColor: "#EC4899" }]} />
-              <Text
-                style={[
-                  styles.featureText,
-                  { color: useDarkMode ? "#FFFFFF" : "#000000" },
-                ]}
-              >
+              <View
+                style={[styles.bullet, { backgroundColor: colors.secondary }]}
+              />
+              <Text style={[styles.featureText, { color: colors.text }]}>
                 Complete privacy - no data collection
               </Text>
             </View>
           </View>
         </View>
 
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Connect
           </Text>
           <View style={styles.connectButtons}>
             <TouchableOpacity
-              style={[
-                styles.connectButton,
-                { backgroundColor: useDarkMode ? "#1F1F1F" : "#FFFFFF" },
-              ]}
+              style={[styles.connectButton, { backgroundColor: colors.card }]}
               onPress={handleOpenGithub}
             >
-              <Github size={20} color={useDarkMode ? "#FFFFFF" : "#000000"} />
-              <Text
-                style={[
-                  styles.connectButtonText,
-                  { color: useDarkMode ? "#FFFFFF" : "#000000" },
-                ]}
-              >
+              <Github size={20} color={colors.text} />
+              <Text style={[styles.connectButtonText, { color: colors.text }]}>
                 GitHub
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.connectButton,
-                { backgroundColor: useDarkMode ? "#1F1F1F" : "#FFFFFF" },
-              ]}
+              style={[styles.connectButton, { backgroundColor: colors.card }]}
               onPress={handleSendEmail}
             >
-              <Mail size={20} color={useDarkMode ? "#FFFFFF" : "#000000"} />
-              <Text
-                style={[
-                  styles.connectButtonText,
-                  { color: useDarkMode ? "#FFFFFF" : "#000000" },
-                ]}
-              >
+              <Mail size={20} color={colors.text} />
+              <Text style={[styles.connectButtonText, { color: colors.text }]}>
                 Contact
               </Text>
             </TouchableOpacity>
@@ -254,30 +143,15 @@ export const AboutScreen: React.FC = () => {
         </View>
 
         <View style={styles.footer}>
-          <Text
-            style={[
-              styles.copyright,
-              { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-            ]}
-          >
+          <Text style={[styles.copyright, { color: colors.subText }]}>
             © 2025 Melih Can Demir
           </Text>
           <View style={styles.madeWithContainer}>
-            <Text
-              style={[
-                styles.madeLove,
-                { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-              ]}
-            >
+            <Text style={[styles.madeLove, { color: colors.subText }]}>
               Made with
             </Text>
             <Heart size={12} color="#EC4899" style={styles.heartIcon} />
-            <Text
-              style={[
-                styles.madeLove,
-                { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-              ]}
-            >
+            <Text style={[styles.madeLove, { color: colors.subText }]}>
               in Turkey
             </Text>
           </View>
@@ -331,17 +205,11 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 40,
   },
-  logoPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
+  appIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
     marginBottom: 16,
-  },
-  logoText: {
-    fontSize: 28,
-    fontWeight: "700",
   },
   appName: {
     fontSize: 24,

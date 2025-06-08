@@ -1,33 +1,15 @@
 import React from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  SafeAreaView,
-  ScrollView,
-  useColorScheme,
-} from "react-native";
+import { StyleSheet, View, Text, SafeAreaView, ScrollView } from "react-native";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { CheckCircle, Circle, Clock } from "lucide-react-native";
-import { useThemeStore } from "../store/themeStore";
-import Colors from "../../constants/Colors";
+import { useTheme } from "../components/ThemeProvider";
 
 export const StatsScreen: React.FC = () => {
   const { goals, getCompletedGoalsCount, getActiveGoalsCount } =
     useDailyGoalsStore();
 
-  // Get theme information
-  const { themeMode, isDarkMode } = useThemeStore();
-  const systemColorScheme = useColorScheme();
-
-  // Determine if we should use dark mode
-  const useDarkMode =
-    themeMode === "dark" ||
-    (themeMode === "system" && systemColorScheme === "dark") ||
-    isDarkMode;
-
-  // Get theme colors
-  const themeColors = Colors[useDarkMode ? "dark" : "light"];
+  // Tema renklerine erişim
+  const { colors, isDarkMode } = useTheme();
 
   const completedCount = getCompletedGoalsCount();
   const activeCount = getActiveGoalsCount();
@@ -50,142 +32,96 @@ export const StatsScreen: React.FC = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: themeColors.background }]}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View
-        style={[
-          styles.header,
-          { borderBottomColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-        ]}
-      >
-        <Text style={[styles.title, { color: themeColors.text }]}>
-          Statistics
-        </Text>
-        <Text
-          style={[
-            styles.subtitle,
-            { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-          ]}
-        >
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Statistics</Text>
+        <Text style={[styles.subtitle, { color: colors.subText }]}>
           Today's progress at a glance
         </Text>
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.statsContainer}>
-          <View
-            style={[
-              styles.statCard,
-              { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-            ]}
-          >
+          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
             <View
               style={[
                 styles.statIconContainer,
-                { backgroundColor: useDarkMode ? "#1F1F1F" : "#FFFFFF" },
+                { backgroundColor: isDarkMode ? "#1F1F1F" : "#FFFFFF" },
               ]}
             >
-              <Clock size={24} color="#6366F1" />
+              <Clock size={24} color={colors.primary} />
             </View>
-            <Text style={[styles.statValue, { color: themeColors.text }]}>
+            <Text style={[styles.statValue, { color: colors.text }]}>
               {getTimeUntilMidnight()}
             </Text>
-            <Text
-              style={[
-                styles.statLabel,
-                { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-              ]}
-            >
+            <Text style={[styles.statLabel, { color: colors.subText }]}>
               Until Reset
             </Text>
           </View>
 
-          <View
-            style={[
-              styles.statCard,
-              { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-            ]}
-          >
+          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
             <View
               style={[
                 styles.statIconContainer,
-                { backgroundColor: useDarkMode ? "#1F1F1F" : "#FFFFFF" },
+                { backgroundColor: isDarkMode ? "#1F1F1F" : "#FFFFFF" },
               ]}
             >
-              <CheckCircle size={24} color="#10B981" />
+              <CheckCircle size={24} color={colors.success} />
             </View>
-            <Text style={[styles.statValue, { color: themeColors.text }]}>
+            <Text style={[styles.statValue, { color: colors.text }]}>
               {completedCount}
             </Text>
-            <Text
-              style={[
-                styles.statLabel,
-                { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-              ]}
-            >
+            <Text style={[styles.statLabel, { color: colors.subText }]}>
               Completed
             </Text>
           </View>
 
-          <View
-            style={[
-              styles.statCard,
-              { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-            ]}
-          >
+          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
             <View
               style={[
                 styles.statIconContainer,
-                { backgroundColor: useDarkMode ? "#1F1F1F" : "#FFFFFF" },
+                { backgroundColor: isDarkMode ? "#1F1F1F" : "#FFFFFF" },
               ]}
             >
-              <Circle size={24} color="#F59E0B" />
+              <Circle size={24} color={colors.warning} />
             </View>
-            <Text style={[styles.statValue, { color: themeColors.text }]}>
+            <Text style={[styles.statValue, { color: colors.text }]}>
               {activeCount}
             </Text>
-            <Text
-              style={[
-                styles.statLabel,
-                { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-              ]}
-            >
+            <Text style={[styles.statLabel, { color: colors.subText }]}>
               Remaining
             </Text>
           </View>
         </View>
 
-        <View
-          style={[
-            styles.progressCard,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text style={[styles.progressTitle, { color: themeColors.text }]}>
+        <View style={[styles.progressCard, { backgroundColor: colors.card }]}>
+          <Text style={[styles.progressTitle, { color: colors.text }]}>
             Completion Rate
           </Text>
           <View style={styles.progressBarContainer}>
             <View
               style={[
                 styles.progressBar,
-                { backgroundColor: useDarkMode ? "#1F1F1F" : "#FFFFFF" },
+                { backgroundColor: isDarkMode ? "#1F1F1F" : "#FFFFFF" },
               ]}
             >
               <View
-                style={[styles.progressFill, { width: `${completionRate}%` }]}
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${completionRate}%`,
+                    backgroundColor: colors.primary,
+                  },
+                ]}
               />
             </View>
-            <Text style={[styles.progressText, { color: themeColors.text }]}>
+            <Text style={[styles.progressText, { color: colors.text }]}>
               {Math.round(completionRate)}%
             </Text>
           </View>
 
-          <Text
-            style={[
-              styles.progressNote,
-              { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-            ]}
-          >
+          <Text style={[styles.progressNote, { color: colors.subText }]}>
             {totalGoals === 0
               ? "No goals set for today yet"
               : completionRate === 100
@@ -196,16 +132,11 @@ export const StatsScreen: React.FC = () => {
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.helpCard,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text style={[styles.helpTitle, { color: themeColors.text }]}>
+        <View style={[styles.helpCard, { backgroundColor: colors.card }]}>
+          <Text style={[styles.helpTitle, { color: colors.text }]}>
             Focus Tips
           </Text>
-          <Text style={[styles.helpText, { color: themeColors.text }]}>
+          <Text style={[styles.helpText, { color: colors.text }]}>
             • Set only the most important goals for today{"\n"}• Break down
             complex tasks into simpler ones{"\n"}• Complete your hardest goal
             first{"\n"}• Take short breaks between tasks

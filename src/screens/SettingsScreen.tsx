@@ -10,6 +10,7 @@ import {
   Linking,
   Alert,
   useColorScheme,
+  Platform,
 } from "react-native";
 import {
   Moon,
@@ -21,16 +22,162 @@ import {
   Shield,
   Sun,
   Smartphone,
+  Palette,
 } from "lucide-react-native";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useThemeStore } from "../store/themeStore";
 import { useRouter } from "expo-router";
+import NotificationService from "../services/NotificationService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { THEMES } from "../constants/themes";
+import { useTheme } from "../components/ThemeProvider";
+
+// Reminder ayarları için bir key
+const REMINDER_ENABLED_KEY = "reminders_enabled";
+const REMINDER_TIME_KEY = "reminders_time";
+
+// Stil tanımlarını doğrudan burada yapıyoruz
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  section: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  settingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  settingIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  settingDescription: {
+    fontSize: 14,
+  },
+  // Theme selector styles
+  themeSectionContainer: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  themeLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 16,
+  },
+  themeOptionsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  themeOption: {
+    flex: 1,
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  themeIconContainer: {
+    marginBottom: 8,
+  },
+  themeText: {
+    fontSize: 14,
+  },
+  // Tema renkleri stilleri
+  themeColorContainer: {
+    flexDirection: "row",
+    paddingVertical: 8,
+  },
+  themeColorOption: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 80,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 8,
+    padding: 4,
+  },
+  themeColorSelected: {
+    borderWidth: 2,
+  },
+  themeColorText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+});
 
 export const SettingsScreen: React.FC = () => {
   const router = useRouter();
   const { clearGoals } = useDailyGoalsStore();
-  const { isDarkMode, toggleTheme, themeMode, setThemeMode } = useThemeStore();
+  const {
+    isDarkMode: storeIsDarkMode,
+    toggleTheme,
+    themeMode,
+    setThemeMode,
+  } = useThemeStore();
   const systemColorScheme = useColorScheme();
+  const { colors, isDarkMode } = useTheme();
+
+  // Hatırlatıcı durumu için state
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Sayfa yüklendiğinde ayarları getir
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const reminderEnabled =
+          await AsyncStorage.getItem(REMINDER_ENABLED_KEY);
+        setRemindersEnabled(reminderEnabled === "true");
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Ayarlar yüklenirken hata oluştu:", error);
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   // Update isDarkMode based on system preference when using system theme
   useEffect(() => {
@@ -39,6 +186,58 @@ export const SettingsScreen: React.FC = () => {
       useThemeStore.getState().setIsDarkMode(systemColorScheme === "dark");
     }
   }, [systemColorScheme, themeMode]);
+
+  // Hatırlatıcı ayarlarını değiştirme işlevi
+  const toggleReminders = async (value: boolean) => {
+    try {
+      setRemindersEnabled(value);
+      await AsyncStorage.setItem(REMINDER_ENABLED_KEY, value.toString());
+
+      if (value) {
+        // Bildirim izinleri iste
+        const hasPermission = await NotificationService.requestPermissions();
+
+        if (hasPermission) {
+          // Günlük hatırlatıcı kur (akşam 8)
+          await NotificationService.scheduleDailyReminder(
+            "Günlük Hedeflerinizi Kontrol Edin",
+            "Bugünkü hedeflerinizi tamamladınız mı?",
+            20, // Saat (24 saat formatında)
+            0, // Dakika
+            { screen: "index" } // Bildirime tıklandığında hangi ekrana gidileceği
+          );
+
+          Alert.alert(
+            "Hatırlatıcılar Açıldı",
+            "Her gün akşam 8'de günlük hedeflerinizi kontrol etmeniz için size bildirim göndereceğiz."
+          );
+        } else {
+          // İzin verilmediğinde hatırlatıcıları kapatın
+          setRemindersEnabled(false);
+          await AsyncStorage.setItem(REMINDER_ENABLED_KEY, "false");
+
+          Alert.alert(
+            "Bildirim İzni Gerekli",
+            "Hatırlatıcıları kullanabilmek için bildirim izinlerini etkinleştirmeniz gerekiyor.",
+            [{ text: "Tamam" }]
+          );
+        }
+      } else {
+        // Tüm bildirimleri iptal et
+        await NotificationService.cancelAllNotifications();
+        Alert.alert(
+          "Hatırlatıcılar Kapatıldı",
+          "Artık bildirim almayacaksınız."
+        );
+      }
+    } catch (error) {
+      console.error("Hatırlatıcı ayarları kaydedilirken hata oluştu:", error);
+      Alert.alert(
+        "Hata",
+        "Hatırlatıcı ayarları kaydedilirken bir hata oluştu."
+      );
+    }
+  };
 
   const handleResetGoals = () => {
     Alert.alert(
@@ -78,12 +277,6 @@ export const SettingsScreen: React.FC = () => {
     router.push("/privacy-policy");
   };
 
-  // Get dynamic styles based on the current theme
-  const styles = getStyles(isDarkMode);
-
-  // Get the chevron color based on the theme
-  const chevronColor = isDarkMode ? "#FFFFFF40" : "#00000040";
-
   // Theme selection handler
   const handleThemeChange = (mode: "light" | "dark" | "system") => {
     setThemeMode(mode);
@@ -94,44 +287,63 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
+  // Theme handling
+  const handleNavigateToThemeSettings = () => {
+    router.push("/theme-settings");
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
-        <Text style={styles.subtitle}>Customize your experience</Text>
+    <SafeAreaView style={[{ flex: 1, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+        <Text style={[styles.subtitle, { color: colors.subText }]}>
+          Customize your experience
+        </Text>
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Preferences
+          </Text>
 
-          <View style={styles.themeSectionContainer}>
-            <Text style={styles.themeLabel}>Theme Mode</Text>
+          <View
+            style={[
+              styles.themeSectionContainer,
+              { backgroundColor: colors.card },
+            ]}
+          >
+            <Text style={[styles.themeLabel, { color: colors.text }]}>
+              Theme Mode
+            </Text>
 
             <View style={styles.themeOptionsContainer}>
               <TouchableOpacity
                 style={[
                   styles.themeOption,
-                  themeMode === "light" && styles.themeOptionSelected,
+                  { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                  themeMode === "light" && {
+                    backgroundColor: isDarkMode ? "#4A4A4A" : "#EFEFF7",
+                    borderWidth: 1,
+                    borderColor: colors.primary,
+                  },
                 ]}
                 onPress={() => handleThemeChange("light")}
               >
                 <View style={styles.themeIconContainer}>
                   <Sun
                     size={24}
-                    color={
-                      themeMode === "light"
-                        ? "#6366F1"
-                        : isDarkMode
-                          ? "#FFFFFF"
-                          : "#000000"
-                    }
+                    color={themeMode === "light" ? colors.primary : colors.text}
                   />
                 </View>
                 <Text
                   style={[
                     styles.themeText,
-                    themeMode === "light" && styles.themeTextSelected,
+                    { color: colors.text },
+                    themeMode === "light" && {
+                      color: colors.primary,
+                      fontWeight: "600",
+                    },
                   ]}
                 >
                   Light
@@ -141,26 +353,29 @@ export const SettingsScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.themeOption,
-                  themeMode === "dark" && styles.themeOptionSelected,
+                  { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                  themeMode === "dark" && {
+                    backgroundColor: isDarkMode ? "#4A4A4A" : "#EFEFF7",
+                    borderWidth: 1,
+                    borderColor: colors.primary,
+                  },
                 ]}
                 onPress={() => handleThemeChange("dark")}
               >
                 <View style={styles.themeIconContainer}>
                   <Moon
                     size={24}
-                    color={
-                      themeMode === "dark"
-                        ? "#6366F1"
-                        : isDarkMode
-                          ? "#FFFFFF"
-                          : "#000000"
-                    }
+                    color={themeMode === "dark" ? colors.primary : colors.text}
                   />
                 </View>
                 <Text
                   style={[
                     styles.themeText,
-                    themeMode === "dark" && styles.themeTextSelected,
+                    { color: colors.text },
+                    themeMode === "dark" && {
+                      color: colors.primary,
+                      fontWeight: "600",
+                    },
                   ]}
                 >
                   Dark
@@ -170,7 +385,12 @@ export const SettingsScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.themeOption,
-                  themeMode === "system" && styles.themeOptionSelected,
+                  { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                  themeMode === "system" && {
+                    backgroundColor: isDarkMode ? "#4A4A4A" : "#EFEFF7",
+                    borderWidth: 1,
+                    borderColor: colors.primary,
+                  },
                 ]}
                 onPress={() => handleThemeChange("system")}
               >
@@ -178,18 +398,18 @@ export const SettingsScreen: React.FC = () => {
                   <Smartphone
                     size={24}
                     color={
-                      themeMode === "system"
-                        ? "#6366F1"
-                        : isDarkMode
-                          ? "#FFFFFF"
-                          : "#000000"
+                      themeMode === "system" ? colors.primary : colors.text
                     }
                   />
                 </View>
                 <Text
                   style={[
                     styles.themeText,
-                    themeMode === "system" && styles.themeTextSelected,
+                    { color: colors.text },
+                    themeMode === "system" && {
+                      color: colors.primary,
+                      fontWeight: "600",
+                    },
                   ]}
                 >
                   System
@@ -198,199 +418,172 @@ export const SettingsScreen: React.FC = () => {
             </View>
           </View>
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingIconContainer}>
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
+            onPress={handleNavigateToThemeSettings}
+          >
+            <View
+              style={[
+                styles.settingIconContainer,
+                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+              ]}
+            >
+              <Palette size={20} color="#8B5CF6" />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                Theme Colors
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.subText }]}
+              >
+                Customize app colors and themes
+              </Text>
+            </View>
+            <ChevronRight size={20} color={colors.subText} />
+          </TouchableOpacity>
+
+          <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
+            <View
+              style={[
+                styles.settingIconContainer,
+                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+              ]}
+            >
               <Bell size={20} color="#EC4899" />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Reminders</Text>
-              <Text style={styles.settingDescription}>
-                Coming in the next update
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                Daily Reminders
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.subText }]}
+              >
+                Get reminded of your goals at 8 PM
               </Text>
             </View>
-            <Switch disabled={true} value={false} />
+            <Switch
+              disabled={isLoading}
+              value={remindersEnabled}
+              onValueChange={toggleReminders}
+              trackColor={{ false: "#767577", true: colors.primary }}
+              thumbColor={remindersEnabled ? "#FFFFFF" : "#f4f3f4"}
+            />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Data
+          </Text>
 
           <TouchableOpacity
-            style={styles.settingItem}
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
             onPress={handleResetGoals}
           >
-            <View style={styles.settingIconContainer}>
+            <View
+              style={[
+                styles.settingIconContainer,
+                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+              ]}
+            >
               <RefreshCw size={20} color="#F59E0B" />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Reset All Goals</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                Reset All Goals
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.subText }]}
+              >
                 Clear all your current goals
               </Text>
             </View>
-            <ChevronRight size={20} color={chevronColor} />
+            <ChevronRight size={20} color={colors.subText} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            About
+          </Text>
 
-          <TouchableOpacity style={styles.settingItem} onPress={handleRateApp}>
-            <View style={styles.settingIconContainer}>
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
+            onPress={handleRateApp}
+          >
+            <View
+              style={[
+                styles.settingIconContainer,
+                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+              ]}
+            >
               <Star size={20} color="#F59E0B" />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Rate FocusTabs</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                Rate FocusTabs
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.subText }]}
+              >
                 Support us with a rating
               </Text>
             </View>
-            <ChevronRight size={20} color={chevronColor} />
+            <ChevronRight size={20} color={colors.subText} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.settingItem}
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
             onPress={handleNavigateToAbout}
           >
-            <View style={styles.settingIconContainer}>
+            <View
+              style={[
+                styles.settingIconContainer,
+                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+              ]}
+            >
               <Info size={20} color="#6366F1" />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>About</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                About
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.subText }]}
+              >
                 Version and app information
               </Text>
             </View>
-            <ChevronRight size={20} color={chevronColor} />
+            <ChevronRight size={20} color={colors.subText} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.settingItem}
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
             onPress={handleNavigateToPrivacyPolicy}
           >
-            <View style={styles.settingIconContainer}>
+            <View
+              style={[
+                styles.settingIconContainer,
+                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+              ]}
+            >
               <Shield size={20} color="#10B981" />
             </View>
             <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Privacy Policy</Text>
-              <Text style={styles.settingDescription}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                Privacy Policy
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.subText }]}
+              >
                 How we handle your data
               </Text>
             </View>
-            <ChevronRight size={20} color={chevronColor} />
+            <ChevronRight size={20} color={colors.subText} />
           </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
-
-const getStyles = (isDark: boolean) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: isDark ? "#121212" : "#FFFFFF",
-    },
-    header: {
-      paddingHorizontal: 16,
-      paddingTop: 16,
-      paddingBottom: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? "#2A2A2A" : "#F5F5F7",
-    },
-    title: {
-      fontSize: 28,
-      fontWeight: "700",
-      color: isDark ? "#FFFFFF" : "#000000",
-      marginBottom: 4,
-    },
-    subtitle: {
-      fontSize: 16,
-      color: isDark ? "#FFFFFF80" : "#00000080",
-    },
-    scrollView: {
-      flex: 1,
-    },
-    section: {
-      marginTop: 24,
-      paddingHorizontal: 16,
-      marginBottom: 24,
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: isDark ? "#FFFFFF" : "#000000",
-      marginBottom: 16,
-    },
-    settingItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: isDark ? "#2A2A2A" : "#F5F5F7",
-      padding: 16,
-      borderRadius: 12,
-      marginBottom: 12,
-    },
-    settingIconContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: isDark ? "#3A3A3A" : "#FFFFFF",
-      justifyContent: "center",
-      alignItems: "center",
-      marginRight: 16,
-    },
-    settingContent: {
-      flex: 1,
-    },
-    settingLabel: {
-      fontSize: 16,
-      fontWeight: "500",
-      color: isDark ? "#FFFFFF" : "#000000",
-      marginBottom: 2,
-    },
-    settingDescription: {
-      fontSize: 14,
-      color: isDark ? "#FFFFFF80" : "#00000080",
-    },
-    // Theme selector styles
-    themeSectionContainer: {
-      backgroundColor: isDark ? "#2A2A2A" : "#F5F5F7",
-      padding: 16,
-      borderRadius: 12,
-      marginBottom: 12,
-    },
-    themeLabel: {
-      fontSize: 16,
-      fontWeight: "500",
-      color: isDark ? "#FFFFFF" : "#000000",
-      marginBottom: 16,
-    },
-    themeOptionsContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-    themeOption: {
-      flex: 1,
-      alignItems: "center",
-      backgroundColor: isDark ? "#3A3A3A" : "#FFFFFF",
-      padding: 12,
-      borderRadius: 8,
-      marginHorizontal: 4,
-    },
-    themeOptionSelected: {
-      backgroundColor: isDark ? "#4A4A4A" : "#EFEFF7",
-      borderWidth: 1,
-      borderColor: "#6366F1",
-    },
-    themeIconContainer: {
-      marginBottom: 8,
-    },
-    themeText: {
-      fontSize: 14,
-      color: isDark ? "#FFFFFF" : "#000000",
-    },
-    themeTextSelected: {
-      color: "#6366F1",
-      fontWeight: "600",
-    },
-  });

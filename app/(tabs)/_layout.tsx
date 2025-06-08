@@ -1,9 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { useColorScheme } from "react-native";
-import { Home, BarChart2, Settings } from "lucide-react-native";
-import { useThemeStore } from "../../src/store/themeStore";
-import Colors from "../../constants/Colors";
+import { Home, BarChart2, Settings, Calendar } from "lucide-react-native";
+import { useTheme } from "../../src/components/ThemeProvider";
 
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
@@ -13,29 +11,22 @@ function TabBarIcon(props: { color: string }) {
 }
 
 export default function TabLayout() {
-  const systemColorScheme = useColorScheme();
-  const { themeMode, isDarkMode } = useThemeStore();
-
-  // Determine if we should use dark mode
-  const useDarkMode =
-    themeMode === "dark" ||
-    (themeMode === "system" && systemColorScheme === "dark") ||
-    isDarkMode;
-
-  // Use the appropriate color scheme
-  const effectiveColorScheme = useDarkMode ? "dark" : "light";
+  // Tema renklerine erişim
+  const { colors, isDarkMode } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[effectiveColorScheme].tint,
+        tabBarActiveTintColor: colors.primary,
         headerShown: false,
         tabBarStyle: {
           height: 60,
           paddingBottom: 10,
           paddingTop: 10,
-          backgroundColor: Colors[effectiveColorScheme].background,
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
         },
+        tabBarInactiveTintColor: colors.subText,
       }}
     >
       <Tabs.Screen
@@ -43,6 +34,13 @@ export default function TabLayout() {
         options={{
           title: "Goals",
           tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: "Calendar",
+          tabBarIcon: ({ color }) => <Calendar size={24} color={color} />,
         }}
       />
       <Tabs.Screen

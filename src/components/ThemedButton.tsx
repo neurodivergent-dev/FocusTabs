@@ -1,0 +1,125 @@
+import React from "react";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
+import { useTheme } from "./ThemeProvider";
+
+interface ThemedButtonProps {
+  title: string;
+  onPress: () => void;
+  variant?: "primary" | "secondary" | "outline" | "danger";
+  disabled?: boolean;
+  loading?: boolean;
+  style?: ViewStyle;
+  textStyle?: TextStyle;
+  icon?: React.ReactNode;
+}
+
+export const ThemedButton: React.FC<ThemedButtonProps> = ({
+  title,
+  onPress,
+  variant = "primary",
+  disabled = false,
+  loading = false,
+  style,
+  textStyle,
+  icon,
+}) => {
+  const { colors, isDarkMode } = useTheme();
+
+  // Varyant renkleri belirle
+  const getVariantStyles = () => {
+    switch (variant) {
+      case "primary":
+        return {
+          backgroundColor: colors.primary,
+          borderColor: colors.primary,
+          textColor: "#FFFFFF",
+        };
+      case "secondary":
+        return {
+          backgroundColor: colors.secondary,
+          borderColor: colors.secondary,
+          textColor: "#FFFFFF",
+        };
+      case "outline":
+        return {
+          backgroundColor: "transparent",
+          borderColor: colors.primary,
+          textColor: colors.primary,
+        };
+      case "danger":
+        return {
+          backgroundColor: colors.error,
+          borderColor: colors.error,
+          textColor: "#FFFFFF",
+        };
+      default:
+        return {
+          backgroundColor: colors.primary,
+          borderColor: colors.primary,
+          textColor: "#FFFFFF",
+        };
+    }
+  };
+
+  const variantStyles = getVariantStyles();
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.button,
+        {
+          backgroundColor: variantStyles.backgroundColor,
+          borderColor: variantStyles.borderColor,
+          opacity: disabled ? 0.6 : 1,
+        },
+        style,
+      ]}
+      onPress={onPress}
+      disabled={disabled || loading}
+      activeOpacity={0.8}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color="#FFFFFF" />
+      ) : (
+        <>
+          {icon && icon}
+          <Text
+            style={[
+              styles.text,
+              { color: variantStyles.textColor, marginLeft: icon ? 8 : 0 },
+              textStyle,
+            ]}
+          >
+            {title}
+          </Text>
+        </>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+const styles = StyleSheet.create({
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+  },
+  text: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+});
+
+export default ThemedButton;

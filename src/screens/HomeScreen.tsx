@@ -13,25 +13,14 @@ import { useDailyReset } from "../hooks/useDailyReset";
 import { GoalCard } from "../components/GoalCard";
 import { AddGoalForm } from "../components/AddGoalForm";
 import { EmptyState } from "../components/EmptyState";
-import { useThemeStore } from "../store/themeStore";
-import Colors from "../../constants/Colors";
+import { useTheme } from "../components/ThemeProvider";
 
 export const HomeScreen: React.FC = () => {
   // Use our daily reset hook to check for day changes
   useDailyReset();
 
-  // Get theme information
-  const { themeMode, isDarkMode } = useThemeStore();
-  const systemColorScheme = useColorScheme();
-
-  // Determine if we should use dark mode
-  const useDarkMode =
-    themeMode === "dark" ||
-    (themeMode === "system" && systemColorScheme === "dark") ||
-    isDarkMode;
-
-  // Get theme colors
-  const themeColors = Colors[useDarkMode ? "dark" : "light"];
+  // Tema renklerine erişim
+  const { colors, isDarkMode } = useTheme();
 
   // Get goals and actions from our store
   const {
@@ -62,52 +51,33 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: themeColors.background }]}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
       <StatusBar
-        barStyle={useDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={themeColors.background}
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
       />
 
-      <View
-        style={[
-          styles.header,
-          { borderBottomColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-        ]}
-      >
-        <Text style={[styles.title, { color: themeColors.text }]}>
-          FocusTabs
-        </Text>
-        <Text
-          style={[
-            styles.subtitle,
-            { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-          ]}
-        >
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>FocusTabs</Text>
+        <Text style={[styles.subtitle, { color: colors.subText }]}>
           Your Mind in 3 Steps
         </Text>
 
         {totalGoals > 0 && (
           <View style={styles.progressContainer}>
-            <Text
-              style={[
-                styles.progressText,
-                { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-              ]}
-            >
+            <Text style={[styles.progressText, { color: colors.subText }]}>
               {completedCount}/{totalGoals} Completed
             </Text>
             <View
-              style={[
-                styles.progressBar,
-                { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-              ]}
+              style={[styles.progressBar, { backgroundColor: colors.card }]}
             >
               <View
                 style={[
                   styles.progressFill,
                   {
                     width: `${totalGoals > 0 ? (completedCount / totalGoals) * 100 : 0}%`,
+                    backgroundColor: colors.primary,
                   },
                 ]}
               />
@@ -140,12 +110,7 @@ export const HomeScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      <View
-        style={[
-          styles.footer,
-          { borderTopColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-        ]}
-      >
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
         <AddGoalForm
           onAddGoal={handleAddGoal}
           disabled={hasReachedMaxGoals()}

@@ -6,9 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
 } from "react-native";
-import { useThemeStore } from "../store/themeStore";
 import {
   ChevronLeft,
   Shield,
@@ -17,17 +15,11 @@ import {
   CheckCircle,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useTheme } from "../components/ThemeProvider";
 
 export const PrivacyPolicyScreen: React.FC = () => {
   const router = useRouter();
-  const { themeMode, isDarkMode } = useThemeStore();
-  const systemColorScheme = useColorScheme();
-
-  // Determine if we should use dark mode
-  const useDarkMode =
-    themeMode === "dark" ||
-    (themeMode === "system" && systemColorScheme === "dark") ||
-    isDarkMode;
+  const { colors, isDarkMode } = useTheme();
 
   const handleBack = () => {
     router.back();
@@ -35,35 +27,17 @@ export const PrivacyPolicyScreen: React.FC = () => {
 
   return (
     <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: useDarkMode ? "#121212" : "#FFFFFF" },
-      ]}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View
-        style={[
-          styles.header,
-          { borderBottomColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-        ]}
-      >
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ChevronLeft size={24} color={useDarkMode ? "#FFFFFF" : "#000000"} />
-          <Text
-            style={[
-              styles.backText,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+          <ChevronLeft size={24} color={colors.text} />
+          <Text style={[styles.backText, { color: colors.text }]}>
             Settings
           </Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text
-            style={[
-              styles.title,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+          <Text style={[styles.title, { color: colors.text }]}>
             Privacy Policy
           </Text>
         </View>
@@ -76,89 +50,54 @@ export const PrivacyPolicyScreen: React.FC = () => {
       >
         <View style={styles.iconContainer}>
           <View
-            style={[
-              styles.iconBackground,
-              { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-            ]}
+            style={[styles.iconBackground, { backgroundColor: colors.card }]}
           >
-            <Shield size={40} color="#10B981" />
+            <Shield size={40} color={colors.success} />
           </View>
         </View>
 
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Our Privacy Commitment
           </Text>
-          <Text
-            style={[
-              styles.paragraph,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+          <Text style={[styles.paragraph, { color: colors.text }]}>
             FocusTabs is engineered with a privacy-first approach. We believe
             your personal data belongs to you, which is why we've designed our
             app to respect your privacy completely.
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Data Collection
           </Text>
           <View style={styles.policyItem}>
-            <Eye size={20} color="#6366F1" style={styles.policyIcon} />
-            <Text
-              style={[
-                styles.policyText,
-                { color: useDarkMode ? "#FFFFFF" : "#000000" },
-              ]}
-            >
+            <Eye size={20} color={colors.primary} style={styles.policyIcon} />
+            <Text style={[styles.policyText, { color: colors.text }]}>
               <Text style={styles.bold}>Zero Data Collection: </Text>
               The application operates entirely offline with absolutely no data
               collection mechanisms.
             </Text>
           </View>
           <View style={styles.policyItem}>
-            <Lock size={20} color="#EC4899" style={styles.policyIcon} />
-            <Text
-              style={[
-                styles.policyText,
-                { color: useDarkMode ? "#FFFFFF" : "#000000" },
-              ]}
-            >
+            <Lock
+              size={20}
+              color={colors.secondary}
+              style={styles.policyIcon}
+            />
+            <Text style={[styles.policyText, { color: colors.text }]}>
               <Text style={styles.bold}>Local Storage Only: </Text>
               All your goal information and settings are stored locally on your
               device and never transmitted elsewhere.
             </Text>
           </View>
           <View style={styles.policyItem}>
-            <CheckCircle size={20} color="#F59E0B" style={styles.policyIcon} />
-            <Text
-              style={[
-                styles.policyText,
-                { color: useDarkMode ? "#FFFFFF" : "#000000" },
-              ]}
-            >
+            <CheckCircle
+              size={20}
+              color={colors.warning}
+              style={styles.policyIcon}
+            />
+            <Text style={[styles.policyText, { color: colors.text }]}>
               <Text style={styles.bold}>No Third-Party Analytics: </Text>
               We don't use any third-party analytics or tracking tools in our
               application.
@@ -166,98 +105,43 @@ export const PrivacyPolicyScreen: React.FC = () => {
           </View>
         </View>
 
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Data Security
           </Text>
-          <Text
-            style={[
-              styles.paragraph,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+          <Text style={[styles.paragraph, { color: colors.text }]}>
             All user information is securely stored locally on your device using
             SQLite. We follow industry best practices for local data security to
             ensure your information remains private.
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Your Rights
           </Text>
-          <Text
-            style={[
-              styles.paragraph,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+          <Text style={[styles.paragraph, { color: colors.text }]}>
             Since all data is stored locally on your device, you maintain
             complete control over your information. You can delete the app at
             any time to remove all associated data.
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Policy Updates
           </Text>
-          <Text
-            style={[
-              styles.paragraph,
-              { color: useDarkMode ? "#FFFFFF" : "#000000" },
-            ]}
-          >
+          <Text style={[styles.paragraph, { color: colors.text }]}>
             We may update this privacy policy from time to time. When we do, we
             will revise the "last updated" date at the bottom of this page.
           </Text>
         </View>
 
         <View style={styles.footer}>
-          <Text
-            style={[
-              styles.footerText,
-              { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-            ]}
-          >
-            Last updated: June 2025
+          <Text style={[styles.footerText, { color: colors.subText }]}>
+            Last Updated: June 2023
           </Text>
-          <Text
-            style={[
-              styles.footerText,
-              { color: useDarkMode ? "#FFFFFF80" : "#00000080" },
-            ]}
-          >
+          <Text style={[styles.footerText, { color: colors.subText }]}>
             © 2025 Melih Can Demir. All rights reserved.
           </Text>
         </View>

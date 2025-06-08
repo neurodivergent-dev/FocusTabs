@@ -12,4 +12,11 @@ export interface GoalsState {
   goals: Goal[];
   loading: boolean;
   error: string | null;
+}
+
+export interface DailyCompletion {
+  date: string; // YYYY-MM-DD formatında
+  completedCount: number;
+  totalCount: number;
+  percentage: number;
 } 

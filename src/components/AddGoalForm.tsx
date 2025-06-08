@@ -8,12 +8,10 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  useColorScheme,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Plus, X } from "lucide-react-native";
-import { useThemeStore } from "../store/themeStore";
-import Colors from "../../constants/Colors";
+import { useTheme } from "./ThemeProvider";
 
 interface AddGoalFormProps {
   onAddGoal: (text: string) => void;
@@ -27,18 +25,8 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
   const [text, setText] = useState<string>("");
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
-  // Get theme information
-  const { themeMode, isDarkMode } = useThemeStore();
-  const systemColorScheme = useColorScheme();
-
-  // Determine if we should use dark mode
-  const useDarkMode =
-    themeMode === "dark" ||
-    (themeMode === "system" && systemColorScheme === "dark") ||
-    isDarkMode;
-
-  // Get theme colors
-  const themeColors = Colors[useDarkMode ? "dark" : "light"];
+  // Tema renklerine erişim
+  const { colors, isDarkMode } = useTheme();
 
   const handleAddPress = () => {
     if (!isExpanded) {
@@ -70,16 +58,11 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
     >
       <View style={styles.container}>
         {isExpanded ? (
-          <View
-            style={[
-              styles.expandedForm,
-              { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
-            ]}
-          >
+          <View style={[styles.expandedForm, { backgroundColor: colors.card }]}>
             <TextInput
-              style={[styles.input, { color: themeColors.text }]}
+              style={[styles.input, { color: colors.text }]}
               placeholder="What's your goal for today?"
-              placeholderTextColor={useDarkMode ? "#FFFFFF50" : "#00000050"}
+              placeholderTextColor={colors.subText}
               value={text}
               onChangeText={setText}
               multiline
@@ -91,22 +74,19 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
                 style={styles.cancelButton}
                 onPress={handleCancel}
               >
-                <X color={themeColors.text} size={20} />
+                <X color={colors.text} size={20} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.addButton,
-                  { backgroundColor: useDarkMode ? "#FFFFFF" : "#000000" },
+                  { backgroundColor: colors.primary },
                   (text.trim() === "" || disabled) && styles.disabledButton,
                 ]}
                 onPress={handleAddPress}
                 disabled={text.trim() === "" || disabled}
               >
                 <Text
-                  style={[
-                    styles.addButtonText,
-                    { color: useDarkMode ? "#000000" : "#FFFFFF" },
-                  ]}
+                  style={[styles.addButtonText, { color: colors.buttonText }]}
                 >
                   Add Goal
                 </Text>
@@ -117,27 +97,18 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
           <TouchableOpacity
             style={[
               styles.addButtonCollapsed,
-              { backgroundColor: useDarkMode ? "#2A2A2A" : "#F5F5F7" },
+              { backgroundColor: colors.card },
               disabled && styles.disabledButton,
             ]}
             onPress={handleAddPress}
             disabled={disabled}
           >
-            <Plus
-              color={
-                disabled
-                  ? useDarkMode
-                    ? "#FFFFFF50"
-                    : "#00000050"
-                  : themeColors.text
-              }
-              size={24}
-            />
+            <Plus color={disabled ? colors.subText : colors.text} size={24} />
             <Text
               style={[
                 styles.addButtonCollapsedText,
-                { color: themeColors.text },
-                disabled && { color: useDarkMode ? "#FFFFFF50" : "#00000050" },
+                { color: colors.text },
+                disabled && { color: colors.subText },
               ]}
             >
               {disabled ? "Max Goals Reached" : "Add Goal"}

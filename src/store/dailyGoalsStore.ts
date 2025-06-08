@@ -1,14 +1,22 @@
 import { create } from 'zustand';
-import { Goal, GoalInput, GoalsState } from '../types/goal';
+import { Goal, GoalInput, GoalsState, DailyCompletion } from '../types/goal';
 import { 
   addGoal as dbAddGoal, 
   getGoals as dbGetGoals, 
   updateGoal as dbUpdateGoal, 
   deleteGoal as dbDeleteGoal,
-  clearGoals as dbClearGoals
+  clearGoals as dbClearGoals,
+  getAllCompletions as dbGetAllCompletions,
+  getCompletionsByDateRange as dbGetCompletionsByDateRange,
+  updateDailyCompletionStats as dbUpdateDailyCompletionStats
 } from '../lib/database';
 
 interface DailyGoalsStore extends GoalsState {
+  // Calendar/tracking state
+  completionData: DailyCompletion[];
+  calendarLoading: boolean;
+  calendarError: string | null;
+
   // Actions
   fetchGoals: () => Promise<void>;
   addGoal: (goalInput: GoalInput) => Promise<void>;
@@ -17,10 +25,16 @@ interface DailyGoalsStore extends GoalsState {
   deleteGoal: (id: string) => Promise<void>;
   clearGoals: () => Promise<void>;
   
+  // Calendar functions
+  fetchAllCompletions: () => Promise<void>;
+  fetchCompletionsForRange: (startDate: Date, endDate: Date) => Promise<void>;
+  updateDailyStats: () => Promise<void>;
+  
   // Getters
   hasReachedMaxGoals: () => boolean;
   getCompletedGoalsCount: () => number;
   getActiveGoalsCount: () => number;
+  getCompletionPercentageForDate: (date: string) => number;
 }
 
 /**
@@ -32,6 +46,11 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   goals: [],
   loading: false,
   error: null,
+  
+  // Calendar/tracking state
+  completionData: [],
+  calendarLoading: false,
+  calendarError: null,
   
   // Fetch all goals from the database
   fetchGoals: async () => {
@@ -62,6 +81,9 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
         goals: [newGoal, ...state.goals],
         loading: false
       }));
+      
+      // Fetch updated completion data
+      get().fetchAllCompletions();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to add goal', 
@@ -81,6 +103,9 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
         ),
         loading: false
       }));
+      
+      // Fetch updated completion data
+      get().fetchAllCompletions();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to update goal', 
@@ -117,6 +142,9 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
         goals: state.goals.filter((goal) => goal.id !== id),
         loading: false
       }));
+      
+      // Fetch updated completion data
+      get().fetchAllCompletions();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to delete goal', 
@@ -131,11 +159,53 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
     try {
       await dbClearGoals();
       set({ goals: [], loading: false });
+      
+      // Fetch updated completion data
+      get().fetchAllCompletions();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to clear goals', 
         loading: false 
       });
+    }
+  },
+  
+  // Fetch all completion data
+  fetchAllCompletions: async () => {
+    set({ calendarLoading: true, calendarError: null });
+    try {
+      const completionData = await dbGetAllCompletions();
+      set({ completionData, calendarLoading: false });
+    } catch (error) {
+      set({
+        calendarError: error instanceof Error ? error.message : 'Failed to fetch completion data',
+        calendarLoading: false
+      });
+    }
+  },
+  
+  // Fetch completion data for a date range
+  fetchCompletionsForRange: async (startDate: Date, endDate: Date) => {
+    set({ calendarLoading: true, calendarError: null });
+    try {
+      const completionData = await dbGetCompletionsByDateRange(startDate, endDate);
+      set({ completionData, calendarLoading: false });
+    } catch (error) {
+      set({
+        calendarError: error instanceof Error ? error.message : 'Failed to fetch completion data',
+        calendarLoading: false
+      });
+    }
+  },
+  
+  // Update daily statistics
+  updateDailyStats: async () => {
+    try {
+      await dbUpdateDailyCompletionStats();
+      // Fetch updated completion data
+      get().fetchAllCompletions();
+    } catch (error) {
+      console.error('Error updating daily stats:', error);
     }
   },
   
@@ -152,5 +222,11 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   // Get the number of active (uncompleted) goals
   getActiveGoalsCount: () => {
     return get().goals.filter((goal) => !goal.completed).length;
+  },
+  
+  // Get completion percentage for a specific date
+  getCompletionPercentageForDate: (date: string) => {
+    const completionRecord = get().completionData.find(item => item.date === date);
+    return completionRecord ? completionRecord.percentage : 0;
   }
 })); 
