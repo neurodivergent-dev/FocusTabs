@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   StatusBar,
-  useColorScheme,
 } from "react-native";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useDailyReset } from "../hooks/useDailyReset";
@@ -14,19 +13,21 @@ import { GoalCard } from "../components/GoalCard";
 import { AddGoalForm } from "../components/AddGoalForm";
 import { EmptyState } from "../components/EmptyState";
 import { useTheme } from "../components/ThemeProvider";
+import { useTranslation } from "react-i18next";
 
 export const HomeScreen: React.FC = () => {
   // Use our daily reset hook to check for day changes
   useDailyReset();
 
-  // Tema renklerine erişim
+  // Theme colors
   const { colors, isDarkMode } = useTheme();
+
+  // Translation hook
+  const { t } = useTranslation();
 
   // Get goals and actions from our store
   const {
     goals,
-    loading,
-    error,
     fetchGoals,
     addGoal,
     toggleGoalCompletion,
@@ -36,18 +37,39 @@ export const HomeScreen: React.FC = () => {
     getCompletedGoalsCount,
   } = useDailyGoalsStore();
 
-  // Fetch goals on component mount
+  // Fetch goals on component mount and whenever dependencies change
   useEffect(() => {
+    // console.log("HomeScreen: Fetching goals...");
     fetchGoals();
+
+    // Add interval to refresh goals every 2 seconds (for debugging)
+    const interval = setInterval(() => {
+      // console.log("HomeScreen: Auto-refreshing goals...");
+      fetchGoals();
+    }, 2000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, [fetchGoals]);
+
+  // Filter goals to show only today's goals (both active and completed)
+  const todayGoals = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const filtered = goals.filter((goal) => goal.date === today);
+    // console.log(
+    //   `HomeScreen: Filtered today's goals: ${filtered.length}`,
+    //   filtered
+    // );
+    return filtered;
+  }, [goals]);
 
   // Handle adding a new goal
   const handleAddGoal = (text: string) => {
+    // console.log("HomeScreen: Adding new goal:", text);
     addGoal({ text });
   };
 
   const completedCount = getCompletedGoalsCount();
-  const totalGoals = goals.length;
 
   return (
     <SafeAreaView
@@ -59,15 +81,17 @@ export const HomeScreen: React.FC = () => {
       />
 
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>FocusTabs</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {t("app.name")}
+        </Text>
         <Text style={[styles.subtitle, { color: colors.subText }]}>
-          Your Mind in 3 Steps
+          {t("app.slogan")}
         </Text>
 
-        {totalGoals > 0 && (
+        {todayGoals.length > 0 && (
           <View style={styles.progressContainer}>
             <Text style={[styles.progressText, { color: colors.subText }]}>
-              {completedCount}/{totalGoals} Completed
+              {completedCount}/{todayGoals.length} {t("home.completed")}
             </Text>
             <View
               style={[styles.progressBar, { backgroundColor: colors.card }]}
@@ -76,7 +100,7 @@ export const HomeScreen: React.FC = () => {
                 style={[
                   styles.progressFill,
                   {
-                    width: `${totalGoals > 0 ? (completedCount / totalGoals) * 100 : 0}%`,
+                    width: `${todayGoals.length > 0 ? (completedCount / todayGoals.length) * 100 : 0}%`,
                     backgroundColor: colors.primary,
                   },
                 ]}
@@ -90,14 +114,14 @@ export const HomeScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          goals.length === 0 && styles.emptyScrollContent,
+          todayGoals.length === 0 && styles.emptyScrollContent,
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {goals.length === 0 ? (
+        {todayGoals.length === 0 ? (
           <EmptyState />
         ) : (
-          goals.map((goal, index) => (
+          todayGoals.map((goal, index) => (
             <GoalCard
               key={goal.id}
               goal={goal}

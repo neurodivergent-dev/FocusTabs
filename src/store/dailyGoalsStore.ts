@@ -8,7 +8,9 @@ import {
   clearGoals as dbClearGoals,
   getAllCompletions as dbGetAllCompletions,
   getCompletionsByDateRange as dbGetCompletionsByDateRange,
-  updateDailyCompletionStats as dbUpdateDailyCompletionStats
+  updateDailyCompletionStats as dbUpdateDailyCompletionStats,
+  getGoalsByDate as dbGetGoalsByDate,
+  resetAndRecalculateAllCompletionStats as dbResetAndRecalculateAllCompletionStats
 } from '../lib/database';
 
 interface DailyGoalsStore extends GoalsState {
@@ -16,6 +18,8 @@ interface DailyGoalsStore extends GoalsState {
   completionData: DailyCompletion[];
   calendarLoading: boolean;
   calendarError: string | null;
+  dateGoals: Goal[]; // Seçilen tarih için görevler
+  dateGoalsLoading: boolean; // Seçilen tarih için görevlerin yükleme durumu
 
   // Actions
   fetchGoals: () => Promise<void>;
@@ -29,12 +33,17 @@ interface DailyGoalsStore extends GoalsState {
   fetchAllCompletions: () => Promise<void>;
   fetchCompletionsForRange: (startDate: Date, endDate: Date) => Promise<void>;
   updateDailyStats: () => Promise<void>;
+  fetchGoalsByDate: (date: string) => Promise<void>; // Belirli bir tarih için görevleri getir
+  resetAndRecalculateAllStats: () => Promise<void>; // Tüm tamamlama istatistiklerini sıfırla ve yeniden hesapla
   
   // Getters
   hasReachedMaxGoals: () => boolean;
   getCompletedGoalsCount: () => number;
   getActiveGoalsCount: () => number;
   getCompletionPercentageForDate: (date: string) => number;
+  
+  // New actions
+  cleanupDuplicateGoals: () => Promise<void>;
 }
 
 /**
@@ -51,13 +60,51 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   completionData: [],
   calendarLoading: false,
   calendarError: null,
+  dateGoals: [],
+  dateGoalsLoading: false,
   
   // Fetch all goals from the database
   fetchGoals: async () => {
     set({ loading: true, error: null });
     try {
       const goals = await dbGetGoals();
-      set({ goals, loading: false });
+      
+      // Çift kayıtları tespit etmek için ID'leri takip et
+      const seenIds = new Set();
+      const uniqueGoals = goals.filter(goal => {
+        // Daha önce bu ID'yi görmediysen, ekle ve true döndür
+        if (!seenIds.has(goal.id)) {
+          seenIds.add(goal.id);
+          return true;
+        }
+        // Bu ID daha önce görüldü, false döndür (filtrele)
+        console.warn(`Çift kayıt tespit edildi, ID: ${goal.id}`);
+        return false;
+      });
+      
+      if (uniqueGoals.length !== goals.length) {
+        console.warn(`${goals.length - uniqueGoals.length} adet çift kayıt temizlendi`);
+      }
+      
+      // No filtering - show all goals including completed ones
+      // Uncomment the code below if you want to filter completed goals again
+      /* 
+      const today = new Date().toISOString().split("T")[0];
+      const activeGoals = goals.filter(goal => {
+        // Keep only today's incomplete goals
+        return goal.date !== today || !goal.completed;
+      });
+      */
+      
+      set({ goals: uniqueGoals, loading: false });
+      
+      // Log the loaded goals for debugging
+      // console.log(`Loaded ${uniqueGoals.length} goals`);
+      
+      // For debugging - log today's goals
+      const today = new Date().toISOString().split("T")[0];
+      const _todayGoals = uniqueGoals.filter(goal => goal.date === today);
+      // console.log(`Today's goals: ${_todayGoals.length}`, _todayGoals);
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to fetch goals', 
@@ -76,15 +123,34 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
     
     set({ loading: true, error: null });
     try {
+      // console.log("dailyGoalsStore: Adding new goal:", goalInput);
       const newGoal = await dbAddGoal(goalInput);
+      // console.log("dailyGoalsStore: New goal added:", newGoal);
+      
+      // Get current goals from state
+      const _currentGoals = get().goals;
+      // console.log("dailyGoalsStore: Current goals before update:", _currentGoals.length);
+      
+      // Update state with new goal
       set((state) => ({ 
         goals: [newGoal, ...state.goals],
         loading: false
       }));
       
+      // Log after update
+      // console.log("dailyGoalsStore: Goals after update:", get().goals.length);
+      
       // Fetch updated completion data
       get().fetchAllCompletions();
+      
+      // Bugünün görevlerini yeniden yükle
+      const today = new Date().toISOString().split("T")[0];
+      get().fetchGoalsByDate(today);
+      
+      // Immediately fetch all goals to refresh the list
+      get().fetchGoals();
     } catch (error) {
+      console.error("dailyGoalsStore: Error adding goal:", error);
       set({ 
         error: error instanceof Error ? error.message : 'Failed to add goal', 
         loading: false 
@@ -106,6 +172,17 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       
       // Fetch updated completion data
       get().fetchAllCompletions();
+      
+      // Bugünün tarihi için görevleri yeniden yükle
+      const today = new Date().toISOString().split("T")[0];
+      get().fetchGoalsByDate(today);
+      
+      // Şu anda görüntülenen tarih bugünden farklıysa ve değiştirilen görev bugüne ait değilse
+      // seçili tarihin görevlerini de güncelle
+      const selectedDate = get().dateGoals.length > 0 ? get().dateGoals[0].date : today;
+      if (selectedDate !== today) {
+        get().fetchGoalsByDate(selectedDate);
+      }
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to update goal', 
@@ -125,6 +202,19 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
         ),
         loading: false
       }));
+      
+      // Takvim verilerini güncelle
+      get().updateDailyStats();
+      
+      // Bugünün tarihi için görevleri yeniden yükle
+      const today = new Date().toISOString().split("T")[0];
+      get().fetchGoalsByDate(today);
+      
+      // Şu anda görüntülenen tarih bugünden farklıysa, seçili tarihin görevlerini de güncelle
+      const selectedDate = get().dateGoals.length > 0 ? get().dateGoals[0].date : today;
+      if (selectedDate !== today) {
+        get().fetchGoalsByDate(selectedDate);
+      }
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to update goal', 
@@ -145,6 +235,16 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       
       // Fetch updated completion data
       get().fetchAllCompletions();
+      
+      // Bugünün tarihi için görevleri yeniden yükle
+      const today = new Date().toISOString().split("T")[0];
+      get().fetchGoalsByDate(today);
+      
+      // Şu anda görüntülenen tarih bugünden farklıysa, seçili tarihin görevlerini de güncelle
+      const selectedDate = get().dateGoals.length > 0 ? get().dateGoals[0].date : today;
+      if (selectedDate !== today) {
+        get().fetchGoalsByDate(selectedDate);
+      }
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to delete goal', 
@@ -162,6 +262,12 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       
       // Fetch updated completion data
       get().fetchAllCompletions();
+      
+      // Bugünün görevlerini sıfırla
+      set({ dateGoals: [] });
+      
+      // Takvim verilerini güncelle
+      get().updateDailyStats();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to clear goals', 
@@ -211,22 +317,113 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   
   // Check if we've reached the maximum of 3 goals
   hasReachedMaxGoals: () => {
-    return get().goals.length >= 3;
+    // Bugünün tarihini al
+    const today = new Date().toISOString().split("T")[0];
+    // Sadece bugünün hedeflerini say
+    const todayGoals = get().goals.filter(goal => goal.date === today);
+    return todayGoals.length >= 3;
   },
   
   // Get the number of completed goals
   getCompletedGoalsCount: () => {
-    return get().goals.filter((goal) => goal.completed).length;
+    // Bugünün tarihini al
+    const today = new Date().toISOString().split("T")[0];
+    // Sadece bugünün tamamlanmış hedeflerini say
+    return get().goals.filter((goal) => goal.date === today && goal.completed).length;
   },
   
   // Get the number of active (uncompleted) goals
   getActiveGoalsCount: () => {
-    return get().goals.filter((goal) => !goal.completed).length;
+    // Bugünün tarihini al
+    const today = new Date().toISOString().split("T")[0];
+    // Sadece bugünün tamamlanmamış hedeflerini say
+    return get().goals.filter((goal) => goal.date === today && !goal.completed).length;
   },
   
   // Get completion percentage for a specific date
   getCompletionPercentageForDate: (date: string) => {
     const completionRecord = get().completionData.find(item => item.date === date);
     return completionRecord ? completionRecord.percentage : 0;
+  },
+  
+  // Fetch goals for a specific date
+  fetchGoalsByDate: async (date: string) => {
+    set({ dateGoalsLoading: true, error: null });
+    try {
+      const goals = await dbGetGoalsByDate(date);
+      set({ dateGoals: goals, dateGoalsLoading: false });
+    } catch (error) {
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to fetch goals for the date', 
+        dateGoalsLoading: false 
+      });
+    }
+  },
+  
+  // Tüm istatistikleri sıfırla ve yeniden hesapla
+  resetAndRecalculateAllStats: async () => {
+    set({ calendarLoading: true, calendarError: null });
+    try {
+      await dbResetAndRecalculateAllCompletionStats();
+      
+      // Tüm tamamlama verilerini yeniden yükle
+      const completionData = await dbGetAllCompletions();
+      set({ completionData, calendarLoading: false });
+      
+      console.log('Tüm tamamlama istatistikleri yeniden hesaplandı ve yüklendi.');
+    } catch (error) {
+      set({
+        calendarError: error instanceof Error ? error.message : 'Failed to recalculate stats',
+        calendarLoading: false
+      });
+      console.error('İstatistikleri yeniden hesaplama hatası:', error);
+    }
+  },
+  
+  // Veritabanındaki çift kayıtları temizle
+  cleanupDuplicateGoals: async () => {
+    set({ loading: true, error: null });
+    try {
+      console.log("Çift kayıtları temizleme başlatıldı...");
+      
+      // Tüm görevleri al
+      const allGoals = await dbGetGoals();
+      
+      // ID'lere göre görevleri grupla
+      const goalsByIds = {};
+      allGoals.forEach(goal => {
+        if (!goalsByIds[goal.id]) {
+          goalsByIds[goal.id] = [];
+        }
+        goalsByIds[goal.id].push(goal);
+      });
+      
+      // Çift kayıtları temizle
+      let deletedCount = 0;
+      for (const id in goalsByIds) {
+        if (goalsByIds[id].length > 1) {
+          // İlkini tut, diğerlerini sil
+          for (let i = 1; i < goalsByIds[id].length; i++) {
+            await dbDeleteGoal(id);
+            deletedCount++;
+          }
+        }
+      }
+      
+      console.log(`Toplam ${deletedCount} adet çift kayıt temizlendi`);
+      
+      // Verileri yeniden yükle
+      await get().fetchGoals();
+      await get().fetchAllCompletions();
+      await get().updateDailyStats();
+      
+      set({ loading: false });
+    } catch (error) {
+      console.error("Çift kayıtları temizlerken hata:", error);
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to cleanup duplicates', 
+        loading: false 
+      });
+    }
   }
 })); 

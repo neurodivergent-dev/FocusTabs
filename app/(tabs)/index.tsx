@@ -7,7 +7,7 @@ import { initDatabase } from "../../src/lib/database";
  * Home tab - displays the main goal management screen
  */
 export default function TabOneScreen() {
-  const [dbInitialized, setDbInitialized] = useState(false);
+  const [_dbInitialized, setDbInitialized] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
 
   // Initialize database on component mount

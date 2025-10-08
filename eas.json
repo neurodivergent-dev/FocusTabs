@@ -1,0 +1,61 @@
+{
+  "cli": {
+    "version": ">= 16.1.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "android": {
+        "gradleCommand": ":app:assembleDebug",
+        "env": {
+          "GRADLE_OPTS": "-Dorg.gradle.jvmargs='-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'"
+        }
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "gradleCommand": ":app:assembleRelease",
+        "buildType": "apk",
+        "env": {
+          "GRADLE_OPTS": "-Dorg.gradle.jvmargs='-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'"
+        }
+      },
+      "env": {
+        "EXPO_PUBLIC_ENV": "preview"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "android": {
+        "gradleCommand": ":app:bundleRelease",
+        "buildType": "app-bundle",
+        "env": {
+          "GRADLE_OPTS": "-Dorg.gradle.jvmargs='-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'"
+        }
+      }
+    },
+    "android-debug": {
+      "distribution": "internal",
+      "channel": "debug",
+      "android": {
+        "gradleCommand": ":app:assembleDebug",
+        "buildType": "apk",
+        "env": {
+          "GRADLE_OPTS": "-Dorg.gradle.jvmargs='-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'"
+        }
+      },
+      "cache": {
+        "key": "android-modules-$(date +%Y-%m-%d)"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

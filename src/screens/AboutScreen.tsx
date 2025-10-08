@@ -5,17 +5,19 @@ import {
   Text,
   SafeAreaView,
   ScrollView,
-  Image,
   TouchableOpacity,
   Linking,
 } from "react-native";
 import { ChevronLeft, Github, Mail, Heart } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
+import { useTranslation } from "react-i18next";
+import FocusTabsLogo from "../../components/LogoComponent";
 
 export const AboutScreen: React.FC = () => {
   const router = useRouter();
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
 
   const handleBack = () => {
     router.back();
@@ -37,11 +39,13 @@ export const AboutScreen: React.FC = () => {
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ChevronLeft size={24} color={colors.text} />
           <Text style={[styles.backText, { color: colors.text }]}>
-            Settings
+            {t("about.back")}
           </Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.text }]}>About</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t("about.title")}
+          </Text>
         </View>
         <View style={styles.rightPlaceholder} />
       </View>
@@ -51,34 +55,30 @@ export const AboutScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.logoContainer}>
-          {/* App icon */}
-          <Image
-            source={require("../../assets/images/icon.png")}
-            style={styles.appIcon}
-            resizeMode="contain"
-          />
+          {/* App SVG Logo */}
+          <View style={styles.logoWrapper}>
+            <FocusTabsLogo size={100} color={colors.primary} />
+          </View>
           <Text style={[styles.appName, { color: colors.text }]}>
-            FocusTabs
+            {t("about.appName")}
           </Text>
           <Text style={[styles.version, { color: colors.subText }]}>
-            Version 1.0.0
+            {t("about.version")} 1.0.0
           </Text>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            About
+            {t("about.title")}
           </Text>
           <Text style={[styles.description, { color: colors.text }]}>
-            A premium minimalist productivity solution designed to enhance focus
-            through simplicity. Our distraction-free environment allows you to
-            prioritize up to three essential daily objectives.
+            {t("about.description")}
           </Text>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Features
+            {t("about.featuresTitle")}
           </Text>
           <View style={styles.featuresList}>
             <View style={styles.featureItem}>
@@ -86,7 +86,7 @@ export const AboutScreen: React.FC = () => {
                 style={[styles.bullet, { backgroundColor: colors.primary }]}
               />
               <Text style={[styles.featureText, { color: colors.text }]}>
-                Daily goal tracking
+                {t("about.features.dailyGoalTracking")}
               </Text>
             </View>
             <View style={styles.featureItem}>
@@ -94,7 +94,7 @@ export const AboutScreen: React.FC = () => {
                 style={[styles.bullet, { backgroundColor: colors.success }]}
               />
               <Text style={[styles.featureText, { color: colors.text }]}>
-                Minimalist distraction-free interface
+                {t("about.features.minimalist")}
               </Text>
             </View>
             <View style={styles.featureItem}>
@@ -102,7 +102,7 @@ export const AboutScreen: React.FC = () => {
                 style={[styles.bullet, { backgroundColor: colors.warning }]}
               />
               <Text style={[styles.featureText, { color: colors.text }]}>
-                Dark mode support
+                {t("about.features.darkMode")}
               </Text>
             </View>
             <View style={styles.featureItem}>
@@ -110,7 +110,21 @@ export const AboutScreen: React.FC = () => {
                 style={[styles.bullet, { backgroundColor: colors.secondary }]}
               />
               <Text style={[styles.featureText, { color: colors.text }]}>
-                Complete privacy - no data collection
+                {t("about.features.privacy")}
+              </Text>
+            </View>
+            <View style={styles.featureItem}>
+              <View style={[styles.bullet, { backgroundColor: colors.info }]} />
+              <Text style={[styles.featureText, { color: colors.text }]}>
+                {t("about.features.themePalette")}
+              </Text>
+            </View>
+            <View style={styles.featureItem}>
+              <View
+                style={[styles.bullet, { backgroundColor: colors.primary }]}
+              />
+              <Text style={[styles.featureText, { color: colors.text }]}>
+                {t("about.features.calendar")}
               </Text>
             </View>
           </View>
@@ -118,7 +132,7 @@ export const AboutScreen: React.FC = () => {
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Connect
+            {t("about.connectTitle")}
           </Text>
           <View style={styles.connectButtons}>
             <TouchableOpacity
@@ -127,7 +141,7 @@ export const AboutScreen: React.FC = () => {
             >
               <Github size={20} color={colors.text} />
               <Text style={[styles.connectButtonText, { color: colors.text }]}>
-                GitHub
+                {t("about.github")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -136,7 +150,7 @@ export const AboutScreen: React.FC = () => {
             >
               <Mail size={20} color={colors.text} />
               <Text style={[styles.connectButtonText, { color: colors.text }]}>
-                Contact
+                {t("about.contact")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -144,16 +158,30 @@ export const AboutScreen: React.FC = () => {
 
         <View style={styles.footer}>
           <Text style={[styles.copyright, { color: colors.subText }]}>
-            © 2025 Melih Can Demir
+            {t("about.copyright")}
           </Text>
           <View style={styles.madeWithContainer}>
-            <Text style={[styles.madeLove, { color: colors.subText }]}>
-              Made with
-            </Text>
-            <Heart size={12} color="#EC4899" style={styles.heartIcon} />
-            <Text style={[styles.madeLove, { color: colors.subText }]}>
-              in Turkey
-            </Text>
+            {i18n.language && i18n.language.startsWith("tr") ? (
+              <>
+                <Text style={[styles.madeLove, { color: colors.subText }]}>
+                  {t("about.inTurkey")}
+                </Text>
+                <Heart size={12} color="#EC4899" style={styles.heartIcon} />
+                <Text style={[styles.madeLove, { color: colors.subText }]}>
+                  {" " + t("about.madeWith") + " yapıldı"}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.madeLove, { color: colors.subText }]}>
+                  {t("about.madeWith")}
+                </Text>
+                <Heart size={12} color="#EC4899" style={styles.heartIcon} />
+                <Text style={[styles.madeLove, { color: colors.subText }]}>
+                  {t("about.inTurkey")}
+                </Text>
+              </>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -205,10 +233,11 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 40,
   },
-  appIcon: {
+  logoWrapper: {
     width: 100,
     height: 100,
-    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   appName: {

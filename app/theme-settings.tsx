@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Image,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { useThemeStore } from "../src/store/themeStore";
@@ -15,11 +14,18 @@ import { useTheme } from "../src/components/ThemeProvider";
 import ThemedCard from "../src/components/ThemedCard";
 import ThemedButton from "../src/components/ThemedButton";
 import { ChevronLeft, Palette } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 
 export default function ThemeSettingsScreen() {
   const router = useRouter();
   const { colors, isDarkMode, themeId } = useTheme();
   const setThemeId = useThemeStore((state) => state.setThemeId);
+  const { t } = useTranslation();
+
+  // Handle back navigation
+  const handleBack = () => {
+    router.back();
+  };
 
   // Tema seçme işleyicisi
   const handleThemeSelect = (id: string) => {
@@ -30,36 +36,48 @@ export default function ThemeSettingsScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Tema Ayarları",
-          headerStyle: {
-            backgroundColor: colors.headerBackground,
-          },
-          headerTintColor: colors.text,
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()}>
-              <ChevronLeft color={colors.text} size={24} />
-            </TouchableOpacity>
-          ),
+          headerShown: false,
         }}
       />
 
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
       >
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <ChevronLeft size={24} color={colors.text} />
+            <Text style={[styles.backText, { color: colors.text }]}>
+              {t("settings.title", "Ayarlar")}
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.titleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              {t("themeSettings.title", "Tema Ayarları")}
+            </Text>
+          </View>
+          <View style={styles.rightPlaceholder} />
+        </View>
+
         <ScrollView style={styles.scrollView}>
-          <View style={styles.header}>
+          <View style={styles.contentHeader}>
             <Palette size={32} color={colors.primary} />
             <Text style={[styles.title, { color: colors.text }]}>
-              Tema Özelleştirme
+              {t("themeSettings.customization", "Tema Özelleştirme")}
             </Text>
             <Text style={[styles.subtitle, { color: colors.subText }]}>
-              Uygulamanızın görünümünü özelleştirin
+              {t(
+                "themeSettings.customizeAppearance",
+                "Uygulamanızın görünümünü özelleştirin"
+              )}
             </Text>
           </View>
 
           <ThemedCard
-            title="Aktif Tema"
-            description="Şu anda kullandığınız tema"
+            title={t("themeSettings.activeTheme", "Aktif Tema")}
+            description={t(
+              "themeSettings.currentlyUsing",
+              "Şu anda kullandığınız tema"
+            )}
           >
             <View style={styles.activeThemeContainer}>
               <View
@@ -69,8 +87,11 @@ export default function ThemeSettingsScreen() {
                 ]}
               />
               <Text style={[styles.themeName, { color: colors.text }]}>
-                {THEMES.find((theme) => theme.id === themeId)?.name ||
-                  "Varsayılan"}
+                {t(
+                  `themeNames.${themeId}`,
+                  THEMES.find((theme) => theme.id === themeId)?.name ||
+                    t("themeSettings.default", "Varsayılan")
+                )}
               </Text>
             </View>
           </ThemedCard>
@@ -78,7 +99,7 @@ export default function ThemeSettingsScreen() {
           <Text
             style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}
           >
-            Temalar
+            {t("themeSettings.themes", "Temalar")}
           </Text>
 
           <View style={styles.themesGrid}>
@@ -108,7 +129,7 @@ export default function ThemeSettingsScreen() {
                     themeId === theme.id && { fontWeight: "700" },
                   ]}
                 >
-                  {theme.name}
+                  {t(`themeNames.${theme.id}`, theme.name)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -116,39 +137,44 @@ export default function ThemeSettingsScreen() {
 
           <View style={styles.previewSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Önizleme
+              {t("themeSettings.preview", "Önizleme")}
             </Text>
 
             <ThemedCard
-              title="Örnek Kart"
-              description="Seçtiğiniz temanın görünümü"
+              title={t("themeSettings.sampleCard", "Örnek Kart")}
+              description={t(
+                "themeSettings.themeAppearance",
+                "Seçtiğiniz temanın görünümü"
+              )}
             >
               <Text style={{ color: colors.text }}>
-                Bu bir tema önizlemesidir. Renklerin ve bileşenlerin nasıl
-                göründüğünü kontrol edin.
+                {t(
+                  "themeSettings.previewDescription",
+                  "Bu bir tema önizlemesidir. Renklerin ve bileşenlerin nasıl göründüğünü kontrol edin."
+                )}
               </Text>
             </ThemedCard>
 
             <View style={styles.buttonPreviewContainer}>
               <ThemedButton
-                title="Birincil Buton"
+                title={t("themeSettings.primaryButton", "Birincil Buton")}
                 onPress={() => {}}
                 style={{ marginBottom: 12 }}
               />
               <ThemedButton
-                title="İkincil Buton"
+                title={t("themeSettings.secondaryButton", "İkincil Buton")}
                 onPress={() => {}}
                 variant="secondary"
                 style={{ marginBottom: 12 }}
               />
               <ThemedButton
-                title="Çizgili Buton"
+                title={t("themeSettings.outlineButton", "Çizgili Buton")}
                 onPress={() => {}}
                 variant="outline"
                 style={{ marginBottom: 12 }}
               />
               <ThemedButton
-                title="Tehlike Butonu"
+                title={t("themeSettings.dangerButton", "Tehlike Butonu")}
                 onPress={() => {}}
                 variant="danger"
               />
@@ -164,11 +190,40 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 80,
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
+  rightPlaceholder: {
+    minWidth: 80,
+  },
+  backText: {
+    fontSize: 16,
+    marginLeft: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
   },
-  header: {
+  contentHeader: {
     alignItems: "center",
     marginVertical: 24,
   },

@@ -4,6 +4,7 @@ export interface Goal {
   completed: boolean;
   createdAt: Date;
   updatedAt: Date;
+  date: string; // YYYY-MM-DD formatında tarih
 }
 
 export type GoalInput = Pick<Goal, 'text'>;

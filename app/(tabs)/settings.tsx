@@ -1,4 +1,3 @@
-import { StyleSheet } from "react-native";
 import { SettingsScreen } from "../../src/screens/SettingsScreen";
 
 /**
@@ -7,9 +6,3 @@ import { SettingsScreen } from "../../src/screens/SettingsScreen";
 export default function SettingsTabScreen() {
   return <SettingsScreen />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

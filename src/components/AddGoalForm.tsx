@@ -12,6 +12,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { Plus, X } from "lucide-react-native";
 import { useTheme } from "./ThemeProvider";
+import { useTranslation } from "react-i18next";
 
 interface AddGoalFormProps {
   onAddGoal: (text: string) => void;
@@ -26,7 +27,10 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   // Tema renklerine erişim
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
+
+  // Translation hook
+  const { t } = useTranslation();
 
   const handleAddPress = () => {
     if (!isExpanded) {
@@ -61,7 +65,7 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
           <View style={[styles.expandedForm, { backgroundColor: colors.card }]}>
             <TextInput
               style={[styles.input, { color: colors.text }]}
-              placeholder="What's your goal for today?"
+              placeholder={t("home.addGoalInputPlaceholder")}
               placeholderTextColor={colors.subText}
               value={text}
               onChangeText={setText}
@@ -88,7 +92,7 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
                 <Text
                   style={[styles.addButtonText, { color: colors.buttonText }]}
                 >
-                  Add Goal
+                  {t("home.addGoal")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -111,7 +115,7 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
                 disabled && { color: colors.subText },
               ]}
             >
-              {disabled ? "Max Goals Reached" : "Add Goal"}
+              {disabled ? t("home.maxGoalsReached") : t("home.addGoal")}
             </Text>
           </TouchableOpacity>
         )}

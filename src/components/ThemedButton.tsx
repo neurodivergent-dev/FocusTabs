@@ -30,7 +30,7 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
   textStyle,
   icon,
 }) => {
-  const { colors, isDarkMode } = useTheme();
+  const { colors, isDarkMode: _isDarkMode } = useTheme();
 
   // Varyant renkleri belirle
   const getVariantStyles = () => {

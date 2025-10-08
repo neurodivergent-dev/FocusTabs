@@ -20,7 +20,7 @@ Notifications.addNotificationResponseReceivedListener((response) => {
 export interface ScheduleNotificationProps {
   title: string;
   body: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 class NotificationService {
@@ -87,7 +87,7 @@ class NotificationService {
     body: string,
     hour: number,
     minute: number,
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ): Promise<string | null> {
     const hasPermission = await this.requestPermissions();
     

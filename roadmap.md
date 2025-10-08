@@ -21,14 +21,14 @@ A minimalist, local-first goal management app designed with FAANG-level architec
 - [x] Modular folder setup (`src/components`, `store`, `screens`, `hooks`, `lib`)
 - [x] `dailyGoalsStore.ts` + daily reset logic
 - [x] `GoalCard` component design structure
-- [ ] `useDailyReset` hook + AppState lifecycle logic
+- [x] `useDailyReset` hook + AppState lifecycle logic
 - [ ] Unit & integration testing (Jest, RTL)
 
 ---
 
 ## 🌐 Globalization & UI
 - [x] 2025-level granular gradient goal card UI
-- [ ] i18n support with internal language layer
+- [x] i18n support with internal language layer
 - [ ] Icon pack integration (Lucide or Tabler Icons)
 - [ ] Smooth screen transitions with reanimated
 - [ ] Haptic feedback on goal actions

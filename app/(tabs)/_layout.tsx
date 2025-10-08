@@ -6,13 +6,10 @@ import { useTheme } from "../../src/components/ThemeProvider";
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
  */
-function TabBarIcon(props: { color: string }) {
-  return <Home size={24} color={props.color} />;
-}
 
 export default function TabLayout() {
   // Tema renklerine erişim
-  const { colors, isDarkMode } = useTheme();
+  const { colors, isDarkMode: _isDarkMode } = useTheme();
 
   return (
     <Tabs

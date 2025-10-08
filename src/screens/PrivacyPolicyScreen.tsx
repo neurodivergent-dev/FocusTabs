@@ -16,10 +16,12 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
+import { useTranslation } from "react-i18next";
 
 export const PrivacyPolicyScreen: React.FC = () => {
   const router = useRouter();
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const handleBack = () => {
     router.back();
@@ -33,12 +35,12 @@ export const PrivacyPolicyScreen: React.FC = () => {
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ChevronLeft size={24} color={colors.text} />
           <Text style={[styles.backText, { color: colors.text }]}>
-            Settings
+            {t("privacy.back")}
           </Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
           <Text style={[styles.title, { color: colors.text }]}>
-            Privacy Policy
+            {t("privacy.title")}
           </Text>
         </View>
         <View style={styles.rightPlaceholder} />
@@ -58,25 +60,24 @@ export const PrivacyPolicyScreen: React.FC = () => {
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Our Privacy Commitment
+            {t("privacy.ourPrivacyCommitmentTitle")}
           </Text>
           <Text style={[styles.paragraph, { color: colors.text }]}>
-            FocusTabs is engineered with a privacy-first approach. We believe
-            your personal data belongs to you, which is why we've designed our
-            app to respect your privacy completely.
+            {t("privacy.ourPrivacyCommitment")}
           </Text>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Data Collection
+            {t("privacy.dataCollectionTitle")}
           </Text>
           <View style={styles.policyItem}>
             <Eye size={20} color={colors.primary} style={styles.policyIcon} />
             <Text style={[styles.policyText, { color: colors.text }]}>
-              <Text style={styles.bold}>Zero Data Collection: </Text>
-              The application operates entirely offline with absolutely no data
-              collection mechanisms.
+              <Text style={styles.bold}>
+                {t("privacy.zeroDataCollection").split(":")[0]}:{" "}
+              </Text>
+              {t("privacy.zeroDataCollection").split(": ").slice(1).join(": ")}
             </Text>
           </View>
           <View style={styles.policyItem}>
@@ -86,9 +87,10 @@ export const PrivacyPolicyScreen: React.FC = () => {
               style={styles.policyIcon}
             />
             <Text style={[styles.policyText, { color: colors.text }]}>
-              <Text style={styles.bold}>Local Storage Only: </Text>
-              All your goal information and settings are stored locally on your
-              device and never transmitted elsewhere.
+              <Text style={styles.bold}>
+                {t("privacy.localStorageOnly").split(":")[0]}:{" "}
+              </Text>
+              {t("privacy.localStorageOnly").split(": ").slice(1).join(": ")}
             </Text>
           </View>
           <View style={styles.policyItem}>
@@ -98,51 +100,50 @@ export const PrivacyPolicyScreen: React.FC = () => {
               style={styles.policyIcon}
             />
             <Text style={[styles.policyText, { color: colors.text }]}>
-              <Text style={styles.bold}>No Third-Party Analytics: </Text>
-              We don't use any third-party analytics or tracking tools in our
-              application.
+              <Text style={styles.bold}>
+                {t("privacy.noThirdPartyAnalytics").split(":")[0]}:{" "}
+              </Text>
+              {t("privacy.noThirdPartyAnalytics")
+                .split(": ")
+                .slice(1)
+                .join(": ")}
             </Text>
           </View>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Data Security
+            {t("privacy.dataSecurityTitle")}
           </Text>
           <Text style={[styles.paragraph, { color: colors.text }]}>
-            All user information is securely stored locally on your device using
-            SQLite. We follow industry best practices for local data security to
-            ensure your information remains private.
+            {t("privacy.dataSecurity")}
           </Text>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Your Rights
+            {t("privacy.yourRightsTitle")}
           </Text>
           <Text style={[styles.paragraph, { color: colors.text }]}>
-            Since all data is stored locally on your device, you maintain
-            complete control over your information. You can delete the app at
-            any time to remove all associated data.
+            {t("privacy.yourRights")}
           </Text>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Policy Updates
+            {t("privacy.policyUpdatesTitle")}
           </Text>
           <Text style={[styles.paragraph, { color: colors.text }]}>
-            We may update this privacy policy from time to time. When we do, we
-            will revise the "last updated" date at the bottom of this page.
+            {t("privacy.policyUpdates")}
           </Text>
         </View>
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.subText }]}>
-            Last Updated: June 2023
+            {t("privacy.lastUpdated")}
           </Text>
           <Text style={[styles.footerText, { color: colors.subText }]}>
-            © 2025 Melih Can Demir. All rights reserved.
+            {t("privacy.copyright")}
           </Text>
         </View>
       </ScrollView>

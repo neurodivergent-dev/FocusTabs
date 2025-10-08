@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { clearGoals } from '../lib/database';
+import { resetDailyGoals } from '../lib/database';
 
 /**
  * Hook to reset goals at midnight each day.
  * Checks if the day has changed when app comes to foreground.
+ * Uses resetDailyGoals to mark goals as completed rather than deleting them,
+ * which preserves the history in the calendar view.
  */
 export const useDailyReset = (): void => {
   const appState = useRef<AppStateStatus>(AppState.currentState);
@@ -21,10 +23,10 @@ export const useDailyReset = (): void => {
         
         // Check if the day has changed since last check
         if (currentDate !== lastCheckDate.current) {
-          console.log('Day changed, resetting goals...');
+          // console.log('Day changed, resetting goals...');
           try {
-            await clearGoals();
-            console.log('Goals reset successfully');
+            await resetDailyGoals();
+            // console.log('Goals reset successfully');
           } catch (error) {
             console.error('Failed to reset goals:', error);
           }
@@ -48,10 +50,10 @@ export const useDailyReset = (): void => {
     const checkInitialDayChange = async () => {
       const currentDate = new Date().toDateString();
       if (currentDate !== lastCheckDate.current) {
-        console.log('Day changed on app launch, resetting goals...');
+        // console.log('Day changed on app launch, resetting goals...');
         try {
-          await clearGoals();
-          console.log('Goals reset successfully on app launch');
+          await resetDailyGoals();
+          // console.log('Goals reset successfully on app launch');
         } catch (error) {
           console.error('Failed to reset goals on app launch:', error);
         }

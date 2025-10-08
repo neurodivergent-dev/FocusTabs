@@ -1,20 +1,26 @@
 import React from "react";
-import { StyleSheet, View, Text, Image } from "react-native";
+import { StyleSheet, View, Text, Image as _Image } from "react-native";
 import { AlignCenter } from "lucide-react-native";
 import { useTheme } from "./ThemeProvider";
+import { useTranslation } from "react-i18next";
 
 export const EmptyState: React.FC = () => {
   // Tema renklerine erişim
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
+
+  // Translation hook
+  const { t } = useTranslation();
 
   return (
     <View style={styles.container}>
       <View style={[styles.iconContainer, { backgroundColor: colors.card }]}>
         <AlignCenter size={40} color={colors.subText} />
       </View>
-      <Text style={[styles.title, { color: colors.text }]}>No Goals Set</Text>
+      <Text style={[styles.title, { color: colors.text }]}>
+        {t("home.emptyState.title")}
+      </Text>
       <Text style={[styles.description, { color: colors.subText }]}>
-        Add up to 3 goals for today to stay focused on what matters most.
+        {t("home.emptyState.description")}
       </Text>
     </View>
   );

@@ -12,6 +12,7 @@ import * as Haptics from "expo-haptics";
 import { Check, Trash2, Edit2, X } from "lucide-react-native";
 import { Goal } from "../types/goal";
 import { useTheme } from "./ThemeProvider";
+import { useTranslation } from "react-i18next";
 
 interface GoalCardProps {
   goal: Goal;
@@ -31,6 +32,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editText, setEditText] = useState<string>(goal.text);
   const { colors } = useTheme();
+  const { t: _t } = useTranslation();
 
   // Tema renkleri kullanarak gradient setleri oluşturalım
   const gradientSets = [
