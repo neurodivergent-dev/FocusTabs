@@ -321,11 +321,15 @@ export const SettingsScreen: React.FC = () => {
             {t("settings.preferences")}
           </Text>
 
-          <LinearGradient
-            colors={[colors.primary + '08', colors.secondary + '08']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.themeSectionContainer, { borderWidth: 1, borderColor: colors.primary + '15' }]}
+          <View
+            style={[
+              styles.themeSectionContainer,
+              { 
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.primary + '15',
+              },
+            ]}
           >
             <Text style={[styles.themeLabel, { color: colors.text }]}>
               {t("settings.theme")}
@@ -430,13 +434,10 @@ export const SettingsScreen: React.FC = () => {
                 </Text>
               </TouchableOpacity>
             </View>
-          </LinearGradient>
+          </View>
 
-          <LinearGradient
-            colors={[colors.primary + '08', colors.secondary + '08']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
             onPress={handleNavigateToThemeSettings}
           >
             <View
@@ -458,13 +459,10 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </LinearGradient>
+          </TouchableOpacity>
 
-          <LinearGradient
-            colors={[colors.primary + '08', colors.secondary + '08']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
             onPress={handleOpenLanguageModal}
           >
             <View
@@ -486,13 +484,10 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </LinearGradient>
+          </TouchableOpacity>
 
-          <LinearGradient
-            colors={[colors.primary + '08', colors.secondary + '08']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
             onPress={handleNavigateToBackupSettings}
           >
             <View
@@ -514,13 +509,10 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </LinearGradient>
+          </TouchableOpacity>
 
-          <LinearGradient
-            colors={[colors.error + '15', colors.error + '05']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.error + '40' }]}
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: colors.card, borderColor: colors.error, borderWidth: 1 }]}
             onPress={handleResetAllData}
           >
             <View
@@ -541,7 +533,7 @@ export const SettingsScreen: React.FC = () => {
                 {t("settings.resetAllDataDescription")}
               </Text>
             </View>
-          </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -557,11 +549,8 @@ export const SettingsScreen: React.FC = () => {
             </Text>
           </View>
 
-          <LinearGradient
-            colors={[colors.primary + '08', colors.secondary + '08']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
             onPress={handleRateApp}
           >
             <View
@@ -583,13 +572,10 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </LinearGradient>
+          </TouchableOpacity>
 
-          <LinearGradient
-            colors={[colors.primary + '08', colors.secondary + '08']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
             onPress={handleNavigateToAbout}
           >
             <View
@@ -611,13 +597,10 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </LinearGradient>
+          </TouchableOpacity>
 
-          <LinearGradient
-            colors={[colors.primary + '08', colors.secondary + '08']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: colors.card }]}
             onPress={handleNavigateToPrivacyPolicy}
           >
             <View
@@ -639,7 +622,7 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </LinearGradient>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
