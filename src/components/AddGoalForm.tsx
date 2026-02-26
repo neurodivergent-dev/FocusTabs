@@ -6,9 +6,8 @@ import {
   TouchableOpacity,
   Text,
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Plus, X } from "lucide-react-native";
 import { useTheme } from "./ThemeProvider";
@@ -17,11 +16,13 @@ import { useTranslation } from "react-i18next";
 interface AddGoalFormProps {
   onAddGoal: (text: string) => void;
   disabled: boolean;
+  currentCount?: number;
 }
 
 export const AddGoalForm: React.FC<AddGoalFormProps> = ({
   onAddGoal,
   disabled,
+  currentCount = 0,
 }) => {
   const [text, setText] = useState<string>("");
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
@@ -56,71 +57,79 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={100}
-    >
-      <View style={styles.container}>
-        {isExpanded ? (
-          <View style={[styles.expandedForm, { backgroundColor: colors.card }]}>
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder={t("home.addGoalInputPlaceholder")}
-              placeholderTextColor={colors.subText}
-              value={text}
-              onChangeText={setText}
-              multiline
-              maxLength={100}
-              autoFocus
-            />
-            <View style={styles.expandedActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancel}
-              >
-                <X color={colors.text} size={20} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.addButton,
-                  { backgroundColor: colors.primary },
-                  (text.trim() === "" || disabled) && styles.disabledButton,
-                ]}
-                onPress={handleAddPress}
-                disabled={text.trim() === "" || disabled}
-              >
-                <Text
-                  style={[styles.addButtonText, { color: colors.buttonText }]}
-                >
-                  {t("home.addGoal")}
-                </Text>
-              </TouchableOpacity>
-            </View>
+    <View style={styles.container}>
+      {isExpanded ? (
+        <View style={[styles.expandedForm, { backgroundColor: colors.card }]}>
+          <TextInput
+            style={[styles.input, { color: colors.text }]}
+            placeholder={t("home.addGoalInputPlaceholder")}
+            placeholderTextColor={colors.subText}
+            value={text}
+            onChangeText={setText}
+            multiline
+            maxLength={100}
+            autoFocus
+          />
+          <View style={styles.expandedActions}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancel}
+            >
+              <X color={colors.text} size={20} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.addButton,
+                { backgroundColor: colors.primary },
+                (text.trim() === "" || disabled) && styles.disabledButton,
+              ]}
+              onPress={handleAddPress}
+              disabled={text.trim() === "" || disabled}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.addButtonText, { color: '#FFFFFF' }]}>
+                {t("home.addGoal")}
+              </Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <TouchableOpacity
+        </View>
+      ) : (
+        <TouchableOpacity
+          onPress={handleAddPress}
+          disabled={disabled}
+          activeOpacity={0.8}
+          style={styles.addButtonCollapsedWrapper}
+        >
+          <LinearGradient
+            colors={disabled ? [colors.subText + '40', colors.subText + '40'] : [colors.primary, colors.secondary || colors.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={[
               styles.addButtonCollapsed,
-              { backgroundColor: colors.card },
               disabled && styles.disabledButton,
             ]}
-            onPress={handleAddPress}
-            disabled={disabled}
           >
-            <Plus color={disabled ? colors.subText : colors.text} size={24} />
-            <Text
-              style={[
-                styles.addButtonCollapsedText,
-                { color: colors.text },
-                disabled && { color: colors.subText },
-              ]}
-            >
-              {disabled ? t("home.maxGoalsReached") : t("home.addGoal")}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </KeyboardAvoidingView>
+            {disabled ? (
+              <View style={styles.disabledTextContainer}>
+                <Text style={[styles.addButtonCollapsedText, { opacity: 0.8, fontSize: 14 }]}>
+                  {currentCount}/3
+                </Text>
+                <Text style={[styles.addButtonCollapsedSubtext, { color: '#FFFFFF', opacity: 0.7, fontSize: 12, marginTop: 2 }]}>
+                  {t("home.maxGoalsReached")}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Plus color="#FFFFFF" size={24} style={{ marginRight: 8 }} />
+                <Text style={styles.addButtonCollapsedText}>
+                  {t("home.addGoal")}
+                </Text>
+              </>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 };
 
@@ -128,7 +137,9 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 16,
     marginBottom: 16,
-    width: "100%",
+  },
+  addButtonCollapsedWrapper: {
+    width: '100%',
   },
   expandedForm: {
     borderRadius: 16,
@@ -160,24 +171,35 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   addButtonCollapsed: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 20,
+    borderRadius: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   addButtonCollapsedText: {
     marginLeft: 8,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  disabledTextContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonCollapsedSubtext: {
+    color: "#FFFFFF",
+    opacity: 0.7,
+    fontSize: 12,
   },
   disabledButton: {
     opacity: 0.7,

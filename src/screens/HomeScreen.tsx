@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -6,7 +6,12 @@ import {
   SafeAreaView,
   ScrollView,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useDailyReset } from "../hooks/useDailyReset";
 import { GoalCard } from "../components/GoalCard";
@@ -19,11 +24,18 @@ export const HomeScreen: React.FC = () => {
   // Use our daily reset hook to check for day changes
   useDailyReset();
 
+  // Safe area insets
+  const insets = useSafeAreaInsets();
+
   // Theme colors
   const { colors, isDarkMode } = useTheme();
 
   // Translation hook
   const { t } = useTranslation();
+
+  // Keyboard state
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   // Get goals and actions from our store
   const {
@@ -37,29 +49,59 @@ export const HomeScreen: React.FC = () => {
     getCompletedGoalsCount,
   } = useDailyGoalsStore();
 
-  // Fetch goals on component mount and whenever dependencies change
+  // Fetch goals on component mount and when goals change
   useEffect(() => {
-    // console.log("HomeScreen: Fetching goals...");
+    console.log('HomeScreen: Fetching goals...');
     fetchGoals();
 
-    // Add interval to refresh goals every 2 seconds (for debugging)
-    const interval = setInterval(() => {
-      // console.log("HomeScreen: Auto-refreshing goals...");
-      fetchGoals();
-    }, 2000);
+    // Keyboard listeners
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      (event) => {
+        setKeyboardHeight(event.endCoordinates.height);
+        setKeyboardVisible(true);
+      }
+    );
 
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        setKeyboardHeight(0);
+        setKeyboardVisible(false);
+      }
+    );
+
+    // Cleanup listeners on unmount
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
   }, [fetchGoals]);
 
   // Filter goals to show only today's goals (both active and completed)
   const todayGoals = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
-    const filtered = goals.filter((goal) => goal.date === today);
-    // console.log(
-    //   `HomeScreen: Filtered today's goals: ${filtered.length}`,
-    //   filtered
-    // );
+    // Use local time to get today's date
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
+    const filtered = goals.filter((goal) => {
+      // Normalize both dates for comparison
+      const goalDate = goal.date.split("T")[0];
+      return goalDate === today;
+    });
+    console.log('=== HOME SCREEN DEBUG ===');
+    console.log('Today:', today);
+    console.log('All goals count:', goals.length);
+    console.log('Today goals count:', filtered.length);
+    if (filtered.length > 0) {
+      console.log('Today goals:', filtered);
+    } else {
+      console.log('NO GOALS FOUND! Check date formats!');
+      console.log('Sample goal dates:', goals.slice(0, 3).map(g => g.date));
+    }
     return filtered;
   }, [goals]);
 
@@ -80,79 +122,106 @@ export const HomeScreen: React.FC = () => {
         backgroundColor={colors.background}
       />
 
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>
+      <LinearGradient
+        colors={[
+          colors.primary,
+          colors.secondary || colors.primary,
+          colors.info || colors.primary,
+          colors.primary,
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        locations={[0, 0.3, 0.7, 1]}
+        style={[styles.header, {
+          paddingTop: insets.top + 8
+        }]}
+      >
+        <Text style={[styles.title, { color: "#FFFFFF" }]}>
           {t("app.name")}
         </Text>
-        <Text style={[styles.subtitle, { color: colors.subText }]}>
+        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.9)" }]}>
           {t("app.slogan")}
         </Text>
 
         {todayGoals.length > 0 && (
           <View style={styles.progressContainer}>
-            <Text style={[styles.progressText, { color: colors.subText }]}>
+            <Text style={[styles.progressText, { color: "rgba(255, 255, 255, 0.8)" }]}>
               {completedCount}/{todayGoals.length} {t("home.completed")}
             </Text>
             <View
-              style={[styles.progressBar, { backgroundColor: colors.card }]}
+              style={[styles.progressBar, { backgroundColor: "rgba(255, 255, 255, 0.3)" }]}
             >
               <View
                 style={[
                   styles.progressFill,
                   {
                     width: `${todayGoals.length > 0 ? (completedCount / todayGoals.length) * 100 : 0}%`,
-                    backgroundColor: colors.primary,
+                    backgroundColor: "#FFFFFF",
                   },
                 ]}
               />
             </View>
           </View>
         )}
-      </View>
+      </LinearGradient>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          todayGoals.length === 0 && styles.emptyScrollContent,
-        ]}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={keyboardVisible ? -20 : 0}
       >
-        {todayGoals.length === 0 ? (
-          <EmptyState />
-        ) : (
-          todayGoals.map((goal, index) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              index={index}
-              onToggleComplete={toggleGoalCompletion}
-              onUpdateText={updateGoalText}
-              onDelete={deleteGoal}
-            />
-          ))
-        )}
-      </ScrollView>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            todayGoals.length === 0 && styles.emptyScrollContent,
+            { paddingBottom: 20 }
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          {todayGoals.length === 0 ? (
+            <EmptyState />
+          ) : (
+            todayGoals.map((goal, index) => (
+              <GoalCard
+                key={goal.id}
+                goal={goal}
+                index={index}
+                onToggleComplete={toggleGoalCompletion}
+                onUpdateText={updateGoalText}
+                onDelete={deleteGoal}
+              />
+            ))
+          )}
+        </ScrollView>
 
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        <AddGoalForm
-          onAddGoal={handleAddGoal}
-          disabled={hasReachedMaxGoals()}
-        />
-      </View>
+        <View style={[styles.footer, {
+          borderTopColor: colors.border,
+          paddingBottom: 16
+        }]}>
+          <AddGoalForm
+            onAddGoal={handleAddGoal}
+            disabled={hasReachedMaxGoals()}
+            currentCount={goals.length}
+          />
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingBottom: 24,
   },
   title: {
     fontSize: 28,
@@ -192,7 +261,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 16,
-    paddingBottom: 24,
     borderTopWidth: 1,
   },
 });

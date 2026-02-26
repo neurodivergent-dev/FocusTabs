@@ -8,13 +8,16 @@ import {
   TouchableOpacity,
   Linking,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, Github, Mail, Heart } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 import FocusTabsLogo from "../../components/LogoComponent";
 
 export const AboutScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors } = useTheme();
   const { t, i18n } = useTranslation();
@@ -24,7 +27,7 @@ export const AboutScreen: React.FC = () => {
   };
 
   const handleOpenGithub = () => {
-    Linking.openURL("https://github.com/melihcanndemir");
+    Linking.openURL("https://github.com/neurodivergent-dev");
   };
 
   const handleSendEmail = () => {
@@ -35,24 +38,37 @@ export const AboutScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <LinearGradient
+        colors={[
+          colors.primary,
+          colors.secondary || colors.primary,
+          colors.info || colors.primary,
+          colors.primary,
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        locations={[0, 0.3, 0.7, 1]}
+        style={[styles.header, {
+          paddingTop: insets.top + 8
+        }]}
+      >
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ChevronLeft size={24} color={colors.text} />
-          <Text style={[styles.backText, { color: colors.text }]}>
+          <ChevronLeft size={24} color="#FFFFFF" />
+          <Text style={[styles.backText, { color: "#FFFFFF" }]}>
             {t("about.back")}
           </Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text style={[styles.title, { color: "#FFFFFF" }]}>
             {t("about.title")}
           </Text>
         </View>
         <View style={styles.rightPlaceholder} />
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 }]}
       >
         <View style={styles.logoContainer}>
           {/* App SVG Logo */}
@@ -67,16 +83,32 @@ export const AboutScreen: React.FC = () => {
           </Text>
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <LinearGradient
+          colors={[
+            colors.primary + '15',
+            colors.secondary + '15',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '30' }]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("about.title")}
           </Text>
           <Text style={[styles.description, { color: colors.text }]}>
             {t("about.description")}
           </Text>
-        </View>
+        </LinearGradient>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <LinearGradient
+          colors={[
+            colors.primary + '15',
+            colors.secondary + '15',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '30' }]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("about.featuresTitle")}
           </Text>
@@ -128,9 +160,17 @@ export const AboutScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <LinearGradient
+          colors={[
+            colors.primary + '15',
+            colors.secondary + '15',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '30' }]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("about.connectTitle")}
           </Text>
@@ -154,7 +194,7 @@ export const AboutScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
 
         <View style={styles.footer}>
           <Text style={[styles.copyright, { color: colors.subText }]}>
@@ -195,7 +235,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     flexDirection: "row",
@@ -226,7 +265,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 0,
   },
   logoContainer: {
     alignItems: "center",

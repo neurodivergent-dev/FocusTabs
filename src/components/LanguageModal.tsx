@@ -32,7 +32,6 @@ const LanguageModal: React.FC<LanguageModalProps> = ({ visible, onClose }) => {
   const languageOptions: LanguageOption[] = [
     { code: LANGUAGES.EN, label: "English" },
     { code: LANGUAGES.TR, label: "Türkçe" },
-    { code: LANGUAGES.DE, label: "Deutsch" },
   ];
 
   const handleLanguageSelect = (languageCode: string) => {

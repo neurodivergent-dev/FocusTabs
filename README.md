@@ -28,7 +28,7 @@ FocusTabs is a minimalist, local-first goal management app designed with FAANG-l
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/melihcandemir/focustabs.git
+git clone https://github.com/neurodivergent-dev/focustabs.git
 cd focustabs
 ```
 

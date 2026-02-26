@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ChevronLeft,
   Shield,
@@ -17,8 +18,10 @@ import {
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 
 export const PrivacyPolicyScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -31,24 +34,37 @@ export const PrivacyPolicyScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <LinearGradient
+        colors={[
+          colors.primary,
+          colors.secondary || colors.primary,
+          colors.info || colors.primary,
+          colors.primary,
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        locations={[0, 0.3, 0.7, 1]}
+        style={[styles.header, {
+          paddingTop: insets.top + 8
+        }]}
+      >
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ChevronLeft size={24} color={colors.text} />
-          <Text style={[styles.backText, { color: colors.text }]}>
+          <ChevronLeft size={24} color="#FFFFFF" />
+          <Text style={[styles.backText, { color: "#FFFFFF" }]}>
             {t("privacy.back")}
           </Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text style={[styles.title, { color: "#FFFFFF" }]}>
             {t("privacy.title")}
           </Text>
         </View>
         <View style={styles.rightPlaceholder} />
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 }]}
       >
         <View style={styles.iconContainer}>
           <View
@@ -58,16 +74,32 @@ export const PrivacyPolicyScreen: React.FC = () => {
           </View>
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <LinearGradient
+          colors={[
+            colors.primary + '15',
+            colors.secondary + '15',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '30' }]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("privacy.ourPrivacyCommitmentTitle")}
           </Text>
           <Text style={[styles.paragraph, { color: colors.text }]}>
             {t("privacy.ourPrivacyCommitment")}
           </Text>
-        </View>
+        </LinearGradient>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <LinearGradient
+          colors={[
+            colors.primary + '15',
+            colors.secondary + '15',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '30' }]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("privacy.dataCollectionTitle")}
           </Text>
@@ -109,34 +141,58 @@ export const PrivacyPolicyScreen: React.FC = () => {
                 .join(": ")}
             </Text>
           </View>
-        </View>
+        </LinearGradient>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <LinearGradient
+          colors={[
+            colors.primary + '15',
+            colors.secondary + '15',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '30' }]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("privacy.dataSecurityTitle")}
           </Text>
           <Text style={[styles.paragraph, { color: colors.text }]}>
             {t("privacy.dataSecurity")}
           </Text>
-        </View>
+        </LinearGradient>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <LinearGradient
+          colors={[
+            colors.primary + '15',
+            colors.secondary + '15',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '30' }]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("privacy.yourRightsTitle")}
           </Text>
           <Text style={[styles.paragraph, { color: colors.text }]}>
             {t("privacy.yourRights")}
           </Text>
-        </View>
+        </LinearGradient>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <LinearGradient
+          colors={[
+            colors.primary + '15',
+            colors.secondary + '15',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '30' }]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("privacy.policyUpdatesTitle")}
           </Text>
           <Text style={[styles.paragraph, { color: colors.text }]}>
             {t("privacy.policyUpdates")}
           </Text>
-        </View>
+        </LinearGradient>
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.subText }]}>
@@ -157,7 +213,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     flexDirection: "row",
@@ -188,7 +243,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 0,
   },
   iconContainer: {
     alignItems: "center",

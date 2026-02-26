@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Calendar, DateData, LocaleConfig } from "react-native-calendars";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useTheme } from "../components/ThemeProvider";
@@ -18,8 +20,10 @@ import {
   Circle,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { useFocusEffect } from "@react-navigation/native";
 
 export const CalendarScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const { colors, isDarkMode, themeId: _themeId } = useTheme();
   const { t, i18n } = useTranslation();
 
@@ -188,23 +192,31 @@ export const CalendarScreen: React.FC = () => {
     setDisplayDate(today);
     fetchGoalsByDate(today);
     fetchAllCompletions();
-    updateDailyStats();
-  }, [fetchGoalsByDate, fetchAllCompletions, updateDailyStats]);
+    // updateDailyStats() - Gereksiz, zaten fetchAllCompletions yeterli
+  }, []);
+
+  // Refresh data when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      console.log('CalendarScreen: Tab focused, refreshing data...');
+      fetchAllCompletions();
+      if (selectedDate) {
+        fetchGoalsByDate(selectedDate);
+      }
+    }, [selectedDate, fetchAllCompletions, fetchGoalsByDate])
+  );
 
   // Theme change adjustments
   useEffect(() => {
     // Increase themeVersion to force calendar re-render
     setThemeVersion((prev) => prev + 1);
 
-    // Reload necessary data
+    // Reload selected date data only
     if (selectedDate) {
       setDisplayDate(selectedDate);
-
-      // Fetch data again
       fetchGoalsByDate(selectedDate);
-      fetchAllCompletions();
     }
-  }, [selectedDate, fetchGoalsByDate, fetchAllCompletions]);
+  }, [selectedDate, fetchGoalsByDate]);
 
   // Update theme version when theme or language changes
   useEffect(() => {
@@ -544,18 +556,31 @@ export const CalendarScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>
+      <LinearGradient
+        colors={[
+          colors.primary,
+          colors.secondary || colors.primary,
+          colors.info || colors.primary,
+          colors.primary,
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        locations={[0, 0.3, 0.7, 1]}
+        style={[styles.header, { 
+          paddingTop: insets.top + 8
+        }]}
+      >
+        <Text style={[styles.title, { color: "#FFFFFF" }]}>
           {t("calendar.title")}
         </Text>
-        <Text style={[styles.subtitle, { color: colors.subText }]}>
+        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.9)" }]}>
           {t("calendar.subtitle")}
         </Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
+        contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 20 }]}
         showsVerticalScrollIndicator={false}
       >
         <View
@@ -629,7 +654,11 @@ export const CalendarScreen: React.FC = () => {
           </View>
         ) : (
           <View
-            style={[styles.detailsContainer, { backgroundColor: colors.card }]}
+            style={[styles.detailsContainer, { 
+              backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
+              borderColor: colors.primary + '40',
+              borderWidth: 1,
+            }]}
           >
             <Text style={[styles.detailsTitle, { color: colors.text }]}>
               {selectedDate && formatLocalizedDate(selectedDate)}
@@ -794,9 +823,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingBottom: 24,
   },
   title: {
     fontSize: 28,

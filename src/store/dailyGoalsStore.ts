@@ -317,8 +317,13 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   
   // Check if we've reached the maximum of 3 goals
   hasReachedMaxGoals: () => {
-    // Bugünün tarihini al
-    const today = new Date().toISOString().split("T")[0];
+    // Bugünün tarihini al (local time kullanarak)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
     // Sadece bugünün hedeflerini say
     const todayGoals = get().goals.filter(goal => goal.date === today);
     return todayGoals.length >= 3;
@@ -326,16 +331,26 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   
   // Get the number of completed goals
   getCompletedGoalsCount: () => {
-    // Bugünün tarihini al
-    const today = new Date().toISOString().split("T")[0];
+    // Bugünün tarihini al (local time kullanarak)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
     // Sadece bugünün tamamlanmış hedeflerini say
     return get().goals.filter((goal) => goal.date === today && goal.completed).length;
   },
   
   // Get the number of active (uncompleted) goals
   getActiveGoalsCount: () => {
-    // Bugünün tarihini al
-    const today = new Date().toISOString().split("T")[0];
+    // Bugünün tarihini al (local time kullanarak)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
     // Sadece bugünün tamamlanmamış hedeflerini say
     return get().goals.filter((goal) => goal.date === today && !goal.completed).length;
   },

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Text, SafeAreaView, ScrollView } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import {
   CheckCircle,
@@ -9,6 +11,7 @@ import {
   Calendar,
   BarChart4,
   Award,
+  Lightbulb,
 } from "lucide-react-native";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
@@ -24,6 +27,7 @@ interface PerformanceData {
 }
 
 export const StatsScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const { goals, getCompletedGoalsCount, getActiveGoalsCount, completionData } =
     useDailyGoalsStore();
 
@@ -83,13 +87,22 @@ export const StatsScreen: React.FC = () => {
   const completedCount = getCompletedGoalsCount();
   const activeCount = getActiveGoalsCount();
 
-  // Bugünün hedeflerini filtrele
-  const today = new Date().toISOString().split("T")[0];
+  // Bugünün görevlerini filtrele (local time kullanarak)
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const today = `${year}-${month}-${day}`;
+  
   const todayGoals = goals.filter((goal) => goal.date === today);
   const totalGoals = todayGoals.length;
 
   const completionRate =
     totalGoals > 0 ? (completedCount / totalGoals) * 100 : 0;
+
+  // Bugünün completion rate'ini performance için kullan
+  const todayPerformanceRate = totalGoals > 0 ? completionRate : 0;
+  const hasTodayTasks = totalGoals > 0;
 
   // Performans verilerini hesapla
   useEffect(() => {
@@ -234,221 +247,187 @@ export const StatsScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>
+      <LinearGradient
+        colors={[
+          colors.primary,
+          colors.secondary || colors.primary,
+          colors.info || colors.primary,
+          colors.primary,
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        locations={[0, 0.3, 0.7, 1]}
+        style={[styles.header, { 
+          paddingTop: insets.top + 8
+        }]}
+      >
+        <Text style={[styles.title, { color: "#FFFFFF" }]}>
           {t("stats.title")}
         </Text>
-        <Text style={[styles.subtitle, { color: colors.subText }]}>
+        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.9)" }]}>
           {t("stats.subtitle")}
         </Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 20 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Günlük Performans Kartı */}
-        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+        {/* Günlük Performans Kartı - Gradient */}
+        <View style={[styles.sectionCard, { 
+          backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
+          borderColor: colors.primary + '40',
+          borderWidth: 1,
+        }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("stats.dailyPerformance")}
           </Text>
 
           <View style={styles.statsContainer}>
-            <View
-              style={[
-                styles.statCard,
-                {
-                  backgroundColor: isDarkMode
-                    ? "rgba(255,255,255,0.05)"
-                    : "rgba(0,0,0,0.03)",
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: colors.primary + "20" },
-                ]}
-              >
-                <Clock size={24} color={colors.primary} />
+            <View style={[styles.statCardLarge, { backgroundColor: colors.primary + '15' }]}>
+              <View style={[styles.statIconLarge, { backgroundColor: colors.primary + '25' }]}>
+                <CheckCircle size={28} color={colors.primary} />
               </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {timeUntilMidnight.split(" ").slice(0, 2).join(" ")}
-                <Text
-                  style={[
-                    styles.secondsText,
-                    {
-                      color: colors.primary,
-                      opacity: secondsOpacity,
-                    },
-                  ]}
-                >
-                  {" " + timeUntilMidnight.split(" ")[2]}
-                </Text>
+              <Text style={[styles.statValueLarge, { color: colors.primary }]}>
+                {completedCount}/{totalGoals}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.subText }]}>
-                {t("stats.timeRemaining")}
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.statCard,
-                {
-                  backgroundColor: isDarkMode
-                    ? "rgba(255,255,255,0.05)"
-                    : "rgba(0,0,0,0.03)",
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: colors.success + "20" },
-                ]}
-              >
-                <CheckCircle size={24} color={colors.success} />
-              </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {completedCount}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.subText }]}>
+              <Text style={[styles.statLabelLarge, { color: colors.subText }]}>
                 {t("stats.completed")}
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.statCard,
-                {
-                  backgroundColor: isDarkMode
-                    ? "rgba(255,255,255,0.05)"
-                    : "rgba(0,0,0,0.03)",
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.statIconContainer,
-                  { backgroundColor: colors.warning + "20" },
-                ]}
-              >
-                <Circle size={24} color={colors.warning} />
+            <View style={styles.statsGrid}>
+              <View style={[styles.statCard, { backgroundColor: colors.success + '15' }]}>
+                <View style={[styles.statIcon, { backgroundColor: colors.success + '25' }]}>
+                  <CheckCircle size={22} color={colors.success} />
+                </View>
+                <Text style={[styles.statValue, { color: colors.success, fontWeight: '700' }]}>
+                  {completedCount}
+                </Text>
+                <Text style={[styles.statLabel, { color: colors.subText }]}>
+                  {t("stats.completed")}
+                </Text>
               </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {activeCount}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.subText }]}>
-                {t("stats.remaining")}
-              </Text>
+
+              <View style={[styles.statCard, { backgroundColor: colors.warning + '15' }]}>
+                <View style={[styles.statIcon, { backgroundColor: colors.warning + '25' }]}>
+                  <Circle size={22} color={colors.warning} />
+                </View>
+                <Text style={[styles.statValue, { color: colors.warning, fontWeight: '700' }]}>
+                  {activeCount}
+                </Text>
+                <Text style={[styles.statLabel, { color: colors.subText }]}>
+                  {t("stats.remaining")}
+                </Text>
+              </View>
             </View>
           </View>
 
-          <View style={styles.progressBarContainer}>
-            <View
-              style={[
-                styles.progressBar,
-                {
-                  backgroundColor: isDarkMode
-                    ? "rgba(255,255,255,0.1)"
-                    : "rgba(0,0,0,0.05)",
-                },
-              ]}
-            >
+          <View style={[styles.progressCard, { backgroundColor: colors.card, borderColor: colors.primary + '30', borderWidth: 1 }]}>
+            <View style={styles.progressHeader}>
+              <Text style={[styles.progressTitle, { color: colors.text }]}>
+                {t("stats.dailyProgress")}
+              </Text>
+              <Text style={[styles.progressPercentage, { color: colors.primary, fontWeight: '700' }]}>
+                {Math.round(completionRate)}%
+              </Text>
+            </View>
+            <View style={[styles.progressBarContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
               <View
                 style={[
                   styles.progressFill,
                   {
                     width: `${completionRate}%`,
                     backgroundColor: getProgressColor(completionRate, colors),
+                    borderRadius: 4,
                   },
                 ]}
               />
             </View>
-            <Text style={[styles.progressText, { color: colors.text }]}>
-              {Math.round(completionRate)}%
+            <Text style={[styles.progressNote, { color: colors.subText, marginTop: 8 }]}>
+              {totalGoals === 0
+                ? t("stats.progressNotes.noGoals")
+                : completionRate === 100
+                  ? t("stats.progressNotes.allCompleted")
+                  : completionRate > 0
+                    ? t("stats.progressNotes.keepGoing")
+                    : t("stats.progressNotes.startCompleting")}
             </Text>
           </View>
 
-          <Text style={[styles.progressNote, { color: colors.subText }]}>
-            {totalGoals === 0
-              ? t("stats.progressNotes.noGoals")
-              : completionRate === 100
-                ? t("stats.progressNotes.allCompleted")
-                : completionRate > 0
-                  ? t("stats.progressNotes.keepGoing")
-                  : t("stats.progressNotes.startCompleting")}
-          </Text>
+          <View style={[styles.timeCard, { backgroundColor: isDarkMode ? colors.primary + '10' : colors.info + '10', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+            <View style={[styles.timeIconContainer, { backgroundColor: colors.primary + '20', padding: 8, borderRadius: 12 }]}>
+              <Clock size={24} color={colors.primary} />
+            </View>
+            <View style={styles.timeTextContainer}>
+              <Text style={[styles.timeLabel, { color: colors.subText, fontSize: 12 }]}>
+                {t("stats.timeRemaining")}
+              </Text>
+              <Text style={[styles.timeValue, { color: colors.text, fontSize: 16, fontWeight: '600' }]}>
+                {timeUntilMidnight}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* Haftalık ve Aylık Performans */}
-        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+        {/* General Performance - Modern Cards */}
+        <View style={[styles.sectionCard, { 
+          backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
+          borderColor: colors.primary + '40',
+          borderWidth: 1,
+        }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("stats.generalPerformance")}
           </Text>
 
-          <View style={styles.performanceRow}>
-            <View style={styles.performanceItem}>
-              <View
-                style={[
-                  styles.performanceIconContainer,
-                  { backgroundColor: colors.info + "20" },
-                ]}
-              >
-                <Calendar size={20} color={colors.info} />
+          <View style={styles.performanceGrid}>
+            <View style={[styles.performanceCard, { 
+              backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.1)',
+              borderWidth: 1,
+              borderColor: colors.primary + '40',
+            }]}>
+              <View style={[styles.performanceIcon, { backgroundColor: colors.primary + '30' }]}>
+                <Calendar size={24} color={colors.primary} />
               </View>
-              <View style={styles.performanceTextContainer}>
-                <Text
-                  style={[styles.performanceLabel, { color: colors.subText }]}
-                >
-                  {t("stats.weekly")}
-                </Text>
-                <Text style={[styles.performanceValue, { color: colors.text }]}>
-                  {Math.round(performanceData.weeklyCompletionRate)}%
-                </Text>
-              </View>
+              <Text style={[styles.performanceLabel, { color: colors.subText }]}>
+                {t("stats.weekly")}
+              </Text>
+              <Text style={[styles.performanceValue, { color: colors.primary, fontWeight: '700' }]}>
+                {Math.round(performanceData.weeklyCompletionRate)}%
+              </Text>
             </View>
 
-            <View style={styles.performanceItem}>
-              <View
-                style={[
-                  styles.performanceIconContainer,
-                  { backgroundColor: colors.secondary + "20" },
-                ]}
-              >
-                <BarChart4 size={20} color={colors.secondary} />
+            <View style={[styles.performanceCard, { 
+              backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.1)',
+              borderWidth: 1,
+              borderColor: colors.primary + '40',
+            }]}>
+              <View style={[styles.performanceIcon, { backgroundColor: colors.primary + '30' }]}>
+                <BarChart4 size={24} color={colors.primary} />
               </View>
-              <View style={styles.performanceTextContainer}>
-                <Text
-                  style={[styles.performanceLabel, { color: colors.subText }]}
-                >
-                  {t("stats.monthly")}
-                </Text>
-                <Text style={[styles.performanceValue, { color: colors.text }]}>
-                  {Math.round(performanceData.monthlyCompletionRate)}%
-                </Text>
-              </View>
+              <Text style={[styles.performanceLabel, { color: colors.subText }]}>
+                {t("stats.monthly")}
+              </Text>
+              <Text style={[styles.performanceValue, { color: colors.primary, fontWeight: '700' }]}>
+                {Math.round(performanceData.monthlyCompletionRate)}%
+              </Text>
             </View>
 
-            <View style={styles.performanceItem}>
-              <View
-                style={[
-                  styles.performanceIconContainer,
-                  { backgroundColor: colors.success + "20" },
-                ]}
-              >
-                <TrendingUp size={20} color={colors.success} />
+            <View style={[styles.performanceCard, { 
+              backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.1)',
+              borderWidth: 1,
+              borderColor: colors.primary + '40',
+            }]}>
+              <View style={[styles.performanceIcon, { backgroundColor: colors.primary + '30' }]}>
+                <TrendingUp size={24} color={colors.primary} />
               </View>
-              <View style={styles.performanceTextContainer}>
-                <Text
-                  style={[styles.performanceLabel, { color: colors.subText }]}
-                >
-                  {t("stats.streak")}
-                </Text>
-                <Text style={[styles.performanceValue, { color: colors.text }]}>
-                  {performanceData.streak} {t("stats.days")}
-                </Text>
-              </View>
+              <Text style={[styles.performanceLabel, { color: colors.subText }]}>
+                {t("stats.streak")}
+              </Text>
+              <Text style={[styles.performanceValue, { color: colors.primary, fontWeight: '700' }]}>
+                {performanceData.streak} <Text style={{ fontSize: 12 }}>{t("stats.days")}</Text>
+              </Text>
             </View>
           </View>
 
@@ -456,71 +435,54 @@ export const StatsScreen: React.FC = () => {
 
           <View style={styles.performanceSummary}>
             <View style={styles.performanceDetail}>
-              <Text
-                style={[
-                  styles.performanceDetailLabel,
-                  { color: colors.subText },
-                ]}
-              >
+              <Text style={[styles.performanceDetailLabel, { color: colors.subText }]}>
                 {t("stats.bestDay")}
               </Text>
-              <Text
-                style={[styles.performanceDetailValue, { color: colors.text }]}
-              >
+              <Text style={[styles.performanceDetailValue, { color: colors.text }]}>
                 {performanceData.bestDay}
               </Text>
             </View>
 
             <View style={styles.performanceDetail}>
-              <Text
-                style={[
-                  styles.performanceDetailLabel,
-                  { color: colors.subText },
-                ]}
-              >
+              <Text style={[styles.performanceDetailLabel, { color: colors.subText }]}>
                 {t("stats.totalCompleted")}
               </Text>
-              <Text
-                style={[styles.performanceDetailValue, { color: colors.text }]}
-              >
-                {performanceData.totalCompletedTasks} {t("stats.tasks")}
+              <Text style={[styles.performanceDetailValue, { color: colors.text }]}>
+                {performanceData.totalCompletedTasks} <Text style={{ fontSize: 12 }}>{t("stats.tasks")}</Text>
               </Text>
             </View>
 
             <View style={styles.performanceDetail}>
-              <Text
-                style={[
-                  styles.performanceDetailLabel,
-                  { color: colors.subText },
-                ]}
-              >
+              <Text style={[styles.performanceDetailLabel, { color: colors.subText }]}>
                 {t("stats.performanceLevel")}
               </Text>
-              <Text
-                style={[styles.performanceDetailValue, { color: colors.text }]}
-              >
+              <Text style={[styles.performanceDetailValue, { color: getPerformanceLevelColor(todayPerformanceRate) }]}>
                 {getPerformanceLevel(
-                  performanceData.weeklyCompletionRate,
-                  performanceData.hasTasks
+                  todayPerformanceRate,
+                  hasTodayTasks
                 )}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Başarı Kartı */}
-        <View
-          style={[styles.achievementCard, { backgroundColor: colors.card }]}
-        >
+        {/* Achievements Card - Modern Design */}
+        <View style={[styles.achievementCard, { 
+          backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
+          borderColor: colors.primary + '40',
+          borderWidth: 1,
+        }]}>
           <View style={styles.achievementHeader}>
-            <Award size={28} color={colors.primary} />
-            <Text style={[styles.achievementTitle, { color: colors.text }]}>
+            <View style={[styles.achievementIconContainer, { backgroundColor: colors.primary + '25' }]}>
+              <Award size={28} color={colors.primary} />
+            </View>
+            <Text style={[styles.achievementTitle, { color: colors.text, fontWeight: '700' }]}>
               {t("stats.achievements.title")}
             </Text>
           </View>
 
           <View style={styles.achievementContent}>
-            <Text style={[styles.achievementText, { color: colors.text }]}>
+            <Text style={[styles.achievementText, { color: colors.text, fontSize: 15, lineHeight: 22 }]}>
               {performanceData.streak >= 7
                 ? t("stats.achievements.streakAchievement")
                 : performanceData.totalCompletedTasks >= 50
@@ -532,22 +494,53 @@ export const StatsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* İpuçları Kartı */}
-        <View style={[styles.helpCard, { backgroundColor: colors.card }]}>
-          <Text style={[styles.helpTitle, { color: colors.text }]}>
-            {t("stats.tips.title")}
-          </Text>
-          <Text style={[styles.helpText, { color: colors.text }]}>
-            {t("stats.tips.tip1")}
-            {"\n"}
-            {t("stats.tips.tip2")}
-            {"\n"}
-            {t("stats.tips.tip3")}
-            {"\n"}
-            {t("stats.tips.tip4")}
-            {"\n"}
-            {t("stats.tips.tip5")}
-          </Text>
+        {/* Focus Tips Card - Modern Design */}
+        <View style={[styles.helpCard, { 
+          backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
+          borderColor: colors.primary + '40',
+          borderWidth: 1,
+        }]}>
+          <View style={styles.helpHeader}>
+            <View style={[styles.helpIconContainer, { backgroundColor: colors.info + '25' }]}>
+              <Lightbulb size={24} color={colors.info} />
+            </View>
+            <Text style={[styles.helpTitle, { color: colors.text, fontWeight: '700' }]}>
+              {t("stats.tips.title")}
+            </Text>
+          </View>
+          
+          <View style={styles.tipsContainer}>
+            <View style={styles.tipItem}>
+              <View style={[styles.tipDot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.tipText, { color: colors.text }]}>
+                {t("stats.tips.tip1")}
+              </Text>
+            </View>
+            <View style={styles.tipItem}>
+              <View style={[styles.tipDot, { backgroundColor: colors.success }]} />
+              <Text style={[styles.tipText, { color: colors.text }]}>
+                {t("stats.tips.tip2")}
+              </Text>
+            </View>
+            <View style={styles.tipItem}>
+              <View style={[styles.tipDot, { backgroundColor: colors.warning }]} />
+              <Text style={[styles.tipText, { color: colors.text }]}>
+                {t("stats.tips.tip3")}
+              </Text>
+            </View>
+            <View style={styles.tipItem}>
+              <View style={[styles.tipDot, { backgroundColor: colors.secondary }]} />
+              <Text style={[styles.tipText, { color: colors.text }]}>
+                {t("stats.tips.tip4")}
+              </Text>
+            </View>
+            <View style={styles.tipItem}>
+              <View style={[styles.tipDot, { backgroundColor: colors.info }]} />
+              <Text style={[styles.tipText, { color: colors.text }]}>
+                {t("stats.tips.tip5")}
+              </Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -562,15 +555,21 @@ const getProgressColor = (rate: number, colors: Record<string, string>) => {
   return colors.error;
 };
 
+// Performance level için renk fonksiyonu
+const getPerformanceLevelColor = (rate: number) => {
+  if (rate >= 80) return '#10B981'; // success green
+  if (rate >= 50) return '#3B82F6'; // info blue
+  if (rate >= 20) return '#F59E0B'; // warning yellow
+  return '#EF4444'; // error red
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingBottom: 24,
   },
   title: {
     fontSize: 28,
@@ -582,6 +581,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 0,
   },
   sectionCard: {
     borderRadius: 16,
@@ -599,23 +601,53 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 20,
   },
-  statCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 4,
-    alignItems: "center",
+  statsContainer: {
+    marginBottom: 16,
   },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  statCardLarge: {
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  statIconLarge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
   },
+  statValueLarge: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  statLabelLarge: {
+    fontSize: 14,
+    textAlign: "center",
+  },
+  statsGrid: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+  },
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   statValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
     marginBottom: 4,
   },
@@ -623,56 +655,86 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
   },
-  progressBarContainer: {
+  progressCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+  },
+  progressHeader: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-  progressBar: {
-    height: 10,
-    borderRadius: 5,
-    flex: 1,
-    marginRight: 12,
+  progressTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  progressPercentage: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  progressBarContainer: {
+    height: 12,
+    borderRadius: 6,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    borderRadius: 5,
-  },
-  progressText: {
-    fontSize: 16,
-    fontWeight: "600",
-    width: 40,
-    textAlign: "right",
+    borderRadius: 6,
   },
   progressNote: {
     fontSize: 14,
-    marginTop: 8,
     fontStyle: "italic",
+  },
+  timeCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+  },
+  timeIconContainer: {
+    padding: 8,
+    borderRadius: 12,
+  },
+  timeTextContainer: {
+    flex: 1,
+  },
+  timeLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  timeValue: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   performanceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  performanceItem: {
+  performanceGrid: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+    gap: 8,
+  },
+  performanceCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 12,
     alignItems: "center",
   },
-  performanceIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  performanceIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
-  },
-  performanceTextContainer: {
-    flexDirection: "column",
+    marginBottom: 8,
   },
   performanceLabel: {
     fontSize: 12,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   performanceValue: {
     fontSize: 16,
@@ -732,14 +794,41 @@ const styles = StyleSheet.create({
     padding: 20,
     margin: 16,
   },
+  helpHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  helpIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
   helpTitle: {
     fontSize: 18,
     fontWeight: "600",
-    marginBottom: 16,
+    flex: 1,
   },
-  helpText: {
+  tipsContainer: {},
+  tipItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  tipDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+    marginTop: 6,
+  },
+  tipText: {
+    flex: 1,
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   secondsText: {
     fontSize: 12,

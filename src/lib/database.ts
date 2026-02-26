@@ -82,10 +82,10 @@ export const addGoal = async (goalInput: GoalInput): Promise<Goal> => {
   const timestamp = Date.now();
   const randomPart = Math.floor(Math.random() * 10000);
   const id = `${timestamp}-${randomPart}`;
-  
+
   const now = new Date().toISOString();
   const today = formatDate();
-  
+
   const goal: Goal = {
     id,
     text: goalInput.text,
@@ -96,29 +96,31 @@ export const addGoal = async (goalInput: GoalInput): Promise<Goal> => {
   };
 
   await ensureInitialized();
-  
+
   // Önce aynı ID'ye sahip bir görev var mı kontrol et
   const existingGoal = await db.getFirstAsync(
     'SELECT id FROM goals WHERE id = ?;',
     [id]
   );
-  
+
   if (existingGoal) {
     // console.error(`ID çakışması: ${id} zaten mevcut. Yeni ID oluşturuluyor.`);
     // Recursive olarak tekrar dene (farklı ID ile)
     return addGoal(goalInput);
   }
-  
-  // console.log(`Yeni görev ekleniyor, ID: ${id}, Text: ${goalInput.text}`);
-  
+
+  console.log(`Yeni görev ekleniyor, ID: ${id}, Text: ${goalInput.text}, Date: ${today}`);
+
   await db.runAsync(
     'INSERT INTO goals (id, text, completed, createdAt, updatedAt, date) VALUES (?, ?, ?, ?, ?, ?);',
     [id, goalInput.text, 0, now, now, today]
   );
-  
+
+  console.log(`Göv başarıyla eklendi!`);
+
   // Update daily completions for today
   await updateDailyCompletionStats();
-  
+
   return goal;
 };
 
@@ -174,15 +176,14 @@ export const clearGoals = async (): Promise<void> => {
 
 // Format date to YYYY-MM-DD for storage
 const formatDate = (date: Date = new Date()): string => {
-  // UTC kullanarak tarih tutarlılığını sağla
+  // Local time kullanarak tarih tutarlılığını sağla
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  
-  // Kontrol amaçlı log
+
   const formattedDate = `${year}-${month}-${day}`;
-  // console.log(`Tarih formatlanıyor: ${date.toISOString()} -> ${formattedDate}`);
-  
+  console.log('formatDate:', date.toString(), '->', formattedDate);
+
   return formattedDate;
 };
 

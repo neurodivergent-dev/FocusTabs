@@ -7,6 +7,8 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
 import { useThemeStore } from "../src/store/themeStore";
 import { THEMES } from "../src/constants/themes";
@@ -17,6 +19,7 @@ import { ChevronLeft, Palette } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 
 export default function ThemeSettingsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors, isDarkMode, themeId } = useTheme();
   const setThemeId = useThemeStore((state) => state.setThemeId);
@@ -43,22 +46,38 @@ export default function ThemeSettingsScreen() {
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
       >
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <LinearGradient
+          colors={[
+            colors.primary,
+            colors.secondary || colors.primary,
+            colors.info || colors.primary,
+            colors.primary,
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          locations={[0, 0.3, 0.7, 1]}
+          style={[styles.header, { 
+            paddingTop: insets.top + 8
+          }]}
+        >
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <ChevronLeft size={24} color={colors.text} />
-            <Text style={[styles.backText, { color: colors.text }]}>
+            <ChevronLeft size={24} color="#FFFFFF" />
+            <Text style={[styles.backText, { color: "#FFFFFF" }]}>
               {t("settings.title", "Ayarlar")}
             </Text>
           </TouchableOpacity>
           <View style={styles.titleContainer}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
+            <Text style={[styles.headerTitle, { color: "#FFFFFF" }]}>
               {t("themeSettings.title", "Tema Ayarları")}
             </Text>
           </View>
           <View style={styles.rightPlaceholder} />
-        </View>
+        </LinearGradient>
 
-        <ScrollView style={styles.scrollView}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
           <View style={styles.contentHeader}>
             <Palette size={32} color={colors.primary} />
             <Text style={[styles.title, { color: colors.text }]}>
@@ -109,28 +128,55 @@ export default function ThemeSettingsScreen() {
                 style={[
                   styles.themeCard,
                   {
-                    backgroundColor: isDarkMode ? "#2A2A2A" : "#F5F5F7",
-                    borderColor:
-                      themeId === theme.id ? colors.primary : "transparent",
+                    backgroundColor: isDarkMode ? "#1A1A1A" : "#FFFFFF",
+                    borderColor: themeId === theme.id ? theme.colors.primary : "transparent",
+                    borderWidth: themeId === theme.id ? 3 : 0,
+                    shadowColor: themeId === theme.id ? theme.colors.primary : "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: themeId === theme.id ? 0.3 : 0.1,
+                    shadowRadius: 8,
+                    elevation: themeId === theme.id ? 8 : 4,
                   },
                 ]}
                 onPress={() => handleThemeSelect(theme.id)}
               >
-                <View
-                  style={[
-                    styles.themePreview,
-                    { backgroundColor: theme.colors.primary },
-                  ]}
-                />
+                <View style={styles.themeColorRing}>
+                  <View
+                    style={[
+                      styles.themePreview,
+                      { 
+                        backgroundColor: theme.colors.primary,
+                        shadowColor: theme.colors.primary,
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.4,
+                        shadowRadius: 8,
+                      },
+                    ]}
+                  />
+                </View>
+                {themeId === theme.id && (
+                  <View style={styles.checkmarkContainer}>
+                    <Text style={styles.checkmark}>✓</Text>
+                  </View>
+                )}
                 <Text
                   style={[
                     styles.themeCardTitle,
                     { color: colors.text },
-                    themeId === theme.id && { fontWeight: "700" },
+                    themeId === theme.id && { 
+                      fontWeight: "700",
+                      color: theme.colors.primary,
+                    },
                   ]}
+                  numberOfLines={1}
                 >
                   {t(`themeNames.${theme.id}`, theme.name)}
                 </Text>
+                <View style={styles.colorDotsContainer}>
+                  <View style={[styles.colorDot, { backgroundColor: theme.colors.primary }]} />
+                  <View style={[styles.colorDot, { backgroundColor: theme.colors.secondary }]} />
+                  <View style={[styles.colorDot, { backgroundColor: theme.colors.success }]} />
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -192,9 +238,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingBottom: 24,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -264,22 +308,56 @@ const styles = StyleSheet.create({
   },
   themeCard: {
     width: "48%",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 2,
     alignItems: "center",
   },
-  themePreview: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  themeColorRing: {
+    padding: 4,
+    borderRadius: 50,
     marginBottom: 12,
   },
-  themeCardTitle: {
+  themePreview: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+  },
+  checkmarkContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  checkmark: {
+    color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  themeCardTitle: {
+    fontSize: 14,
     fontWeight: "500",
     textAlign: "center",
+    marginBottom: 8,
+  },
+  colorDotsContainer: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   previewSection: {
     marginBottom: 40,

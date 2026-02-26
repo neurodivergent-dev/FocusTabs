@@ -1,5 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, BarChart2, Settings, Calendar } from "lucide-react-native";
 import { useTheme } from "../../src/components/ThemeProvider";
 
@@ -10,15 +11,19 @@ import { useTheme } from "../../src/components/ThemeProvider";
 export default function TabLayout() {
   // Tema renklerine erişim
   const { colors, isDarkMode: _isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         headerShown: false,
+        sceneContainerStyle: {
+          backgroundColor: colors.background,
+        },
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 10,
+          height: 60 + insets.bottom,
+          paddingBottom: 10 + insets.bottom,
           paddingTop: 10,
           backgroundColor: colors.background,
           borderTopColor: colors.border,

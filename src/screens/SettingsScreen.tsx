@@ -6,14 +6,14 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Switch,
   Alert,
   useColorScheme,
   Linking,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Moon,
-  Bell,
   Info,
   Star,
   ChevronRight,
@@ -22,23 +22,16 @@ import {
   Smartphone,
   Palette,
   Globe,
-  Bug,
+  Database,
+  Trash2,
 } from "lucide-react-native";
-import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeStore } from "../store/themeStore";
-import { useUserStore } from "../store/userStore";
+import { useDailyGoalsStore } from "../store/dailyGoalsStore";
+import { useLanguageStore } from "../store/languageStore";
 import { useRouter } from "expo-router";
-import NotificationService from "../services/NotificationService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import LanguageModal from "../components/LanguageModal";
-
-// Reminder ayarları için bir key
-const REMINDER_ENABLED_KEY = "reminders_enabled";
-
-// Check if in development mode
-const isDevelopment = __DEV__;
 
 // Logo komponentini içe aktarıyoruz
 import FocusTabsLogo from "../../components/LogoComponent";
@@ -47,9 +40,7 @@ import FocusTabsLogo from "../../components/LogoComponent";
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingBottom: 24,
   },
   title: {
     fontSize: 28,
@@ -61,6 +52,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 0,
   },
   section: {
     marginTop: 24,
@@ -188,34 +182,14 @@ const styles = StyleSheet.create({
 });
 
 export const SettingsScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { themeMode, setThemeMode } = useThemeStore();
   const { t } = useTranslation();
   const systemColorScheme = useColorScheme();
   const { colors, isDarkMode } = useTheme();
-  const { logout, isLoggedIn, isGuest } = useUserStore();
 
-  // Hatırlatıcı durumu için state
-  const [remindersEnabled, setRemindersEnabled] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
-
-  // Sayfa yüklendiğinde ayarları getir
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const reminderEnabled =
-          await AsyncStorage.getItem(REMINDER_ENABLED_KEY);
-        setRemindersEnabled(reminderEnabled === "true");
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Ayarlar yüklenirken hata oluştu:", error);
-        setIsLoading(false);
-      }
-    };
-
-    loadSettings();
-  }, []);
 
   // Update isDarkMode based on system preference when using system theme
   useEffect(() => {
@@ -224,58 +198,6 @@ export const SettingsScreen: React.FC = () => {
       useThemeStore.getState().setIsDarkMode(systemColorScheme === "dark");
     }
   }, [systemColorScheme, themeMode]);
-
-  // Hatırlatıcı ayarlarını değiştirme işlevi
-  const toggleReminders = async (value: boolean) => {
-    try {
-      setRemindersEnabled(value);
-      await AsyncStorage.setItem(REMINDER_ENABLED_KEY, value.toString());
-
-      if (value) {
-        // Bildirim izinleri iste
-        const hasPermission = await NotificationService.requestPermissions();
-
-        if (hasPermission) {
-          // Günlük hatırlatıcı kur (akşam 8)
-          await NotificationService.scheduleDailyReminder(
-            "Günlük Hedeflerinizi Kontrol Edin",
-            "Bugünkü hedeflerinizi tamamladınız mı?",
-            20, // Saat (24 saat formatında)
-            0, // Dakika
-            { screen: "index" } // Bildirime tıklandığında hangi ekrana gidileceği
-          );
-
-          Alert.alert(
-            "Hatırlatıcılar Açıldı",
-            "Her gün akşam 8'de günlük hedeflerinizi kontrol etmeniz için size bildirim göndereceğiz."
-          );
-        } else {
-          // İzin verilmediğinde hatırlatıcıları kapatın
-          setRemindersEnabled(false);
-          await AsyncStorage.setItem(REMINDER_ENABLED_KEY, "false");
-
-          Alert.alert(
-            "Bildirim İzni Gerekli",
-            "Hatırlatıcıları kullanabilmek için bildirim izinlerini etkinleştirmeniz gerekiyor.",
-            [{ text: "Tamam" }]
-          );
-        }
-      } else {
-        // Tüm bildirimleri iptal et
-        await NotificationService.cancelAllNotifications();
-        Alert.alert(
-          "Hatırlatıcılar Kapatıldı",
-          "Artık bildirim almayacaksınız."
-        );
-      }
-    } catch (error) {
-      console.error("Hatırlatıcı ayarları kaydedilirken hata oluştu:", error);
-      Alert.alert(
-        "Hata",
-        "Hatırlatıcı ayarları kaydedilirken bir hata oluştu."
-      );
-    }
-  };
 
   const handleRateApp = () => {
     // Open Play Store link for FocusTabs
@@ -329,73 +251,81 @@ export const SettingsScreen: React.FC = () => {
     setLanguageModalVisible(true);
   };
 
-  // Navigate to language debug screen
-  const handleNavigateToLanguageDebug = () => {
-    router.push("/language-debug");
+  // Backup handling
+  const handleNavigateToBackupSettings = () => {
+    router.push("/backup-settings");
   };
 
-  const handleLogout = () => {
+  // Reset all data
+  const handleResetAllData = () => {
     Alert.alert(
-      t("auth.login.title"),
-      t("auth.logout.confirmMessage") || "Are you sure you want to log out?",
+      t("settings.resetConfirmTitle") || "Tüm Verileri Sıfırla",
+      t("settings.resetConfirmMessage") || "Bu işlem tüm verilerinizi silecek. Devam et?",
       [
         {
-          text: t("auth.logout.cancel") || "Cancel",
+          text: t("common.cancel") || "İptal",
           style: "cancel",
         },
         {
-          text: t("auth.logout.confirm") || "Log Out",
+          text: t("settings.reset") || "Sıfırla",
           style: "destructive",
           onPress: () => {
-            logout();
-            router.replace("/login");
+            // Clear all goals
+            const { clearGoals } = useDailyGoalsStore.getState();
+            clearGoals();
+            
+            // Reset theme to default
+            useThemeStore.getState().setThemeId("default");
+            useThemeStore.getState().setThemeMode("system");
+            
+            // Reset language to device language
+            useLanguageStore.getState().setLanguage("en");
+            
+            Alert.alert(
+              t("settings.success") || "Başarılı",
+              t("settings.resetSuccess") || "Tüm veriler sıfırlandı"
+            );
           },
         },
       ]
     );
   };
 
-  const handleNavigateToLogin = () => {
-    // Misafir kullanıcı özelliğini geçici olarak kaldır
-    if (isGuest) {
-      // isGuest durumunu geçici olarak false yap, böylece layout otomatik yönlendirme yapmaz
-      useUserStore.setState({ isGuest: false });
-
-      // Login sayfasına yönlendir
-      router.replace("/login");
-
-      // 100ms sonra isGuest'i tekrar true yap (UI güncellendikten sonra)
-      setTimeout(() => {
-        useUserStore.setState({ isGuest: true });
-      }, 100);
-    } else {
-      // Normal durumda direkt login'e yönlendir
-      router.replace("/login");
-    }
-  };
-
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>
+      <LinearGradient
+        colors={[
+          colors.primary,
+          colors.secondary || colors.primary,
+          colors.info || colors.primary,
+          colors.primary,
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        locations={[0, 0.3, 0.7, 1]}
+        style={[styles.header, { 
+          paddingTop: insets.top + 8
+        }]}
+      >
+        <Text style={[styles.title, { color: "#FFFFFF" }]}>
           {t("settings.title")}
         </Text>
-        <Text style={[styles.subtitle, { color: colors.subText }]}>
+        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.9)" }]}>
           {t("settings.customizeYourExperience")}
         </Text>
-      </View>
+      </LinearGradient>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 20 }]}>
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("settings.preferences")}
           </Text>
 
-          <View
-            style={[
-              styles.themeSectionContainer,
-              { backgroundColor: colors.card },
-            ]}
+          <LinearGradient
+            colors={[colors.primary + '08', colors.secondary + '08']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.themeSectionContainer, { borderWidth: 1, borderColor: colors.primary + '15' }]}
           >
             <Text style={[styles.themeLabel, { color: colors.text }]}>
               {t("settings.theme")}
@@ -500,10 +430,13 @@ export const SettingsScreen: React.FC = () => {
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </LinearGradient>
 
-          <TouchableOpacity
-            style={[styles.settingItem, { backgroundColor: colors.card }]}
+          <LinearGradient
+            colors={[colors.primary + '08', colors.secondary + '08']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
             onPress={handleNavigateToThemeSettings}
           >
             <View
@@ -525,10 +458,13 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </TouchableOpacity>
+          </LinearGradient>
 
-          <TouchableOpacity
-            style={[styles.settingItem, { backgroundColor: colors.card }]}
+          <LinearGradient
+            colors={[colors.primary + '08', colors.secondary + '08']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
             onPress={handleOpenLanguageModal}
           >
             <View
@@ -550,142 +486,62 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </TouchableOpacity>
+          </LinearGradient>
 
-          <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
+          <LinearGradient
+            colors={[colors.primary + '08', colors.secondary + '08']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
+            onPress={handleNavigateToBackupSettings}
+          >
             <View
               style={[
                 styles.settingIconContainer,
                 { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
               ]}
             >
-              <Bell size={20} color="#EC4899" />
+              <Database size={20} color="#10B981" />
             </View>
             <View style={styles.settingContent}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                {t("settings.notifications")}
+                {t("settings.backup")}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.subText }]}
               >
-                {t("settings.notificationsDescription")}
+                {t("settings.backupDescription")}
               </Text>
             </View>
-            <Switch
-              disabled={isLoading}
-              value={remindersEnabled}
-              onValueChange={toggleReminders}
-              trackColor={{ false: "#767577", true: colors.primary }}
-              thumbColor={remindersEnabled ? "#FFFFFF" : "#f4f3f4"}
-            />
-          </View>
-        </View>
+            <ChevronRight size={20} color={colors.subText} />
+          </LinearGradient>
 
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t("settings.data")}
-          </Text>
-
-          {/* Add language debug option only in development mode */}
-          {isDevelopment && (
-            <TouchableOpacity
-              style={[styles.settingItem, { backgroundColor: colors.card }]}
-              onPress={handleNavigateToLanguageDebug}
-            >
-              <View
-                style={[
-                  styles.settingIconContainer,
-                  { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
-                ]}
-              >
-                <Bug size={20} color="#EF4444" />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingLabel, { color: colors.text }]}>
-                  {t("settings.language")} Debug
-                </Text>
-                <Text
-                  style={[styles.settingDescription, { color: colors.subText }]}
-                >
-                  {t("settings.language")}{" "}
-                  {t("settings.howWeHandleYourData").toLowerCase()}
-                </Text>
-              </View>
-              <ChevronRight size={20} color={colors.subText} />
-            </TouchableOpacity>
-          )}
-
-          {/* Login button - only visible when not logged in */}
-          {!isLoggedIn && (
-            <TouchableOpacity
+          <LinearGradient
+            colors={[colors.error + '15', colors.error + '05']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.error + '40' }]}
+            onPress={handleResetAllData}
+          >
+            <View
               style={[
-                styles.settingItem,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.primary,
-                  borderWidth: 1,
-                },
+                styles.settingIconContainer,
+                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
               ]}
-              onPress={handleNavigateToLogin}
             >
-              <View
-                style={[
-                  styles.settingIconContainer,
-                  { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
-                ]}
+              <Trash2 size={20} color={colors.error} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={[styles.settingLabel, { color: colors.error }]}>
+                {t("settings.resetAllData")}
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.subText }]}
               >
-                <MaterialIcons name="login" size={20} color={colors.primary} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingLabel, { color: colors.primary }]}>
-                  {t("settings.welcomeBack", "Welcome Back")}
-                </Text>
-                <Text
-                  style={[styles.settingDescription, { color: colors.subText }]}
-                >
-                  {isGuest
-                    ? t("auth.guest.switchToAccount") ||
-                      "Switch to full account"
-                    : t("auth.login.subtitle") || "Sign in to your account"}
-                </Text>
-              </View>
-              <ChevronRight size={20} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-
-          {/* Logout button - only visible when logged in */}
-          {isLoggedIn && (
-            <TouchableOpacity
-              style={[
-                styles.settingItem,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.error,
-                  borderWidth: 1,
-                },
-              ]}
-              onPress={handleLogout}
-            >
-              <View
-                style={[
-                  styles.settingIconContainer,
-                  { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
-                ]}
-              >
-                <MaterialIcons name="logout" size={20} color={colors.error} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingLabel, { color: colors.error }]}>
-                  {t("auth.logout.title") || "Logout"}
-                </Text>
-                <Text
-                  style={[styles.settingDescription, { color: colors.subText }]}
-                >
-                  {t("auth.logout.description") || "Sign out of your account"}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
+                {t("settings.resetAllDataDescription")}
+              </Text>
+            </View>
+          </LinearGradient>
         </View>
 
         <View style={styles.section}>
@@ -701,8 +557,11 @@ export const SettingsScreen: React.FC = () => {
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.settingItem, { backgroundColor: colors.card }]}
+          <LinearGradient
+            colors={[colors.primary + '08', colors.secondary + '08']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
             onPress={handleRateApp}
           >
             <View
@@ -724,10 +583,13 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </TouchableOpacity>
+          </LinearGradient>
 
-          <TouchableOpacity
-            style={[styles.settingItem, { backgroundColor: colors.card }]}
+          <LinearGradient
+            colors={[colors.primary + '08', colors.secondary + '08']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
             onPress={handleNavigateToAbout}
           >
             <View
@@ -749,10 +611,13 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </TouchableOpacity>
+          </LinearGradient>
 
-          <TouchableOpacity
-            style={[styles.settingItem, { backgroundColor: colors.card }]}
+          <LinearGradient
+            colors={[colors.primary + '08', colors.secondary + '08']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.settingItem, { borderWidth: 1, borderColor: colors.primary + '15' }]}
             onPress={handleNavigateToPrivacyPolicy}
           >
             <View
@@ -774,7 +639,7 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
             <ChevronRight size={20} color={colors.subText} />
-          </TouchableOpacity>
+          </LinearGradient>
         </View>
       </ScrollView>
 

@@ -46,8 +46,8 @@
     },
     "newArchEnabled": true,
     "description": "A minimalist goal management app. Focus on what matters most with up to 3 daily goals. Completely offline and ad-free.",
-    "githubUrl": "https://github.com/melihcandemir/focustabs",
-    "sdkVersion": "52.0.0",
+    "githubUrl": "https://github.com/neurodivergent-dev/focustabs",
+    "sdkVersion": "54.0.0",
     "extra": {
       "router": {
         "origin": false
