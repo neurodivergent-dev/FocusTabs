@@ -18,12 +18,9 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@expo/metro-runtime": "^55.0.6",
     "@expo/vector-icons": "^15.0.3",
-    "@react-native-async-storage/async-storage": "^2.2.0",
-    "@react-native-community/netinfo": "^11.4.1",
-    "@react-native-firebase/app": "^22.2.1",
-    "@react-native-firebase/auth": "^22.2.1",
-    "@react-native-firebase/firestore": "^22.2.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "^7.0.14",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
@@ -35,7 +32,7 @@
     "eslint-config-prettier": "^8.10.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "expo": "~54.0.0",
+    "expo": "^55.0.3",
     "expo-auth-session": "~7.0.10",
     "expo-barcode-scanner": "^13.0.1",
     "expo-camera": "~17.0.10",
@@ -58,7 +55,6 @@
     "expo-system-ui": "~6.0.9",
     "expo-updates": "~29.0.16",
     "expo-web-browser": "~15.0.10",
-    "firebase": "^11.9.1",
     "i18next": "^25.2.1",
     "lucide-react-native": "^0.575.0",
     "prettier": "^3.0.3",
@@ -89,18 +85,14 @@
     "typescript": "~5.9.2"
   },
   "resolutions": {
-    "expo-modules-core": "~2.2.3",
     "react-native-svg": "15.12.1"
   },
   "overrides": {
-    "expo-modules-core": "~2.2.3",
     "react-native-svg": "15.12.1"
   },
   "expo": {
     "install": {
-      "exclude": [
-        "expo-modules-core"
-      ]
+      "exclude": []
     },
     "doctor": {
       "reactNativeDirectoryCheck": {
