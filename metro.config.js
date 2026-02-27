@@ -20,6 +20,9 @@ config.resolver.extraNodeModules['expo-router'] = path.resolve(__dirname, 'node_
 // Add specific module mappings to fix build issues
 config.resolver.extraNodeModules['expo-module-gradle-plugin'] = path.resolve(__dirname, 'node_modules/expo-modules-core');
 
+// Polyfills
+config.resolver.extraNodeModules['buffer'] = path.resolve(__dirname, 'node_modules/buffer');
+
 // Performance optimizations
 config.maxWorkers = 4;
 
