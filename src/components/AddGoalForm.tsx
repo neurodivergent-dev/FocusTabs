@@ -110,11 +110,11 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
             ]}
           >
             {disabled ? (
-              <View style={styles.disabledTextContainer}>
-                <Text style={[styles.addButtonCollapsedText, { opacity: 0.8, fontSize: 14 }]}>
-                  {currentCount}/3
-                </Text>
-                <Text style={[styles.addButtonCollapsedSubtext, { color: '#FFFFFF', opacity: 0.7, fontSize: 12, marginTop: 2 }]}>
+              <View style={styles.disabledContent}>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>{currentCount}/3</Text>
+                </View>
+                <Text style={styles.addButtonCollapsedSubtext}>
                   {t("home.maxGoalsReached")}
                 </Text>
               </View>
@@ -135,39 +135,40 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
-    marginBottom: 16,
+    width: '100%',
   },
   addButtonCollapsedWrapper: {
     width: '100%',
   },
   expandedForm: {
-    borderRadius: 16,
-    padding: 16,
+    width: '100%',
+    borderRadius: 20,
+    padding: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   input: {
     fontSize: 16,
-    minHeight: 60,
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   expandedActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 12,
   },
   cancelButton: {
-    padding: 10,
-    marginRight: 12,
+    padding: 12,
+    marginRight: 8,
   },
   addButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 16,
   },
   addButtonText: {
     fontSize: 16,
@@ -178,13 +179,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 30, // Tam yuvarlak buton
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   addButtonCollapsedText: {
     marginLeft: 8,
@@ -192,16 +194,30 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
   },
-  disabledTextContainer: {
+  disabledContent: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  countBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  countBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   addButtonCollapsedSubtext: {
     color: "#FFFFFF",
-    opacity: 0.7,
-    fontSize: 12,
+    opacity: 0.9,
+    fontSize: 14,
+    fontWeight: '600',
   },
   disabledButton: {
-    opacity: 0.7,
+    opacity: 0.8,
   },
 });

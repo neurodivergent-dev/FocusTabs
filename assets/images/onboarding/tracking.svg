@@ -1,27 +1,60 @@
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad_blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6" />
+      <stop offset="100%" style="stop-color:#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="grad_indigo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818CF8" />
+      <stop offset="100%" style="stop-color:#6366F1" />
+    </linearGradient>
+    <linearGradient id="chart_fill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#6366F1;stop-opacity:0.0" />
+    </linearGradient>
+    <filter id="shadow_soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.1"/>
+    </filter>
+  </defs>
 
-  <svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="barGrad1" x1="0%" y1="100%" x2="0%" y2="0%">
-        <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.9" />
-        <stop offset="100%" style="stop-color:#6BA5E7;stop-opacity:0.9" />
-      </linearGradient>
-    </defs>
-    
-    <!-- Background -->
-    <rect width="500" height="500" fill="none"/>
-    
-    <!-- Minimal Chart Grid -->
-    <rect x="100" y="100" width="300" height="300" fill="none" stroke="#858585" stroke-width="2" stroke-opacity="0.3"/>
-    
-    <!-- Chart Bars - Minimalist -->
-    <rect x="150" y="300" width="40" height="100" rx="4" fill="url(#barGrad1)"/>
-    <rect x="230" y="200" width="40" height="200" rx="4" fill="url(#barGrad1)"/>
-    <rect x="310" y="250" width="40" height="150" rx="4" fill="url(#barGrad1)"/>
-    
-    <!-- Trend Line -->
-    <path d="M170 300 L250 200 L330 250" stroke="#66BB6A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    <circle cx="170" cy="300" r="8" fill="#66BB6A"/>
-    <circle cx="250" cy="200" r="8" fill="#66BB6A"/>
-    <circle cx="330" cy="250" r="8" fill="#66BB6A"/>
-  </svg>
+  <!-- Card Background -->
+  <rect x="50" y="80" width="400" height="340" rx="32" fill="#FFFFFF" filter="url(#shadow_soft)" />
   
+  <!-- Grid Lines -->
+  <line x1="100" y1="150" x2="400" y2="150" stroke="#F3F4F6" stroke-width="2" />
+  <line x1="100" y1="220" x2="400" y2="220" stroke="#F3F4F6" stroke-width="2" />
+  <line x1="100" y1="290" x2="400" y2="290" stroke="#F3F4F6" stroke-width="2" />
+  <line x1="100" y1="360" x2="400" y2="360" stroke="#F3F4F6" stroke-width="2" />
+
+  <!-- Filled Area Under Chart -->
+  <path d="M100 360 L100 280 Q150 250 200 300 T300 180 T400 220 L400 360 Z" fill="url(#chart_fill)" />
+  
+  <!-- Chart Line -->
+  <path d="M100 280 Q150 250 200 300 T300 180 T400 220" stroke="url(#grad_indigo)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Chart Dots -->
+  <circle cx="100" cy="280" r="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="3" />
+  <circle cx="200" cy="300" r="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="3" />
+  <circle cx="300" cy="180" r="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="3" />
+  <circle cx="400" cy="220" r="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="3" />
+  
+  <!-- Stat Pill 1 -->
+  <g transform="translate(100, 110)">
+    <rect x="0" y="0" width="100" height="40" rx="20" fill="#6366F1" fill-opacity="0.1" />
+    <circle cx="20" cy="20" r="6" fill="#6366F1" />
+    <text x="35" y="25" fill="#6366F1" font-family="Arial" font-size="14" font-weight="600">Daily</text>
+  </g>
+  
+  <!-- Stat Pill 2 (Highlighted) -->
+  <g transform="translate(210, 110)">
+    <rect x="0" y="0" width="120" height="40" rx="20" fill="url(#grad_indigo)" />
+    <circle cx="25" cy="20" r="6" fill="#FFFFFF" />
+    <text x="42" y="25" fill="#FFFFFF" font-family="Arial" font-size="14" font-weight="600">Growth +24%</text>
+  </g>
+  
+  <!-- Bar chart Overlay (Subtle) -->
+  <rect x="120" y="320" width="12" height="40" rx="6" fill="#EC4899" fill-opacity="0.2" />
+  <rect x="180" y="260" width="12" height="100" rx="6" fill="#EC4899" fill-opacity="0.2" />
+  <rect x="240" y="280" width="12" height="80" rx="6" fill="#EC4899" fill-opacity="0.2" />
+  <rect x="300" y="220" width="12" height="140" rx="6" fill="#EC4899" fill-opacity="0.2" />
+</svg>

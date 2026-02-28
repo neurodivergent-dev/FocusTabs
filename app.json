@@ -44,19 +44,14 @@
     "experiments": {
       "typedRoutes": true
     },
-    "newArchEnabled": true,
     "description": "A minimalist goal management app. Focus on what matters most with up to 3 daily goals. Completely offline and ad-free.",
     "githubUrl": "https://github.com/neurodivergent-dev/focustabs",
-    "sdkVersion": "54.0.0",
     "extra": {
       "router": {
         "origin": false
       },
       "eas": {
         "projectId": "830fa4d4-6e64-4ca5-a958-36a8aef5f4cb"
-      },
-      "gradlePlugins": {
-        "expoModulesCore": "2.2.3"
       }
     },
     "updates": {

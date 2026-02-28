@@ -49,7 +49,7 @@ export default {
     addGoalPlaceholder: 'Yeni hedef ekle...',
     addGoalInputPlaceholder: "Bugünkü hedefin ne?",
     addGoal: 'Ekle',
-    maxGoalsReached: 'Maksimum 3 hedef ekleyebilirsiniz',
+    maxGoalsReached: 'Günlük hedefe ulaşıldı',
     emptyState: {
       title: 'Hedeflerinizi Belirleyin',
       description: 'Bugün için en önemli 3 hedefinizi belirleyin ve odaklanın.',
@@ -265,6 +265,15 @@ export default {
     lavender: 'Lavanta',
   },
   
+  // Sekmeler
+  tabs: {
+    goals: 'Hedefler',
+    calendar: 'Takvim',
+    stats: 'İstatistik',
+    settings: 'Ayarlar',
+  },
+
+  // Hakkında
   about: {
     back: "Ayarlar",
     title: "Hakkında",
@@ -285,14 +294,14 @@ export default {
     contact: "İletişim",
     madeWith: "ile",
     inTurkey: "Türkiye'de",
-    copyright: "© 2025 Melih Can Demir"
+    copyright: "© 2026 Melih Can Demir"
   },
   
   privacy: {
     back: "Ayarlar",
     title: "Gizlilik Politikası",
     ourPrivacyCommitmentTitle: "Gizliliğe Bağlılığımız",
-    ourPrivacyCommitment: "FocusTabs, gizliliği ön planda tutan bir yaklaşımla geliştirilmiştir. Kişisel verilerinizin size ait olduğuna inanıyoruz, bu nedenle uygulamamızı gizliliğinize tamamen saygı gösterecek şekilde tasarladık.",
+    ourPrivacyCommitment: "FocusTabs, gizliliği ön planda tutan bir yaklaşımla geliştirilmiştir. Kişisel verilerinizin size ait olduğuna inanıyoruz, bu nedenle uygulamamızı gizliliğinize tamamen saygı gösterecek şekilde tasarladık. \n\n",
     dataCollectionTitle: "Veri Toplama",
     zeroDataCollection: "Sıfır Veri Toplama: Uygulama tamamen çevrimdışı çalışır ve kesinlikle hiçbir veri toplama mekanizması içermez.",
     localStorageOnly: "Yalnızca Yerel Depolama: Tüm hedef bilgileriniz ve ayarlarınız yalnızca cihazınızda yerel olarak saklanır ve asla başka bir yere iletilmez.",
@@ -303,8 +312,8 @@ export default {
     yourRights: "Tüm veriler cihazınızda yerel olarak saklandığı için bilgileriniz üzerinde tam kontrole sahipsiniz. Uygulamayı istediğiniz zaman silerek tüm verileri kaldırabilirsiniz.",
     policyUpdatesTitle: "Politika Güncellemeleri",
     policyUpdates: "Bu gizlilik politikasını zaman zaman güncelleyebiliriz. Güncellediğimizde, bu sayfanın altındaki 'son güncelleme' tarihini revize edeceğiz.",
-    lastUpdated: "Son Güncelleme: Haziran 2025",
-    copyright: "© 2025 Melih Can Demir. Tüm hakları saklıdır."
+    lastUpdated: "Son Güncelleme: Şubat 2026",
+    copyright: "© 2026 Melih Can Demir. Tüm hakları saklıdır."
   },
   
   // Kimlik Doğrulama

@@ -49,7 +49,7 @@ export default {
     addGoalPlaceholder: 'Add new goal...',
     addGoalInputPlaceholder: "What's your goal for today?",
     addGoal: 'Add',
-    maxGoalsReached: 'You can add a maximum of 3 goals',
+    maxGoalsReached: 'Daily limit reached',
     emptyState: {
       title: 'Set Your Goals',
       description: 'Set your 3 most important goals for today and focus.',
@@ -265,6 +265,15 @@ export default {
     lavender: 'Lavender',
   },
   
+  // Tabs
+  tabs: {
+    goals: 'Goals',
+    calendar: 'Calendar',
+    stats: 'Stats',
+    settings: 'Settings',
+  },
+
+  // About
   about: {
     back: "Settings",
     title: "About",
@@ -285,7 +294,7 @@ export default {
     contact: "Contact",
     madeWith: "Made with",
     inTurkey: "in Turkey",
-    copyright: "© 2025 Melih Can Demir"
+    copyright: "© 2026 Melih Can Demir"
   },
   
   privacy: {
@@ -303,8 +312,8 @@ export default {
     yourRights: "Since all data is stored locally on your device, you maintain complete control over your information. You can delete the app at any time to remove all associated data.",
     policyUpdatesTitle: "Policy Updates",
     policyUpdates: "We may update this privacy policy from time to time. When we do, we will revise the 'last updated' date at the bottom of this page.",
-    lastUpdated: "Last Updated: June 2025",
-    copyright: "© 2025 Melih Can Demir. All rights reserved."
+    lastUpdated: "Last Updated: February 2026",
+    copyright: "© 2026 Melih Can Demir. All rights reserved."
   },
   
   // Authentication

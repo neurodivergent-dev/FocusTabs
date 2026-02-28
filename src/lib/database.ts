@@ -169,6 +169,7 @@ export const deleteGoal = async (id: string): Promise<void> => {
 export const clearGoals = async (): Promise<void> => {
   await ensureInitialized();
   await db.runAsync('DELETE FROM goals;');
+  await db.runAsync('DELETE FROM daily_completions;');
   
   // Reset daily completions
   await updateDailyCompletionStats();

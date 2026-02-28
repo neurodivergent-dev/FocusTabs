@@ -1,27 +1,57 @@
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow_soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="15" flood-color="#000000" flood-opacity="0.1"/>
+    </filter>
+    <linearGradient id="swatch_indigo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818CF8" />
+      <stop offset="100%" style="stop-color:#6366F1" />
+    </linearGradient>
+    <linearGradient id="swatch_pink" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F472B6" />
+      <stop offset="100%" style="stop-color:#EC4899" />
+    </linearGradient>
+    <linearGradient id="swatch_emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#34D399" />
+      <stop offset="100%" style="stop-color:#10B981" />
+    </linearGradient>
+    <linearGradient id="swatch_amber" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBF24" />
+      <stop offset="100%" style="stop-color:#F59E0B" />
+    </linearGradient>
+  </defs>
 
-  <svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="circleGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.9" />
-        <stop offset="100%" style="stop-color:#3A7BC9;stop-opacity:0.9" />
-      </linearGradient>
-      <linearGradient id="circleGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:#FF5252;stop-opacity:0.9" />
-        <stop offset="100%" style="stop-color:#FFD740;stop-opacity:0.9" />
-      </linearGradient>
-    </defs>
-    
-    <!-- Background -->
-    <rect width="500" height="500" fill="none"/>
-    
-    <!-- Minimalist Theme Circles -->
-    <circle cx="175" cy="175" r="75" fill="url(#circleGrad1)"/>
-    <circle cx="325" cy="175" r="75" fill="#FF5252"/>
-    <circle cx="175" cy="325" r="75" fill="#66BB6A"/>
-    <circle cx="325" cy="325" r="75" fill="#7E57C2"/>
-    
-    <!-- Center Cross -->
-    <path d="M250 125V375" stroke="#FFFFFF" stroke-width="6" stroke-opacity="0.6" stroke-linecap="round"/>
-    <path d="M125 250H375" stroke="#FFFFFF" stroke-width="6" stroke-opacity="0.6" stroke-linecap="round"/>
-  </svg>
+  <!-- Swatch 1 (Amber) - Bottom Layer -->
+  <g transform="translate(180, 240) rotate(-15)">
+    <rect x="0" y="0" width="160" height="200" rx="16" fill="url(#swatch_amber)" filter="url(#shadow_soft)" />
+    <circle cx="130" cy="30" r="10" fill="#FFFFFF" fill-opacity="0.3" />
+  </g>
   
+  <!-- Swatch 2 (Emerald) - Middle Layer -->
+  <g transform="translate(140, 180) rotate(-5)">
+    <rect x="0" y="0" width="160" height="200" rx="16" fill="url(#swatch_emerald)" filter="url(#shadow_soft)" />
+    <circle cx="130" cy="30" r="10" fill="#FFFFFF" fill-opacity="0.3" />
+  </g>
+  
+  <!-- Swatch 3 (Pink) - Middle Layer -->
+  <g transform="translate(100, 120) rotate(5)">
+    <rect x="0" y="0" width="160" height="200" rx="16" fill="url(#swatch_pink)" filter="url(#shadow_soft)" />
+    <circle cx="130" cy="30" r="10" fill="#FFFFFF" fill-opacity="0.3" />
+  </g>
+  
+  <!-- Swatch 4 (Indigo) - Top Layer -->
+  <g transform="translate(60, 60) rotate(15)">
+    <rect x="0" y="0" width="160" height="200" rx="16" fill="url(#swatch_indigo)" filter="url(#shadow_soft)" />
+    <circle cx="130" cy="30" r="10" fill="#FFFFFF" fill-opacity="0.5" />
+    <path d="M40 100 L70 130 L120 80" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+  
+  <!-- Palette Icon Floating -->
+  <g transform="translate(350, 150)">
+    <circle r="45" fill="#FFFFFF" filter="url(#shadow_soft)" />
+    <circle cx="-15" cy="-15" r="10" fill="#EC4899" />
+    <circle cx="15" cy="-15" r="10" fill="#6366F1" />
+    <circle cx="-15" cy="15" r="10" fill="#F59E0B" />
+    <circle cx="15" cy="15" r="10" fill="#10B981" />
+  </g>
+</svg>

@@ -9,12 +9,13 @@ import {
   Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeft, Github, Mail, Heart } from "lucide-react-native";
+import { ChevronLeft, Github, Mail, Heart, CheckCircle2, Layout, Moon, ShieldCheck, Palette, CalendarDays } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import FocusTabsLogo from "../../components/LogoComponent";
+import Constants from "expo-constants";
 
 export const AboutScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -47,19 +48,31 @@ export const AboutScreen: React.FC = () => {
         ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 0.3, 0.7, 1]}
+        locations={[0.0, 0.3, 0.7, 1.0]}
         style={[styles.header, {
-          paddingTop: insets.top + 8
+          paddingTop: insets.top + 12
         }]}
       >
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        {/* Decorative background elements */}
+        <View style={styles.headerDecorationCircle1} />
+        <View style={styles.headerDecorationCircle2} />
+
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ChevronLeft size={24} color="#FFFFFF" />
-          <Text style={[styles.backText, { color: "#FFFFFF" }]}>
+          <Text 
+            style={[styles.backText, { color: "#FFFFFF" }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {t("about.back")}
           </Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: "#FFFFFF" }]}>
+          <Text 
+            style={[styles.title, { color: "#FFFFFF" }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {t("about.title")}
           </Text>
         </View>
@@ -68,7 +81,7 @@ export const AboutScreen: React.FC = () => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 }]}
       >
         <View style={styles.logoContainer}>
           {/* App SVG Logo */}
@@ -78,9 +91,11 @@ export const AboutScreen: React.FC = () => {
           <Text style={[styles.appName, { color: colors.text }]}>
             {t("about.appName")}
           </Text>
-          <Text style={[styles.version, { color: colors.subText }]}>
-            {t("about.version")} 1.0.0
-          </Text>
+          <View style={styles.versionBadge}>
+            <Text style={[styles.versionText, { color: colors.primary }]}>
+              {t("about.version")}: v{Constants.expoConfig?.version || Constants.manifest2?.extra?.expoClient?.version || "1.0.0"}
+            </Text>
+          </View>
         </View>
 
         <LinearGradient
@@ -112,52 +127,30 @@ export const AboutScreen: React.FC = () => {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("about.featuresTitle")}
           </Text>
-          <View style={styles.featuresList}>
-            <View style={styles.featureItem}>
-              <View
-                style={[styles.bullet, { backgroundColor: colors.primary }]}
-              />
-              <Text style={[styles.featureText, { color: colors.text }]}>
-                {t("about.features.dailyGoalTracking")}
-              </Text>
+          <View style={styles.featuresGrid}>
+            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
+              <CheckCircle2 size={24} color={colors.primary} />
+              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.dailyGoalTracking")}</Text>
             </View>
-            <View style={styles.featureItem}>
-              <View
-                style={[styles.bullet, { backgroundColor: colors.success }]}
-              />
-              <Text style={[styles.featureText, { color: colors.text }]}>
-                {t("about.features.minimalist")}
-              </Text>
+            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
+              <Layout size={24} color={colors.success} />
+              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.minimalist")}</Text>
             </View>
-            <View style={styles.featureItem}>
-              <View
-                style={[styles.bullet, { backgroundColor: colors.warning }]}
-              />
-              <Text style={[styles.featureText, { color: colors.text }]}>
-                {t("about.features.darkMode")}
-              </Text>
+            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
+              <Moon size={24} color={colors.warning} />
+              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.darkMode")}</Text>
             </View>
-            <View style={styles.featureItem}>
-              <View
-                style={[styles.bullet, { backgroundColor: colors.secondary }]}
-              />
-              <Text style={[styles.featureText, { color: colors.text }]}>
-                {t("about.features.privacy")}
-              </Text>
+            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
+              <ShieldCheck size={24} color={colors.secondary} />
+              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.privacy")}</Text>
             </View>
-            <View style={styles.featureItem}>
-              <View style={[styles.bullet, { backgroundColor: colors.info }]} />
-              <Text style={[styles.featureText, { color: colors.text }]}>
-                {t("about.features.themePalette")}
-              </Text>
+            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
+              <Palette size={24} color={colors.info} />
+              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.themePalette")}</Text>
             </View>
-            <View style={styles.featureItem}>
-              <View
-                style={[styles.bullet, { backgroundColor: colors.primary }]}
-              />
-              <Text style={[styles.featureText, { color: colors.text }]}>
-                {t("about.features.calendar")}
-              </Text>
+            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
+              <CalendarDays size={24} color={colors.primary} />
+              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.calendar")}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -197,27 +190,34 @@ export const AboutScreen: React.FC = () => {
         </LinearGradient>
 
         <View style={styles.footer}>
-          <Text style={[styles.copyright, { color: colors.subText }]}>
+          <View style={[styles.footerDivider, { backgroundColor: colors.border, opacity: 0.3 }]} />
+          
+          <Text style={[styles.copyright, { color: colors.text, opacity: 0.7 }]}>
             {t("about.copyright")}
           </Text>
+          
           <View style={styles.madeWithContainer}>
             {i18n.language && i18n.language.startsWith("tr") ? (
               <>
-                <Text style={[styles.madeLove, { color: colors.subText }]}>
+                <Text style={[styles.madeLoveText, { color: colors.subText }]}>
                   {t("about.inTurkey")}
                 </Text>
-                <Heart size={12} color="#EC4899" style={styles.heartIcon} />
-                <Text style={[styles.madeLove, { color: colors.subText }]}>
+                <View style={styles.heartPulse}>
+                  <Heart size={14} color="#EF4444" fill="#EF4444" />
+                </View>
+                <Text style={[styles.madeLoveText, { color: colors.subText }]}>
                   {" " + t("about.madeWith") + " yapıldı"}
                 </Text>
               </>
             ) : (
               <>
-                <Text style={[styles.madeLove, { color: colors.subText }]}>
+                <Text style={[styles.madeLoveText, { color: colors.subText }]}>
                   {t("about.madeWith")}
                 </Text>
-                <Heart size={12} color="#EC4899" style={styles.heartIcon} />
-                <Text style={[styles.madeLove, { color: colors.subText }]}>
+                <View style={styles.heartPulse}>
+                  <Heart size={14} color="#EF4444" fill="#EF4444" />
+                </View>
+                <Text style={[styles.madeLoveText, { color: colors.subText }]}>
                   {t("about.inTurkey")}
                 </Text>
               </>
@@ -234,32 +234,58 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    position: 'relative',
+    overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+  headerDecorationCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerDecorationCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
-    minWidth: 80,
+    minWidth: 60,
+    zIndex: 10,
   },
   titleContainer: {
     flex: 1,
     alignItems: "center",
+    justifyContent: 'center',
+    zIndex: 10,
+    paddingHorizontal: 4,
   },
   rightPlaceholder: {
-    minWidth: 80,
+    minWidth: 60,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 15,
     marginLeft: 4,
+    fontWeight: "600",
   },
   title: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   scrollView: {
     flex: 1,
@@ -284,8 +310,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 8,
   },
-  version: {
-    fontSize: 16,
+  versionBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    marginTop: 4,
+  },
+  versionText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   section: {
     marginHorizontal: 16,
@@ -302,22 +336,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
   },
-  featuresList: {
+  featuresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     marginTop: 8,
   },
-  featureItem: {
-    flexDirection: "row",
-    alignItems: "center",
+  featureCard: {
+    width: '48%',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
-  bullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  featureText: {
-    fontSize: 16,
+  featureLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 10,
+    textAlign: 'center',
   },
   connectButtons: {
     flexDirection: "row",
@@ -330,29 +369,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   connectButtonText: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
     marginLeft: 8,
   },
   footer: {
     alignItems: "center",
-    marginTop: 24,
+    marginTop: 8,
+    paddingBottom: 40,
+  },
+  footerDivider: {
+    width: 60,
+    height: 4,
+    borderRadius: 2,
     marginBottom: 24,
   },
   copyright: {
     fontSize: 14,
-    marginBottom: 8,
+    fontWeight: "600",
+    marginBottom: 12,
   },
-  madeLove: {
-    fontSize: 14,
+  madeLoveText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   madeWithContainer: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  heartIcon: {
-    marginHorizontal: 4,
+  heartPulse: {
+    marginHorizontal: 6,
   },
 });

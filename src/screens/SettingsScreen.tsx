@@ -14,24 +14,27 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Moon,
-  Info,
+  Layout,
   Star,
   ChevronRight,
-  Shield,
+  Lock,
   Sun,
   Smartphone,
-  Palette,
-  Globe,
-  Database,
+  Paintbrush,
+  Languages,
+  CloudUpload,
   Trash2,
+  Heart,
 } from "lucide-react-native";
 import { useThemeStore } from "../store/themeStore";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useLanguageStore } from "../store/languageStore";
+import { useOnboardingStore } from "../store/onboardingStore";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import LanguageModal from "../components/LanguageModal";
+import Constants from "expo-constants";
 
 // Logo komponentini içe aktarıyoruz
 import FocusTabsLogo from "../../components/LogoComponent";
@@ -39,16 +42,41 @@ import FocusTabsLogo from "../../components/LogoComponent";
 // Stil tanımlarını doğrudan burada yapıyoruz
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    position: 'relative',
+    overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerDecorationCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerDecorationCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
+    fontWeight: "500",
+    opacity: 0.9,
   },
   scrollView: {
     flex: 1,
@@ -106,19 +134,30 @@ const styles = StyleSheet.create({
   themeOptionsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 12,
   },
-  themeOption: {
-    flex: 1,
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 8,
-    marginHorizontal: 4,
+  modernThemeCard: {
+    width: '31%', // Eşit genişlik sağladım
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  themeIconContainer: {
-    marginBottom: 8,
+  themeIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(150, 150, 150, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  themeText: {
-    fontSize: 14,
+  modernThemeText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   // Tema renkleri stilleri
   themeColorContainer: {
@@ -175,9 +214,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 24,
   },
-  appVersion: {
-    fontSize: 14,
+  versionBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
     marginTop: 8,
+  },
+  versionText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
 
@@ -269,53 +315,65 @@ export const SettingsScreen: React.FC = () => {
         {
           text: t("settings.reset") || "Sıfırla",
           style: "destructive",
-          onPress: () => {
-            // Clear all goals
-            const { clearGoals } = useDailyGoalsStore.getState();
-            clearGoals();
-            
-            // Reset theme to default
-            useThemeStore.getState().setThemeId("default");
-            useThemeStore.getState().setThemeMode("system");
-            
-            // Reset language to device language
-            useLanguageStore.getState().setLanguage("en");
-            
-            Alert.alert(
-              t("settings.success") || "Başarılı",
-              t("settings.resetSuccess") || "Tüm veriler sıfırlandı"
-            );
+          onPress: async () => {
+            try {
+              // Clear all goals and completion data from database
+              const { clearGoals } = useDailyGoalsStore.getState();
+              await clearGoals();
+              
+              // Reset onboarding state
+              useOnboardingStore.getState().resetState();
+              
+              // Reset theme to default
+              useThemeStore.getState().setThemeId("default");
+              useThemeStore.getState().setThemeMode("system");
+              
+              // Reset language to device language
+              useLanguageStore.getState().resetState();
+              
+              // Redirect to onboarding for a fresh start immediately
+              router.replace("/onboarding");
+            } catch (error) {
+              console.error("Reset data error:", error);
+              Alert.alert("Hata", "Veriler sıfırlanırken bir hata oluştu.");
+            }
           },
         },
       ]
     );
   };
 
+  const gradientColors: [string, string, string, string] = [
+    colors.primary || "#6366F1",
+    colors.secondary || colors.primary || "#EC4899",
+    colors.info || colors.primary || "#3B82F6",
+    colors.primary || "#6366F1",
+  ];
+
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={[
-          colors.primary,
-          colors.secondary || colors.primary,
-          colors.info || colors.primary,
-          colors.primary,
-        ]}
+        colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 0.3, 0.7, 1]}
+        locations={[0.0, 0.3, 0.7, 1.0]}
         style={[styles.header, { 
-          paddingTop: insets.top + 8
+          paddingTop: insets.top + 12
         }]}
       >
+        {/* Decorative background elements */}
+        <View style={styles.headerDecorationCircle1} />
+        <View style={styles.headerDecorationCircle2} />
+
         <Text style={[styles.title, { color: "#FFFFFF" }]}>
           {t("settings.title")}
         </Text>
-        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.9)" }]}>
+        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>
           {t("settings.customizeYourExperience")}
         </Text>
       </LinearGradient>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 20 }]}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 125 }]}>
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("settings.preferences")}
@@ -335,105 +393,94 @@ export const SettingsScreen: React.FC = () => {
               {t("settings.theme")}
             </Text>
 
-            <View style={styles.themeOptionsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.themeOption,
-                  { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
-                  themeMode === "light" && {
-                    backgroundColor: isDarkMode ? "#4A4A4A" : "#EFEFF7",
-                    borderWidth: 1,
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => handleThemeChange("light")}
-              >
-                <View style={styles.themeIconContainer}>
-                  <Sun
-                    size={24}
-                    color={themeMode === "light" ? colors.primary : colors.text}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.themeText,
-                    { color: colors.text },
-                    themeMode === "light" && {
-                      color: colors.primary,
-                      fontWeight: "600",
-                    },
-                  ]}
-                >
-                  {t("settings.themeOptions.light")}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.themeOption,
-                  { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
-                  themeMode === "dark" && {
-                    backgroundColor: isDarkMode ? "#4A4A4A" : "#EFEFF7",
-                    borderWidth: 1,
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => handleThemeChange("dark")}
-              >
-                <View style={styles.themeIconContainer}>
-                  <Moon
-                    size={24}
-                    color={themeMode === "dark" ? colors.primary : colors.text}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.themeText,
-                    { color: colors.text },
-                    themeMode === "dark" && {
-                      color: colors.primary,
-                      fontWeight: "600",
-                    },
-                  ]}
-                >
-                  {t("settings.themeOptions.dark")}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.themeOption,
-                  { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
-                  themeMode === "system" && {
-                    backgroundColor: isDarkMode ? "#4A4A4A" : "#EFEFF7",
-                    borderWidth: 1,
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => handleThemeChange("system")}
-              >
-                <View style={styles.themeIconContainer}>
-                  <Smartphone
-                    size={24}
-                    color={
-                      themeMode === "system" ? colors.primary : colors.text
-                    }
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.themeText,
-                    { color: colors.text },
-                    themeMode === "system" && {
-                      color: colors.primary,
-                      fontWeight: "600",
-                    },
-                  ]}
-                >
-                  {t("settings.themeOptions.system")}
-                </Text>
-              </TouchableOpacity>
-            </View>
+                        <View style={styles.themeOptionsContainer}>
+                          <TouchableOpacity
+                            style={[
+                              styles.modernThemeCard,
+                              { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)" },
+                              themeMode === "light" && {
+                                backgroundColor: colors.primary + '15',
+                                borderColor: colors.primary,
+                                borderWidth: 1.5,
+                              },
+                            ]}
+                            onPress={() => handleThemeChange("light")}
+                            activeOpacity={0.7}
+                          >
+                            <View style={[styles.themeIconCircle, themeMode === "light" && { backgroundColor: colors.primary }]}>
+                              <Sun size={20} color={themeMode === "light" ? "#FFFFFF" : colors.subText} />
+                            </View>
+                            <Text
+                              style={[
+                                styles.modernThemeText,
+                                { color: colors.text },
+                                themeMode === "light" && { color: colors.primary, fontWeight: "700" },
+                              ]}
+                              numberOfLines={1}
+                              adjustsFontSizeToFit
+                            >
+                              {t("settings.themeOptions.light")}
+                            </Text>
+                          </TouchableOpacity>
+            
+                          <TouchableOpacity
+                            style={[
+                              styles.modernThemeCard,
+                              { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)" },
+                              themeMode === "dark" && {
+                                backgroundColor: colors.primary + '15',
+                                borderColor: colors.primary,
+                                borderWidth: 1.5,
+                              },
+                            ]}
+                            onPress={() => handleThemeChange("dark")}
+                            activeOpacity={0.7}
+                          >
+                            <View style={[styles.themeIconCircle, themeMode === "dark" && { backgroundColor: colors.primary }]}>
+                              <Moon size={20} color={themeMode === "dark" ? "#FFFFFF" : colors.subText} />
+                            </View>
+                            <Text
+                              style={[
+                                styles.modernThemeText,
+                                { color: colors.text },
+                                themeMode === "dark" && { color: colors.primary, fontWeight: "700" },
+                              ]}
+                              numberOfLines={1}
+                              adjustsFontSizeToFit
+                            >
+                              {t("settings.themeOptions.dark")}
+                            </Text>
+                          </TouchableOpacity>
+            
+                          <TouchableOpacity
+                            style={[
+                              styles.modernThemeCard,
+                              { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)" },
+                              themeMode === "system" && {
+                                backgroundColor: colors.primary + '15',
+                                borderColor: colors.primary,
+                                borderWidth: 1.5,
+                              },
+                            ]}
+                            onPress={() => handleThemeChange("system")}
+                            activeOpacity={0.7}
+                          >
+                            <View style={[styles.themeIconCircle, themeMode === "system" && { backgroundColor: colors.primary }]}>
+                              <Smartphone size={20} color={themeMode === "system" ? "#FFFFFF" : colors.subText} />
+                            </View>
+                            <Text
+                              style={[
+                                styles.modernThemeText,
+                                { color: colors.text },
+                                themeMode === "system" && { color: colors.primary, fontWeight: "700" },
+                              ]}
+                              numberOfLines={1}
+                              adjustsFontSizeToFit
+                            >
+                              {t("settings.themeOptions.system")}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
           </View>
 
           <TouchableOpacity
@@ -443,10 +490,10 @@ export const SettingsScreen: React.FC = () => {
             <View
               style={[
                 styles.settingIconContainer,
-                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                { backgroundColor: "#A855F7" + '15' },
               ]}
             >
-              <Palette size={20} color="#8B5CF6" />
+              <Paintbrush size={20} color="#A855F7" />
             </View>
             <View style={styles.settingContent}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
@@ -458,7 +505,7 @@ export const SettingsScreen: React.FC = () => {
                 {t("settings.customizeYourExperience")}
               </Text>
             </View>
-            <ChevronRight size={20} color={colors.subText} />
+            <ChevronRight size={20} color={colors.subText} opacity={0.5} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -468,10 +515,10 @@ export const SettingsScreen: React.FC = () => {
             <View
               style={[
                 styles.settingIconContainer,
-                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                { backgroundColor: "#3B82F6" + '15' },
               ]}
             >
-              <Globe size={20} color="#3B82F6" />
+              <Languages size={20} color="#3B82F6" />
             </View>
             <View style={styles.settingContent}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
@@ -483,7 +530,7 @@ export const SettingsScreen: React.FC = () => {
                 {t("settings.languageDescription")}
               </Text>
             </View>
-            <ChevronRight size={20} color={colors.subText} />
+            <ChevronRight size={20} color={colors.subText} opacity={0.5} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -493,10 +540,10 @@ export const SettingsScreen: React.FC = () => {
             <View
               style={[
                 styles.settingIconContainer,
-                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                { backgroundColor: "#10B981" + '15' },
               ]}
             >
-              <Database size={20} color="#10B981" />
+              <CloudUpload size={20} color="#10B981" />
             </View>
             <View style={styles.settingContent}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
@@ -508,23 +555,23 @@ export const SettingsScreen: React.FC = () => {
                 {t("settings.backupDescription")}
               </Text>
             </View>
-            <ChevronRight size={20} color={colors.subText} />
+            <ChevronRight size={20} color={colors.subText} opacity={0.5} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.settingItem, { backgroundColor: colors.card, borderColor: colors.error, borderWidth: 1 }]}
+            style={[styles.settingItem, { backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: "#EF4444" }]}
             onPress={handleResetAllData}
           >
             <View
               style={[
                 styles.settingIconContainer,
-                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                { backgroundColor: "#EF4444" + '15' },
               ]}
             >
-              <Trash2 size={20} color={colors.error} />
+              <Trash2 size={20} color="#EF4444" />
             </View>
             <View style={styles.settingContent}>
-              <Text style={[styles.settingLabel, { color: colors.error }]}>
+              <Text style={[styles.settingLabel, { color: "#EF4444" }]}>
                 {t("settings.resetAllData")}
               </Text>
               <Text
@@ -544,9 +591,11 @@ export const SettingsScreen: React.FC = () => {
           {/* FocusTabs Logo */}
           <View style={styles.logoContainer}>
             <FocusTabsLogo size={100} color={colors.primary} />
-            <Text style={[styles.appVersion, { color: colors.subText }]}>
-              FocusTabs v1.0.0
-            </Text>
+            <View style={styles.versionBadge}>
+              <Text style={[styles.versionText, { color: colors.primary }]}>
+                FocusTabs v{Constants.expoConfig?.version || Constants.manifest2?.extra?.expoClient?.version || "1.0.0"}
+              </Text>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -556,7 +605,7 @@ export const SettingsScreen: React.FC = () => {
             <View
               style={[
                 styles.settingIconContainer,
-                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                { backgroundColor: "#F59E0B" + '15' },
               ]}
             >
               <Star size={20} color="#F59E0B" />
@@ -571,7 +620,7 @@ export const SettingsScreen: React.FC = () => {
                 {t("settings.supportUsWithARating")}
               </Text>
             </View>
-            <ChevronRight size={20} color={colors.subText} />
+            <ChevronRight size={20} color={colors.subText} opacity={0.5} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -581,10 +630,10 @@ export const SettingsScreen: React.FC = () => {
             <View
               style={[
                 styles.settingIconContainer,
-                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                { backgroundColor: "#6366F1" + '15' },
               ]}
             >
-              <Info size={20} color="#6366F1" />
+              <Layout size={20} color="#6366F1" />
             </View>
             <View style={styles.settingContent}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
@@ -596,7 +645,7 @@ export const SettingsScreen: React.FC = () => {
                 {t("settings.versionAndAppInformation")}
               </Text>
             </View>
-            <ChevronRight size={20} color={colors.subText} />
+            <ChevronRight size={20} color={colors.subText} opacity={0.5} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -606,10 +655,10 @@ export const SettingsScreen: React.FC = () => {
             <View
               style={[
                 styles.settingIconContainer,
-                { backgroundColor: isDarkMode ? "#3A3A3A" : "#FFFFFF" },
+                { backgroundColor: "#10B981" + '15' },
               ]}
             >
-              <Shield size={20} color="#10B981" />
+              <Lock size={20} color="#10B981" />
             </View>
             <View style={styles.settingContent}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
@@ -621,7 +670,7 @@ export const SettingsScreen: React.FC = () => {
                 {t("settings.howWeHandleYourData")}
               </Text>
             </View>
-            <ChevronRight size={20} color={colors.subText} />
+            <ChevronRight size={20} color={colors.subText} opacity={0.5} />
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -18,6 +18,8 @@ import {
   ChevronRight,
   CheckCircle,
   Circle,
+  Sparkles,
+  Trophy,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
@@ -552,28 +554,34 @@ export const CalendarScreen: React.FC = () => {
     }
   };
 
+  const gradientColors: [string, string, string, string] = [
+    colors.primary || "#6366F1",
+    colors.secondary || colors.primary || "#EC4899",
+    colors.info || colors.primary || "#3B82F6",
+    colors.primary || "#6366F1",
+  ];
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <LinearGradient
-        colors={[
-          colors.primary,
-          colors.secondary || colors.primary,
-          colors.info || colors.primary,
-          colors.primary,
-        ]}
+        colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 0.3, 0.7, 1]}
+        locations={[0.0, 0.3, 0.7, 1.0]}
         style={[styles.header, { 
-          paddingTop: insets.top + 8
+          paddingTop: insets.top + 12
         }]}
       >
+        {/* Decorative background elements */}
+        <View style={styles.headerDecorationCircle1} />
+        <View style={styles.headerDecorationCircle2} />
+
         <Text style={[styles.title, { color: "#FFFFFF" }]}>
           {t("calendar.title")}
         </Text>
-        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.9)" }]}>
+        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>
           {t("calendar.subtitle")}
         </Text>
       </LinearGradient>
@@ -653,162 +661,179 @@ export const CalendarScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         ) : (
-          <View
-            style={[styles.detailsContainer, { 
-              backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
-              borderColor: colors.primary + '40',
-              borderWidth: 1,
-            }]}
-          >
-            <Text style={[styles.detailsTitle, { color: colors.text }]}>
-              {selectedDate && formatLocalizedDate(selectedDate)}
-            </Text>
-
-            {selectedDateData ? (
-              <View style={styles.statsContainer}>
-                <View
-                  style={[
-                    styles.completionIndicator,
-                    {
-                      backgroundColor: getCompletionColor(
-                        selectedDateData.percentage,
-                        selectedDateData.totalCount
-                      ),
-                    },
-                  ]}
-                >
-                  <Text style={styles.completionPercentage}>
-                    {Math.round(selectedDateData.percentage)}%
+          <View style={[styles.detailsContainerWrapper, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+            <LinearGradient
+              colors={[isDarkMode ? colors.primary + '15' : colors.primary + '08', isDarkMode ? colors.secondary + '15' : colors.secondary + '08']}
+              style={styles.detailsContainerGradient}
+            >
+              <View style={styles.detailsHeader}>
+                <View style={[styles.dateBadge, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.dateBadgeText}>
+                    {selectedDate && selectedDate.split("-")[2]}
                   </Text>
                 </View>
-
-                <View style={styles.statsTextContainer}>
-                  <Text style={[styles.completionText, { color: colors.text }]}>
-                    {getCompletionText(
-                      selectedDateData.percentage,
-                      selectedDateData.totalCount
-                    )}
-                  </Text>
-                  <Text style={[styles.statsText, { color: colors.subText }]}>
-                    {t("calendar.completedCount", {
-                      completed: selectedDateData.completedCount,
-                      total: selectedDateData.totalCount,
-                    })}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.noDataContainer}>
-                <Text style={[styles.noDataText, { color: colors.subText }]}>
-                  {t("calendar.noData")}
+                <Text style={[styles.detailsTitle, { color: colors.text }]}>
+                  {selectedDate && formatLocalizedDate(selectedDate)}
                 </Text>
               </View>
-            )}
 
-            {/* Goals list */}
-            <View style={styles.goalsListContainer}>
-              <Text style={[styles.goalsListTitle, { color: colors.text }]}>
-                {t("calendar.goalsForDate")}
-              </Text>
-
-              {dateGoalsLoading ? (
-                <ActivityIndicator
-                  size="small"
-                  color={colors.primary}
-                  style={styles.goalsLoader}
-                />
-              ) : dateGoals.length > 0 ? (
-                <View style={styles.goalsList}>
-                  {dateGoals.map((item) => (
-                    <View
-                      key={item.id}
-                      style={[
-                        styles.goalItem,
-                        {
-                          borderColor: colors.border,
-                          backgroundColor: isDarkMode
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(0, 0, 0, 0.05)",
-                          marginBottom: 8,
-                        },
-                      ]}
-                    >
-                      {item.completed ? (
-                        <CheckCircle size={20} color={colors.success} />
-                      ) : (
-                        <Circle size={20} color={colors.subText} />
-                      )}
-                      <Text
+              {selectedDateData ? (
+                <View style={[styles.statsCardContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                  <LinearGradient
+                    colors={[isDarkMode ? colors.primary + '20' : 'rgba(255,255,255,0.8)', isDarkMode ? colors.secondary + '20' : 'rgba(255,255,255,0.8)']}
+                    style={styles.statsCardGradient}
+                  >
+                    <View style={styles.statsRow}>
+                      <View
                         style={[
-                          styles.goalText,
+                          styles.completionIndicator,
                           {
-                            color: colors.text,
-                            textDecorationLine: item.completed
-                              ? "line-through"
-                              : "none",
+                            backgroundColor: getCompletionColor(
+                              selectedDateData.percentage,
+                              selectedDateData.totalCount
+                            ) + '20',
+                            borderColor: getCompletionColor(
+                              selectedDateData.percentage,
+                              selectedDateData.totalCount
+                            ),
+                            borderWidth: 2,
                           },
                         ]}
                       >
-                        {item.text}
-                      </Text>
+                        <Text style={[styles.completionPercentage, { 
+                          color: getCompletionColor(selectedDateData.percentage, selectedDateData.totalCount) 
+                        }]}>
+                          {Math.round(selectedDateData.percentage)}%
+                        </Text>
+                      </View>
+
+                      <View style={styles.statsTextContainer}>
+                        <Text style={[styles.completionText, { color: colors.text }]}>
+                          {getCompletionText(
+                            selectedDateData.percentage,
+                            selectedDateData.totalCount
+                          )}
+                        </Text>
+                        <View style={styles.countBadge}>
+                          <Trophy size={14} color={colors.primary} style={{ marginRight: 4 }} />
+                          <Text style={[styles.statsText, { color: colors.primary }]}>
+                            {t("calendar.completedCount", {
+                              completed: selectedDateData.completedCount,
+                              total: selectedDateData.totalCount,
+                            })}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
-                  ))}
+                  </LinearGradient>
                 </View>
               ) : (
-                <Text style={[styles.noGoalsText, { color: colors.subText }]}>
-                  {t("calendar.noGoalsForDate")}
-                </Text>
+                <View style={styles.noDataContainer}>
+                  <Sparkles size={32} color={colors.subText} opacity={0.5} />
+                  <Text style={[styles.noDataText, { color: colors.subText }]}>
+                    {t("calendar.noData")}
+                  </Text>
+                </View>
               )}
-            </View>
+
+              {/* Goals list */}
+              <View style={styles.goalsListContainer}>
+                <View style={styles.goalsListHeader}>
+                  <Text style={[styles.goalsListTitle, { color: colors.text }]}>
+                    {t("calendar.goalsForDate")}
+                  </Text>
+                  {dateGoals.length > 0 && (
+                    <View style={[styles.countPill, { backgroundColor: colors.primary + '15' }]}>
+                      <Text style={[styles.countPillText, { color: colors.primary }]}>{dateGoals.length}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {dateGoalsLoading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={colors.primary}
+                    style={styles.goalsLoader}
+                  />
+                ) : dateGoals.length > 0 ? (
+                  <View style={styles.goalsList}>
+                    {dateGoals.map((item) => (
+                      <View
+                        key={item.id}
+                        style={[
+                          styles.goalItem,
+                          {
+                            backgroundColor: colors.card,
+                            borderColor: item.completed ? colors.success + '30' : colors.border,
+                            borderWidth: 1,
+                          },
+                        ]}
+                      >
+                        <View style={styles.goalStatusIcon}>
+                          {item.completed ? (
+                            <CheckCircle size={22} color={colors.success} />
+                          ) : (
+                            <Circle size={22} color={colors.subText} opacity={0.5} />
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.goalText,
+                            {
+                              color: item.completed ? colors.subText : colors.text,
+                              textDecorationLine: item.completed
+                                ? "line-through"
+                                : "none",
+                            },
+                          ]}
+                        >
+                          {item.text}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyGoalsContainer}>
+                    <Text style={[styles.noGoalsText, { color: colors.subText }]}>
+                      {t("calendar.noGoalsForDate")}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </LinearGradient>
           </View>
         )}
 
-        <View style={styles.legendContainer}>
-          <Text style={[styles.legendTitle, { color: colors.text }]}>
-            {t("calendar.legend.title")}
-          </Text>
-          <View style={styles.legendItems}>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendDot, { backgroundColor: colors.subText }]}
-              />
-              <Text style={[styles.legendText, { color: colors.subText }]}>
-                {t("calendar.legend.noGoals")}
-              </Text>
+        <View style={[styles.detailsContainerWrapper, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, marginTop: 0, marginBottom: 40 }]}>
+          <LinearGradient
+            colors={[isDarkMode ? colors.primary + '15' : colors.primary + '08', isDarkMode ? colors.secondary + '15' : colors.secondary + '08']}
+            style={styles.detailsContainerGradient}
+          >
+            <Text style={[styles.legendTitle, { color: colors.text }]}>
+              {t("calendar.legend.title")}
+            </Text>
+            <View style={styles.legendGrid}>
+              {[
+                { color: colors.subText, label: t("calendar.legend.noGoals") },
+                { color: colors.error, label: t("calendar.legend.notCompleted") },
+                { color: colors.warning, label: t("calendar.legend.partiallyCompleted") },
+                { color: colors.info, label: t("calendar.legend.mostlyCompleted") },
+                { color: colors.success, label: t("calendar.legend.fullyCompleted") },
+              ].map((item, index) => (
+                <View key={index} style={[styles.legendPillContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                  <LinearGradient
+                    colors={[isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)', isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)']}
+                    style={styles.legendPillGradient}
+                  >
+                    <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                    <Text style={[styles.legendText, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>
+                      {item.label}
+                    </Text>
+                  </LinearGradient>
+                </View>
+              ))}
             </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendDot, { backgroundColor: colors.error }]}
-              />
-              <Text style={[styles.legendText, { color: colors.subText }]}>
-                {t("calendar.legend.notCompleted")}
-              </Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendDot, { backgroundColor: colors.warning }]}
-              />
-              <Text style={[styles.legendText, { color: colors.subText }]}>
-                {t("calendar.legend.partiallyCompleted")}
-              </Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendDot, { backgroundColor: colors.info }]}
-              />
-              <Text style={[styles.legendText, { color: colors.subText }]}>
-                {t("calendar.legend.mostlyCompleted")}
-              </Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendDot, { backgroundColor: colors.success }]}
-              />
-              <Text style={[styles.legendText, { color: colors.subText }]}>
-                {t("calendar.legend.fullyCompleted")}
-              </Text>
-            </View>
-          </View>
+          </LinearGradient>
         </View>
 
         <View style={styles.bottomPadding} />
@@ -822,16 +847,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    position: 'relative',
+    overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerDecorationCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerDecorationCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
+    fontWeight: "500",
+    opacity: 0.9,
   },
   scrollView: {
     flex: 1,
@@ -843,129 +893,189 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
-  detailsContainer: {
+  detailsContainerWrapper: {
     margin: 16,
-    padding: 16,
-    borderRadius: 12,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  detailsContainerGradient: {
+    padding: 24,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  dateBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  dateBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
   },
   detailsTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
+    fontWeight: "700",
+    flex: 1,
   },
-  loadingText: {
-    fontSize: 16,
+  statsCardContainer: {
+    borderRadius: 20,
+    marginBottom: 28,
+    overflow: 'hidden',
   },
-  errorText: {
-    fontSize: 16,
-    marginBottom: 16,
-    textAlign: "center",
+  statsCardGradient: {
+    padding: 20,
   },
-  retryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignSelf: "center",
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  statsContainer: {
+  statsRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   completionIndicator: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 20,
   },
   completionPercentage: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
   },
   statsTextContainer: {
     flex: 1,
   },
   completionText: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  countBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   statsText: {
     fontSize: 14,
+    fontWeight: '600',
   },
   noDataContainer: {
-    paddingVertical: 16,
+    paddingVertical: 40,
     alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 20,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    marginBottom: 28,
   },
   noDataText: {
     fontSize: 16,
+    fontWeight: '500',
+    marginTop: 16,
   },
   goalsListContainer: {
-    marginTop: 24,
+    marginTop: 0,
+  },
+  goalsListHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   goalsListTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  countPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  countPillText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   goalsList: {},
   goalItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: 16,
+    borderRadius: 18,
+    marginBottom: 12,
+  },
+  goalStatusIcon: {
+    marginRight: 16,
   },
   goalText: {
-    marginLeft: 12,
     fontSize: 16,
+    fontWeight: '500',
     flex: 1,
+    lineHeight: 22,
+  },
+  emptyGoalsContainer: {
+    paddingVertical: 32,
+    alignItems: 'center',
   },
   noGoalsText: {
     textAlign: "center",
-    paddingVertical: 16,
+    fontSize: 15,
+    fontWeight: '500',
+    opacity: 0.7,
   },
   goalsLoader: {
-    marginVertical: 16,
+    marginVertical: 24,
   },
-  legendContainer: {
+  legendWrapper: {
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 24,
+    padding: 24,
   },
   legendTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 20,
   },
-  legendItems: {
+  legendGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: 'space-between',
   },
-  legendItem: {
+  legendPillContainer: {
+    borderRadius: 14,
+    marginBottom: 12,
+    width: "48%",
+    overflow: 'hidden',
+  },
+  legendPillGradient: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 16,
-    marginBottom: 8,
-    width: "45%",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
   },
   legendText: {
     fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
   },
   bottomPadding: {
-    height: 40,
+    height: 125,
   },
 });
 

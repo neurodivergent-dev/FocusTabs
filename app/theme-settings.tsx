@@ -55,19 +55,31 @@ export default function ThemeSettingsScreen() {
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          locations={[0, 0.3, 0.7, 1]}
+          locations={[0.0, 0.3, 0.7, 1.0]}
           style={[styles.header, { 
-            paddingTop: insets.top + 8
+            paddingTop: insets.top + 12
           }]}
         >
+          {/* Decorative background elements */}
+          <View style={styles.headerDecorationCircle1} />
+          <View style={styles.headerDecorationCircle2} />
+
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <ChevronLeft size={24} color="#FFFFFF" />
-            <Text style={[styles.backText, { color: "#FFFFFF" }]}>
+            <Text 
+              style={[styles.backText, { color: "#FFFFFF" }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               {t("settings.title", "Ayarlar")}
             </Text>
           </TouchableOpacity>
           <View style={styles.titleContainer}>
-            <Text style={[styles.headerTitle, { color: "#FFFFFF" }]}>
+            <Text 
+              style={[styles.headerTitle, { color: "#FFFFFF" }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               {t("themeSettings.title", "Tema Ayarları")}
             </Text>
           </View>
@@ -76,10 +88,13 @@ export default function ThemeSettingsScreen() {
 
         <ScrollView 
           style={styles.scrollView}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.contentHeader}>
-            <Palette size={32} color={colors.primary} />
+            <View style={[styles.mainIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <Palette size={32} color={colors.primary} />
+            </View>
             <Text style={[styles.title, { color: colors.text }]}>
               {t("themeSettings.customization", "Tema Özelleştirme")}
             </Text>
@@ -91,32 +106,8 @@ export default function ThemeSettingsScreen() {
             </Text>
           </View>
 
-          <ThemedCard
-            title={t("themeSettings.activeTheme", "Aktif Tema")}
-            description={t(
-              "themeSettings.currentlyUsing",
-              "Şu anda kullandığınız tema"
-            )}
-          >
-            <View style={styles.activeThemeContainer}>
-              <View
-                style={[
-                  styles.colorPreview,
-                  { backgroundColor: colors.primary },
-                ]}
-              />
-              <Text style={[styles.themeName, { color: colors.text }]}>
-                {t(
-                  `themeNames.${themeId}`,
-                  THEMES.find((theme) => theme.id === themeId)?.name ||
-                    t("themeSettings.default", "Varsayılan")
-                )}
-              </Text>
-            </View>
-          </ThemedCard>
-
           <Text
-            style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}
+            style={[styles.sectionTitle, { color: colors.text }]}
           >
             {t("themeSettings.themes", "Temalar")}
           </Text>
@@ -128,102 +119,108 @@ export default function ThemeSettingsScreen() {
                 style={[
                   styles.themeCard,
                   {
-                    backgroundColor: isDarkMode ? "#1A1A1A" : "#FFFFFF",
-                    borderColor: themeId === theme.id ? theme.colors.primary : "transparent",
-                    borderWidth: themeId === theme.id ? 3 : 0,
-                    shadowColor: themeId === theme.id ? theme.colors.primary : "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: themeId === theme.id ? 0.3 : 0.1,
-                    shadowRadius: 8,
-                    elevation: themeId === theme.id ? 8 : 4,
+                    backgroundColor: colors.card,
+                    borderColor: themeId === theme.id ? theme.colors.primary : colors.border,
+                    borderWidth: themeId === theme.id ? 2 : 1,
                   },
                 ]}
                 onPress={() => handleThemeSelect(theme.id)}
+                activeOpacity={0.7}
               >
-                <View style={styles.themeColorRing}>
-                  <View
+                <LinearGradient
+                  colors={[theme.colors.primary + '20', theme.colors.secondary + '20']}
+                  style={styles.themeCardGradient}
+                >
+                  <View style={styles.themeColorRing}>
+                    <View
+                      style={[
+                        styles.themePreview,
+                        { 
+                          backgroundColor: theme.colors.primary,
+                          shadowColor: theme.colors.primary,
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.4,
+                          shadowRadius: 8,
+                          elevation: 6,
+                        },
+                      ]}
+                    />
+                  </View>
+                  {themeId === theme.id && (
+                    <View style={[styles.checkmarkContainer, { backgroundColor: theme.colors.primary }]}>
+                      <Text style={styles.checkmark}>✓</Text>
+                    </View>
+                  )}
+                  <Text
                     style={[
-                      styles.themePreview,
-                      { 
-                        backgroundColor: theme.colors.primary,
-                        shadowColor: theme.colors.primary,
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.4,
-                        shadowRadius: 8,
+                      styles.themeCardTitle,
+                      { color: colors.text },
+                      themeId === theme.id && { 
+                        fontWeight: "700",
+                        color: theme.colors.primary,
                       },
                     ]}
-                  />
-                </View>
-                {themeId === theme.id && (
-                  <View style={styles.checkmarkContainer}>
-                    <Text style={styles.checkmark}>✓</Text>
+                    numberOfLines={1}
+                  >
+                    {t(`themeNames.${theme.id}`, theme.name)}
+                  </Text>
+                  <View style={styles.colorDotsContainer}>
+                    <View style={[styles.colorDot, { backgroundColor: theme.colors.primary }]} />
+                    <View style={[styles.colorDot, { backgroundColor: theme.colors.secondary }]} />
+                    <View style={[styles.colorDot, { backgroundColor: theme.colors.success }]} />
                   </View>
-                )}
-                <Text
-                  style={[
-                    styles.themeCardTitle,
-                    { color: colors.text },
-                    themeId === theme.id && { 
-                      fontWeight: "700",
-                      color: theme.colors.primary,
-                    },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {t(`themeNames.${theme.id}`, theme.name)}
-                </Text>
-                <View style={styles.colorDotsContainer}>
-                  <View style={[styles.colorDot, { backgroundColor: theme.colors.primary }]} />
-                  <View style={[styles.colorDot, { backgroundColor: theme.colors.secondary }]} />
-                  <View style={[styles.colorDot, { backgroundColor: theme.colors.success }]} />
-                </View>
+                </LinearGradient>
               </TouchableOpacity>
             ))}
           </View>
 
           <View style={styles.previewSection}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 20 }]}>
               {t("themeSettings.preview", "Önizleme")}
             </Text>
 
-            <ThemedCard
-              title={t("themeSettings.sampleCard", "Örnek Kart")}
-              description={t(
-                "themeSettings.themeAppearance",
-                "Seçtiğiniz temanın görünümü"
-              )}
-            >
-              <Text style={{ color: colors.text }}>
-                {t(
-                  "themeSettings.previewDescription",
-                  "Bu bir tema önizlemesidir. Renklerin ve bileşenlerin nasıl göründüğünü kontrol edin."
-                )}
-              </Text>
-            </ThemedCard>
-
-            <View style={styles.buttonPreviewContainer}>
-              <ThemedButton
-                title={t("themeSettings.primaryButton", "Birincil Buton")}
-                onPress={() => {}}
-                style={{ marginBottom: 12 }}
-              />
-              <ThemedButton
-                title={t("themeSettings.secondaryButton", "İkincil Buton")}
-                onPress={() => {}}
-                variant="secondary"
-                style={{ marginBottom: 12 }}
-              />
-              <ThemedButton
-                title={t("themeSettings.outlineButton", "Çizgili Buton")}
-                onPress={() => {}}
-                variant="outline"
-                style={{ marginBottom: 12 }}
-              />
-              <ThemedButton
-                title={t("themeSettings.dangerButton", "Tehlike Butonu")}
-                onPress={() => {}}
-                variant="danger"
-              />
+            <View style={[styles.previewCardContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+              <LinearGradient
+                colors={[colors.primary + '10', colors.secondary + '10']}
+                style={styles.previewCardGradient}
+              >
+                <View style={styles.previewCardHeader}>
+                  <Text style={[styles.previewCardTitle, { color: colors.text }]}>
+                    {t("themeSettings.sampleCard", "Örnek Kart")}
+                  </Text>
+                  <View style={[styles.previewBadge, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.previewBadgeText}>New</Text>
+                  </View>
+                </View>
+                <Text style={[styles.previewDescription, { color: colors.subText }]}>
+                  {t(
+                    "themeSettings.previewDescription",
+                    "Bu bir tema önizlemesidir. Renklerin ve bileşenlerin nasıl göründüğünü kontrol edin."
+                  )}
+                </Text>
+                
+                <View style={styles.buttonPreviewContainer}>
+                  <ThemedButton
+                    title={t("themeSettings.primaryButton", "Birincil Buton")}
+                    onPress={() => {}}
+                    style={styles.previewButton}
+                  />
+                  <View style={styles.buttonRow}>
+                    <ThemedButton
+                      title={t("themeSettings.secondaryButton", "İkincil")}
+                      onPress={() => {}}
+                      variant="secondary"
+                      style={[styles.previewButton, { flex: 1, marginRight: 8 }]}
+                    />
+                    <ThemedButton
+                      title={t("themeSettings.dangerButton", "Sil")}
+                      onPress={() => {}}
+                      variant="danger"
+                      style={[styles.previewButton, { flex: 1 }]}
+                    />
+                  </View>
+                </View>
+              </LinearGradient>
             </View>
           </View>
         </ScrollView>
@@ -237,31 +234,58 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    position: 'relative',
+    overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+  headerDecorationCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerDecorationCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
-    minWidth: 80,
+    minWidth: 60,
+    zIndex: 10,
   },
   titleContainer: {
     flex: 1,
     alignItems: "center",
+    justifyContent: 'center',
+    zIndex: 10,
+    paddingHorizontal: 4,
   },
   rightPlaceholder: {
-    minWidth: 80,
+    minWidth: 60,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 15,
     marginLeft: 4,
+    fontWeight: "600",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   scrollView: {
     flex: 1,
@@ -269,36 +293,32 @@ const styles = StyleSheet.create({
   },
   contentHeader: {
     alignItems: "center",
-    marginVertical: 24,
+    marginTop: 32,
+    marginBottom: 24,
+  },
+  mainIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginTop: 12,
+    fontSize: 26,
+    fontWeight: "800",
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: "center",
+    opacity: 0.8,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 12,
     marginBottom: 16,
-  },
-  activeThemeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  colorPreview: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 12,
-  },
-  themeName: {
-    fontSize: 16,
-    fontWeight: "500",
   },
   themesGrid: {
     flexDirection: "row",
@@ -308,10 +328,14 @@ const styles = StyleSheet.create({
   },
   themeCard: {
     width: "48%",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 24,
     marginBottom: 16,
-    alignItems: "center",
+    overflow: 'hidden',
+  },
+  themeCardGradient: {
+    padding: 20,
+    alignItems: 'center',
+    width: '100%',
   },
   themeColorRing: {
     padding: 4,
@@ -319,34 +343,33 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   themePreview: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   checkmarkContainer: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#4CAF50',
+    top: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
   },
   checkmark: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
   },
   themeCardTitle: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
     textAlign: "center",
     marginBottom: 8,
   },
@@ -355,14 +378,53 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   previewSection: {
     marginBottom: 40,
   },
+  previewCardContainer: {
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  previewCardGradient: {
+    padding: 24,
+  },
+  previewCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  previewCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  previewBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  previewBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  previewDescription: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 24,
+  },
   buttonPreviewContainer: {
-    marginTop: 16,
+    gap: 12,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+  },
+  previewButton: {
+    marginBottom: 0,
   },
 });

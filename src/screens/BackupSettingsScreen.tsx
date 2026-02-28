@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   Download,
   Upload,
+  Info,
 } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -33,7 +34,7 @@ import {
 export default function BackupSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
   // Handle back navigation
@@ -156,17 +157,29 @@ export default function BackupSettingsScreen() {
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          locations={[0, 0.3, 0.7, 1]}
-          style={[styles.header, { paddingTop: insets.top + 8 }]}
+          locations={[0.0, 0.3, 0.7, 1.0]}
+          style={[styles.header, { paddingTop: insets.top + 12 }]}
         >
+          {/* Decorative background elements */}
+          <View style={styles.headerDecorationCircle1} />
+          <View style={styles.headerDecorationCircle2} />
+
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <ChevronLeft size={24} color="#FFFFFF" />
-            <Text style={[styles.backText, { color: "#FFFFFF" }]}>
+            <Text 
+              style={[styles.backText, { color: "#FFFFFF" }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               {t("settings.title") || "Settings"}
             </Text>
           </TouchableOpacity>
           <View style={styles.titleContainer}>
-            <Text style={[styles.headerTitle, { color: "#FFFFFF" }]}>
+            <Text 
+              style={[styles.headerTitle, { color: "#FFFFFF" }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               {t("backup.title") || "Backup & Restore"}
             </Text>
           </View>
@@ -245,12 +258,20 @@ export default function BackupSettingsScreen() {
             </TouchableOpacity>
           </LinearGradient>
 
-          {/* Info Card */}
-          <View style={[styles.infoCard, { backgroundColor: colors.info }]}>
-            <Text style={[styles.infoText, { color: "#FFFFFF" }]}>
-              {t("backup.info") ||
-                "Backup includes your goals, theme settings, and language preference."}
-            </Text>
+          {/* Info Card - Redesigned */}
+          <View style={[styles.infoCardContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+            <LinearGradient
+              colors={[isDarkMode ? colors.primary + '20' : colors.primary + '10', isDarkMode ? colors.secondary + '20' : colors.secondary + '10']}
+              style={styles.infoCardGradient}
+            >
+              <View style={[styles.infoIconCircle, { backgroundColor: colors.primary + '20' }]}>
+                <Info size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                {t("backup.info") ||
+                  "Yedekleme; hedeflerinizi, tema ayarlarınızı ve dil tercihinizi içerir."}
+              </Text>
+            </LinearGradient>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -263,31 +284,59 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    position: 'relative',
+    overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+  headerDecorationCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerDecorationCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
-    minWidth: 80,
+    minWidth: 60,
+    zIndex: 10,
   },
   titleContainer: {
     flex: 1,
     alignItems: "center",
+    justifyContent: 'center',
+    zIndex: 10,
+    paddingHorizontal: 4,
   },
   rightPlaceholder: {
-    minWidth: 80,
+    minWidth: 60,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 15,
     marginLeft: 4,
+    fontWeight: "600",
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
@@ -336,14 +385,29 @@ const styles = StyleSheet.create({
   optionDescription: {
     fontSize: 14,
   },
-  infoCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+  infoCardContainer: {
+    borderRadius: 24,
+    marginBottom: 40,
+    overflow: 'hidden',
+  },
+  infoCardGradient: {
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
   infoText: {
     fontSize: 14,
     lineHeight: 20,
+    flex: 1,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,

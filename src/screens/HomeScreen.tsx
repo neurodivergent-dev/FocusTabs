@@ -86,16 +86,11 @@ export const HomeScreen: React.FC = () => {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const today = `${year}-${month}-${day}`;
-    
     const filtered = goals.filter((goal) => {
       // Normalize both dates for comparison
       const goalDate = goal.date.split("T")[0];
       return goalDate === today;
     });
-    console.log('=== HOME SCREEN DEBUG ===');
-    console.log('Today:', today);
-    console.log('All goals count:', goals.length);
-    console.log('Today goals count:', filtered.length);
     if (filtered.length > 0) {
       console.log('Today goals:', filtered);
     } else {
@@ -113,6 +108,13 @@ export const HomeScreen: React.FC = () => {
 
   const completedCount = getCompletedGoalsCount();
 
+  const gradientColors: [string, string, string, string] = [
+    colors.primary || "#6366F1",
+    colors.secondary || colors.primary || "#EC4899",
+    colors.info || colors.primary || "#3B82F6",
+    colors.primary || "#6366F1",
+  ];
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -123,40 +125,45 @@ export const HomeScreen: React.FC = () => {
       />
 
       <LinearGradient
-        colors={[
-          colors.primary,
-          colors.secondary || colors.primary,
-          colors.info || colors.primary,
-          colors.primary,
-        ]}
+        colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 0.3, 0.7, 1]}
+        locations={[0.0, 0.3, 0.7, 1.0]}
         style={[styles.header, {
-          paddingTop: insets.top + 8
+          paddingTop: insets.top + 12
         }]}
       >
-        <Text style={[styles.title, { color: "#FFFFFF" }]}>
-          {t("app.name")}
-        </Text>
-        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.9)" }]}>
-          {t("app.slogan")}
-        </Text>
+        {/* Decorative background elements */}
+        <View style={styles.headerDecorationCircle1} />
+        <View style={styles.headerDecorationCircle2} />
+
+        <View style={styles.headerTopRow}>
+          <View>
+            <Text style={[styles.title, { color: "#FFFFFF" }]}>
+              {t("app.name")}
+            </Text>
+            <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>
+              {t("app.slogan")}
+            </Text>
+          </View>
+        </View>
 
         {todayGoals.length > 0 && (
-          <View style={styles.progressContainer}>
-            <Text style={[styles.progressText, { color: "rgba(255, 255, 255, 0.8)" }]}>
-              {completedCount}/{todayGoals.length} {t("home.completed")}
-            </Text>
-            <View
-              style={[styles.progressBar, { backgroundColor: "rgba(255, 255, 255, 0.3)" }]}
-            >
+          <View style={styles.progressCard}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressLabel}>
+                {t("home.dailyProgress", "Günlük İlerleme")}
+              </Text>
+              <Text style={styles.progressCount}>
+                {completedCount}/{todayGoals.length}
+              </Text>
+            </View>
+            <View style={styles.progressTrack}>
               <View
                 style={[
                   styles.progressFill,
                   {
                     width: `${todayGoals.length > 0 ? (completedCount / todayGoals.length) * 100 : 0}%`,
-                    backgroundColor: "#FFFFFF",
                   },
                 ]}
               />
@@ -168,7 +175,7 @@ export const HomeScreen: React.FC = () => {
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={keyboardVisible ? -20 : 0}
+        keyboardVerticalOffset={keyboardVisible ? 0 : 0}
       >
         <ScrollView
           style={styles.scrollView}
@@ -199,12 +206,13 @@ export const HomeScreen: React.FC = () => {
 
         <View style={[styles.footer, {
           borderTopColor: colors.border,
-          paddingBottom: 16
+          paddingVertical: 20, // Üst ve alt boşluğu eşitledim
+          justifyContent: 'center', // Dikeyde tam orta
         }]}>
           <AddGoalForm
             onAddGoal={handleAddGoal}
             disabled={hasReachedMaxGoals()}
-            currentCount={goals.length}
+            currentCount={todayGoals.length}
           />
         </View>
       </KeyboardAvoidingView>
@@ -220,34 +228,87 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    position: 'relative',
+    overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerDecorationCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerDecorationCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    marginBottom: 16,
+    fontWeight: "500",
+    opacity: 0.9,
   },
-  progressContainer: {
+  progressCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    padding: 16,
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  progressText: {
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  progressLabel: {
+    color: '#FFFFFF',
     fontSize: 14,
-    marginBottom: 8,
+    fontWeight: '600',
+    opacity: 0.9,
   },
-  progressBar: {
-    height: 4,
-    borderRadius: 2,
-    overflow: "hidden",
+  progressCount: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  progressTrack: {
+    height: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   progressFill: {
-    height: "100%",
-    backgroundColor: "#6366F1",
-    borderRadius: 2,
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
   scrollView: {
     flex: 1,

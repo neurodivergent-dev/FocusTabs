@@ -14,6 +14,7 @@ import {
   Lock,
   Eye,
   CheckCircle,
+  Heart,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
@@ -43,19 +44,31 @@ export const PrivacyPolicyScreen: React.FC = () => {
         ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0, 0.3, 0.7, 1]}
+        locations={[0.0, 0.3, 0.7, 1.0]}
         style={[styles.header, {
-          paddingTop: insets.top + 8
+          paddingTop: insets.top + 12
         }]}
       >
+        {/* Decorative background elements */}
+        <View style={styles.headerDecorationCircle1} />
+        <View style={styles.headerDecorationCircle2} />
+
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ChevronLeft size={24} color="#FFFFFF" />
-          <Text style={[styles.backText, { color: "#FFFFFF" }]}>
+          <Text 
+            style={[styles.backText, { color: "#FFFFFF" }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {t("privacy.back")}
           </Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: "#FFFFFF" }]}>
+          <Text 
+            style={[styles.title, { color: "#FFFFFF" }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {t("privacy.title")}
           </Text>
         </View>
@@ -195,12 +208,42 @@ export const PrivacyPolicyScreen: React.FC = () => {
         </LinearGradient>
 
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.subText }]}>
+          <View style={[styles.footerDivider, { backgroundColor: colors.border, opacity: 0.3 }]} />
+          
+          <Text style={[styles.footerText, { color: colors.text, opacity: 0.7 }]}>
             {t("privacy.lastUpdated")}
           </Text>
-          <Text style={[styles.footerText, { color: colors.subText }]}>
+          <Text style={[styles.copyright, { color: colors.text, opacity: 0.7, marginBottom: 16 }]}>
             {t("privacy.copyright")}
           </Text>
+
+          <View style={styles.madeWithContainer}>
+            {t("common.language", "tr") === "tr" ? (
+              <>
+                <Text style={[styles.madeLoveText, { color: colors.subText }]}>
+                  {t("about.inTurkey")}
+                </Text>
+                <View style={styles.heartPulse}>
+                  <Heart size={14} color="#EF4444" fill="#EF4444" />
+                </View>
+                <Text style={[styles.madeLoveText, { color: colors.subText }]}>
+                  {" " + t("about.madeWith") + " yapıldı"}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.madeLoveText, { color: colors.subText }]}>
+                  {t("about.madeWith")}
+                </Text>
+                <View style={styles.heartPulse}>
+                  <Heart size={14} color="#EF4444" fill="#EF4444" />
+                </View>
+                <Text style={[styles.madeLoveText, { color: colors.subText }]}>
+                  {t("about.inTurkey")}
+                </Text>
+              </>
+            )}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -212,32 +255,58 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    position: 'relative',
+    overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+  headerDecorationCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerDecorationCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
-    minWidth: 80,
+    minWidth: 60,
+    zIndex: 10,
   },
   titleContainer: {
     flex: 1,
     alignItems: "center",
+    justifyContent: 'center',
+    zIndex: 10,
+    paddingHorizontal: 4,
   },
   rightPlaceholder: {
-    minWidth: 80,
+    minWidth: 60,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 15,
     marginLeft: 4,
+    fontWeight: "600",
   },
   title: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   scrollView: {
     flex: 1,
@@ -270,8 +339,7 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 8,
+    paddingBottom: 12,
   },
   policyItem: {
     flexDirection: "row",
@@ -292,13 +360,40 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: "center",
-    marginTop: 24,
+    marginTop: 8,
+    paddingBottom: 60,
+    paddingHorizontal: 20,
+  },
+  footerDivider: {
+    width: 60,
+    height: 4,
+    borderRadius: 2,
     marginBottom: 24,
-    paddingHorizontal: 16,
   },
   footerText: {
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 13,
+    marginBottom: 4,
     textAlign: "center",
+    fontWeight: "500",
+  },
+  copyright: {
+    fontSize: 13,
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  madeLoveText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  madeWithContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  heartPulse: {
+    marginHorizontal: 6,
   },
 });
