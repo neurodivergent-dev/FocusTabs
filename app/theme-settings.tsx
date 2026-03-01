@@ -476,16 +476,17 @@ const styles = StyleSheet.create({
   },
   effectsContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     marginBottom: 24,
-    gap: 8,
   },
   effectCard: {
-    flex: 1,
+    width: '31%',
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 12,
   },
   effectIconContainer: {
     width: 40,
