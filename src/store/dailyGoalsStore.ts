@@ -14,6 +14,9 @@ import {
 } from '../lib/database';
 
 interface DailyGoalsStore extends GoalsState {
+  // Undo state
+  lastDeletedGoal: Goal | null;
+
   // Calendar/tracking state
   completionData: DailyCompletion[];
   calendarLoading: boolean;
@@ -27,6 +30,7 @@ interface DailyGoalsStore extends GoalsState {
   toggleGoalCompletion: (id: string, completed: boolean) => Promise<void>;
   updateGoalText: (id: string, text: string) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
+  undoDelete: () => Promise<void>;
   clearGoals: () => Promise<void>;
   
   // Calendar functions
@@ -55,6 +59,7 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   goals: [],
   loading: false,
   error: null,
+  lastDeletedGoal: null,
   
   // Calendar/tracking state
   completionData: [],
@@ -227,9 +232,13 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   deleteGoal: async (id: string) => {
     set({ loading: true, error: null });
     try {
+      // Find the goal before deleting to save it for undo
+      const goalToDelete = get().goals.find(g => g.id === id);
+      
       await dbDeleteGoal(id);
       set((state) => ({
         goals: state.goals.filter((goal) => goal.id !== id),
+        lastDeletedGoal: goalToDelete || null,
         loading: false
       }));
       
@@ -248,6 +257,40 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to delete goal', 
+        loading: false 
+      });
+    }
+  },
+
+  // Undo the last deletion
+  undoDelete: async () => {
+    const { lastDeletedGoal } = get();
+    if (!lastDeletedGoal) return;
+
+    set({ loading: true, error: null });
+    try {
+      // Re-add the goal to database
+      const restoredGoal = await dbAddGoal({
+        text: lastDeletedGoal.text,
+        category: lastDeletedGoal.category,
+        date: lastDeletedGoal.date,
+        completed: lastDeletedGoal.completed
+      });
+
+      set((state) => ({
+        goals: [restoredGoal, ...state.goals],
+        lastDeletedGoal: null,
+        loading: false
+      }));
+
+      // Refresh everything
+      get().fetchAllCompletions();
+      const today = new Date().toISOString().split("T")[0];
+      get().fetchGoalsByDate(today);
+      get().fetchGoals();
+    } catch (error) {
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to undo deletion', 
         loading: false 
       });
     }

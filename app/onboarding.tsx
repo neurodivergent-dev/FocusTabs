@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../src/components/ThemeProvider";
 import OnboardingItem from "../src/components/OnboardingItem";
 import Paginator from "../src/components/Paginator";
@@ -120,6 +121,7 @@ const _PlaceholderImage = ({
 };
 
 export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { colors } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -231,14 +233,16 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <SafeAreaView
+    <View
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <StatusBar
         barStyle={isDarkMode(colors) ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
       />
 
-      <View style={styles.skipContainer}>
+      <View style={[styles.skipContainer, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity onPress={skipOnboarding}>
           <Text style={[styles.skipText, { color: colors.primary }]}>
             {t("onboarding.skip")}
@@ -266,7 +270,7 @@ export default function OnboardingScreen() {
         />
       </View>
 
-      <View style={styles.bottomContainer}>
+      <View style={[styles.bottomContainer, { marginBottom: Math.max(insets.bottom, 24) }]}>
         <Paginator data={slides} scrollX={scrollX} />
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary }]}
@@ -279,7 +283,7 @@ export default function OnboardingScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

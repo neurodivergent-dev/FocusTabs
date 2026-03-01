@@ -108,10 +108,10 @@ export default function AISettingsScreen() {
             <View style={styles.settingRow}>
               <View style={styles.settingText}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>
-                  AI Özelliklerini Aktif Et
+                  {t("settings.ai.enableAI")}
                 </Text>
                 <Text style={[styles.cardDesc, { color: colors.subText }]}>
-                  Gemini yapay zeka desteğini açın veya kapatın.
+                  {t("settings.ai.enableAIDesc")}
                 </Text>
               </View>
               <Switch
@@ -134,7 +134,7 @@ export default function AISettingsScreen() {
             </View>
             
             <Text style={[styles.cardDesc, { color: colors.subText, marginBottom: 16 }]}>
-              API anahtarınız cihazınızda güvenli bir kasada (SecureStore) saklanır ve asla sunucularımıza gönderilmez.
+              {t("settings.ai.secureStorageDesc")}
             </Text>
 
             <TextInput
@@ -184,7 +184,7 @@ export default function AISettingsScreen() {
           </View>
 
           {/* Features Information */}
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Neler Kazanacaksınız?</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("settings.ai.whatYouGet")}</Text>
           
           <View style={styles.featuresList}>
             <View style={[styles.featureCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -193,9 +193,9 @@ export default function AISettingsScreen() {
                 style={styles.featureGradient}
               >
                 <Zap size={24} color={colors.warning} />
-                <Text style={[styles.featureTitle, { color: colors.text }]}>Smart Refine</Text>
+                <Text style={[styles.featureTitle, { color: colors.text }]}>{t("settings.ai.smartRefineTitle")}</Text>
                 <Text style={[styles.featureDesc, { color: colors.subText }]}>
-                  Yazdığınız basit hedefleri, Gemini daha profesyonel ve takip edilebilir günlük görevlere dönüştürür.
+                  {t("settings.ai.smartRefineDesc")}
                 </Text>
               </LinearGradient>
             </View>
@@ -206,9 +206,9 @@ export default function AISettingsScreen() {
                 style={styles.featureGradient}
               >
                 <Sparkles size={24} color={colors.info} />
-                <Text style={[styles.featureTitle, { color: colors.text }]}>AI Motivasyon</Text>
+                <Text style={[styles.featureTitle, { color: colors.text }]}>{t("settings.ai.aiMotivationTitle")}</Text>
                 <Text style={[styles.featureDesc, { color: colors.subText }]}>
-                  3 hedefi de bitirdiğinizde Gemini size özel, taze ve motive edici kutlama mesajları hazırlar.
+                  {t("settings.ai.aiMotivationDesc")}
                 </Text>
               </LinearGradient>
             </View>
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "800", marginBottom: 4 },
   subtitle: { fontSize: 15, fontWeight: "500", textAlign: "center" },
   scrollView: { flex: 1 },
-  scrollContent: { padding: 20, paddingBottom: 40 },
+  scrollContent: { padding: 20, paddingBottom: 100 },
   card: {
     borderRadius: 24,
     padding: 20,

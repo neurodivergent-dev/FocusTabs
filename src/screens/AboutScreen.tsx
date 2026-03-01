@@ -6,7 +6,9 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   Linking,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, Github, Mail, Heart, CheckCircle2, Layout, Moon, ShieldCheck, Palette, CalendarDays } from "lucide-react-native";
@@ -16,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import FocusTabsLogo from "../../components/LogoComponent";
 import Constants from "expo-constants";
+import * as Haptics from "expo-haptics";
 
 export const AboutScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -33,6 +36,45 @@ export const AboutScreen: React.FC = () => {
 
   const handleSendEmail = () => {
     Linking.openURL("mailto:melihcandemir@protonmail.com");
+  };
+
+  // Feature Card component with animation
+  const FeatureCard = ({ icon: Icon, label, color }: { icon: any, label: string, color: string }) => {
+    const scaleAnim = React.useRef(new Animated.Value(1)).current;
+
+    const handlePressIn = () => {
+      Animated.spring(scaleAnim, {
+        toValue: 0.95,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const handlePressOut = () => {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    return (
+      <TouchableWithoutFeedback
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+      >
+        <Animated.View style={[
+          styles.featureCard, 
+          { 
+            backgroundColor: colors.card, 
+            borderColor: colors.border,
+            transform: [{ scale: scaleAnim }] 
+          }
+        ]}>
+          <Icon size={24} color={color} />
+          <Text style={[styles.featureLabel, { color: colors.text }]}>{label}</Text>
+        </Animated.View>
+      </TouchableWithoutFeedback>
+    );
   };
 
   return (
@@ -122,30 +164,12 @@ export const AboutScreen: React.FC = () => {
             {t("about.featuresTitle")}
           </Text>
           <View style={styles.featuresGrid}>
-            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
-              <CheckCircle2 size={24} color={colors.primary} />
-              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.dailyGoalTracking")}</Text>
-            </View>
-            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
-              <Layout size={24} color={colors.success} />
-              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.minimalist")}</Text>
-            </View>
-            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
-              <Moon size={24} color={colors.warning} />
-              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.darkMode")}</Text>
-            </View>
-            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
-              <ShieldCheck size={24} color={colors.secondary} />
-              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.privacy")}</Text>
-            </View>
-            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
-              <Palette size={24} color={colors.info} />
-              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.themePalette")}</Text>
-            </View>
-            <View style={[styles.featureCard, { backgroundColor: colors.card }]}>
-              <CalendarDays size={24} color={colors.primary} />
-              <Text style={[styles.featureLabel, { color: colors.text }]}>{t("about.features.calendar")}</Text>
-            </View>
+            <FeatureCard icon={CheckCircle2} label={t("about.features.dailyGoalTracking")} color={colors.primary} />
+            <FeatureCard icon={Layout} label={t("about.features.minimalist")} color={colors.success} />
+            <FeatureCard icon={Moon} label={t("about.features.darkMode")} color={colors.warning} />
+            <FeatureCard icon={ShieldCheck} label={t("about.features.privacy")} color={colors.secondary} />
+            <FeatureCard icon={Palette} label={t("about.features.themePalette")} color={colors.info} />
+            <FeatureCard icon={CalendarDays} label={t("about.features.calendar")} color={colors.primary} />
           </View>
         </LinearGradient>
 
@@ -344,7 +368,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
   },
   featureLabel: {
     fontSize: 12,

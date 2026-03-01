@@ -176,7 +176,7 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
                   ) : (
                     <>
                       <Sparkles size={14} color={colors.primary} />
-                      <Text style={[styles.aiActionText, { color: colors.primary }]}>AI Refine</Text>
+                      <Text style={[styles.aiActionText, { color: colors.primary }]}>{t("home.aiRefine")}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -191,7 +191,7 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
                   ) : (
                     <>
                       <BrainCircuit size={14} color={colors.secondary} />
-                      <Text style={[styles.aiActionText, { color: colors.secondary }]}>AI Suggestion</Text>
+                      <Text style={[styles.aiActionText, { color: colors.secondary }]}>{t("home.aiSuggestion")}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -200,7 +200,7 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
           )}
 
           <Text style={[styles.categoryLabel, { color: colors.subText }]}>
-            {t("home.selectCategory", "Kategori Seçin")}
+            {t("home.selectCategory")}
           </Text>
           <View style={styles.categoryPicker}>
             {CATEGORIES.map((category) => (
@@ -345,7 +345,6 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 12,
     fontWeight: '700',
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
     marginTop: 8,

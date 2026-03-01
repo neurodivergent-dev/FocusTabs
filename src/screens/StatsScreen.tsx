@@ -88,21 +88,25 @@ export const StatsScreen: React.FC = () => {
   // Gemini gelmezse diye gerçek verilere dayalı "Statik ama Dinamik" rozetler
   const fallbackAchievements = useMemo(() => [
     {
-      title: performanceData.streak >= 3 ? "Seri Kralı" : "Yolun Başında",
-      desc: performanceData.streak > 0 ? `${performanceData.streak} gündür durdurulamaz gidiyorsun!` : "İlk serini başlatmak için bugün tüm hedefleri bitir.",
+      title: performanceData.streak >= 3 
+        ? t("stats.achievements.fallback.streakKral") 
+        : t("stats.achievements.fallback.yolunBasinda"),
+      desc: performanceData.streak > 0 
+        ? t("stats.achievements.fallback.streakKralDesc", { count: performanceData.streak }) 
+        : t("stats.achievements.fallback.yolunBasindaDesc"),
       type: 'streak'
     },
     {
-      title: "Verimlilik",
-      desc: `Haftalık ortalaman %${Math.round(performanceData.weeklyCompletionRate)}. Harika bir denge!`,
+      title: t("stats.achievements.fallback.efficiency"),
+      desc: t("stats.achievements.fallback.efficiencyDesc", { count: Math.round(performanceData.weeklyCompletionRate) }),
       type: 'consistency'
     },
     {
-      title: "Görev Avcısı",
-      desc: `Toplamda ${performanceData.totalCompletedTasks} hedefi başarıyla tarihe gömdün.`,
+      title: t("stats.achievements.fallback.goalHunter"),
+      desc: t("stats.achievements.fallback.goalHunterDesc", { count: performanceData.totalCompletedTasks }),
       type: 'focus'
     }
-  ], [performanceData]);
+  ], [performanceData, t]);
 
   // Calculate insights
   const insights = useMemo<InsightData>(() => {
@@ -774,7 +778,6 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 10,
     fontWeight: '800',
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   countPill: {
@@ -794,7 +797,7 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: 'rgba(150, 150, 150, 0.1)', marginVertical: 24 },
   summaryRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   summaryItem: { flex: 1, padding: 12, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  sumLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 },
+  sumLabel: { fontSize: 10, fontWeight: '700', marginBottom: 4 },
   sumValue: { fontSize: 14, fontWeight: '700' },
   levelBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 16, gap: 12, borderWidth: 1, marginTop: 12 },
   levelText: { fontSize: 14, fontWeight: '700' },
@@ -825,7 +828,6 @@ const styles = StyleSheet.create({
   badgeTitle: {
     fontSize: 14,
     fontWeight: '800',
-    textTransform: 'uppercase',
     marginBottom: 2,
   },
   badgeDesc: {

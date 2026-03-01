@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  TouchableOpacity,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,8 +20,11 @@ import Animated, {
   useDerivedValue, 
   useAnimatedStyle, 
   withSpring,
-  interpolateColor 
+  interpolateColor,
+  SlideInUp,
+  SlideOutDown,
 } from "react-native-reanimated";
+import { RotateCcw } from "lucide-react-native";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useDailyReset } from "../hooks/useDailyReset";
 import { GoalCard } from "../components/GoalCard";
@@ -56,8 +60,10 @@ export const HomeScreen: React.FC = () => {
     toggleGoalCompletion,
     updateGoalText,
     deleteGoal,
+    undoDelete,
     hasReachedMaxGoals,
     getCompletedGoalsCount,
+    loading,
   } = useDailyGoalsStore();
 
   // Fetch goals on component mount and when goals change
@@ -127,17 +133,59 @@ export const HomeScreen: React.FC = () => {
   });
 
   const [isCelebrationVisible, setIsCelebrationVisible] = useState(false);
+  const [isUndoVisible, setIsUndoVisible] = useState(false);
+  const prevCompletedCountRef = useRef(completedCount);
+  const lastLoadingRef = useRef(loading);
+  const isInitialLoadRef = useRef(true);
+  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Trigger celebration only when reaching 3/3 for the first time in session
+  const handleDeleteGoal = async (id: string) => {
+    await deleteGoal(id);
+    
+    // Show undo toast
+    setIsUndoVisible(true);
+    
+    // Clear existing timer
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    
+    // Auto hide after 5 seconds
+    undoTimerRef.current = setTimeout(() => {
+      setIsUndoVisible(false);
+    }, 5000);
+  };
+
+  const handleUndo = async () => {
+    await undoDelete();
+    setIsUndoVisible(false);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+  };
+
+  // Trigger celebration only when reaching 3/3 by ticking (not on load)
   useEffect(() => {
-    if (todayGoals.length === 3 && completedCount === 3) {
+    // If we just finished loading the first time, sync the ref and don't trigger celebration
+    if (lastLoadingRef.current === true && loading === false) {
+      if (isInitialLoadRef.current) {
+        prevCompletedCountRef.current = completedCount;
+        isInitialLoadRef.current = false;
+      }
+    }
+    lastLoadingRef.current = loading;
+
+    // Skip logic if still loading
+    if (loading) return;
+
+    // Trigger only if completedCount increased and reached 3
+    if (todayGoals.length === 3 && completedCount === 3 && prevCompletedCountRef.current < 3) {
       // Small delay to let the last checkbox animation finish
       const timer = setTimeout(() => setIsCelebrationVisible(true), 500);
       return () => clearTimeout(timer);
-    } else {
+    } else if (completedCount < 3) {
       setIsCelebrationVisible(false);
     }
-  }, [completedCount, todayGoals.length]);
+    
+    // Update ref for next change
+    prevCompletedCountRef.current = completedCount;
+  }, [completedCount, todayGoals.length, loading]);
 
   const animatedProgressStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
@@ -203,7 +251,7 @@ export const HomeScreen: React.FC = () => {
                 adjustsFontSizeToFit
                 minimumFontScale={0.7}
               >
-                {t("home.dailyProgress", "Günlük İlerleme")}
+                {t("home.dailyProgress")}
               </Text>
               <Text style={[styles.progressCount, { color: '#FFFFFF' }]}>
                 {completedCount}/{todayGoals.length}
@@ -252,7 +300,7 @@ export const HomeScreen: React.FC = () => {
                   index={index}
                   onToggleComplete={toggleGoalCompletion}
                   onUpdateText={updateGoalText}
-                  onDelete={deleteGoal}
+                  onDelete={handleDeleteGoal}
                 />
               </Animated.View>
             ))
@@ -272,6 +320,30 @@ export const HomeScreen: React.FC = () => {
           />
         </View>
       </KeyboardAvoidingView>
+
+      {/* Undo Toast */}
+      {isUndoVisible && (
+        <Animated.View 
+          entering={FadeInDown.springify().damping(15)}
+          exiting={SlideOutDown.duration(300)}
+          style={[styles.undoToast, { backgroundColor: colors.card, borderLeftColor: colors.primary }]}
+        >
+          <View style={styles.undoContent}>
+            <Text style={[styles.undoText, { color: colors.text }]}>
+              {t("common.goalDeleted", "Hedef silindi")}
+            </Text>
+            <TouchableOpacity 
+              style={[styles.undoButton, { backgroundColor: colors.primary + '20' }]} 
+              onPress={handleUndo}
+            >
+              <RotateCcw size={16} color={colors.primary} style={{ marginRight: 6 }} />
+              <Text style={[styles.undoButtonText, { color: colors.primary }]}>
+                {t("common.undo", "Geri Al")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
 
       <Celebration 
         visible={isCelebrationVisible} 
@@ -382,5 +454,40 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 16,
     borderTopWidth: 1,
+  },
+  undoToast: {
+    position: 'absolute',
+    bottom: 100,
+    left: 20,
+    right: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  undoContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  undoText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  undoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  undoButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
