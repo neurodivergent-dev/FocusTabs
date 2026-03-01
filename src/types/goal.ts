@@ -1,5 +1,11 @@
 export type GoalCategory = 'work' | 'health' | 'personal' | 'finance' | 'other';
 
+export interface SubTask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export interface Goal {
   id: string;
   text: string;
@@ -8,6 +14,8 @@ export interface Goal {
   updatedAt: Date;
   date: string; // YYYY-MM-DD formatında tarih
   category: GoalCategory;
+  focusTime: number; // Odaklanılan toplam saniye
+  subTasks?: SubTask[]; // AI tarafından parçalanmış alt görevler
 }
 
 export type GoalInput = Pick<Goal, 'text' | 'category'>;

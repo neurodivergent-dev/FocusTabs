@@ -4,7 +4,7 @@ import { useAIStore } from "../store/aiStore";
 class AIService {
   private genAI: GoogleGenerativeAI | null = null;
   private lastRequestTime: number = 0;
-  private readonly COOLDOWN_MS = 15000; // 10 saniye bekleme süresi (429 hatasını önlemek için)
+  private readonly COOLDOWN_MS = 5000; // 5 saniye bekleme süresi
   
   // Önbellek
   private cache: Record<string, { msg: string, time: number }> = {};
@@ -142,6 +142,45 @@ class AIService {
     } catch (e) {
       console.error("AI Suggestion Hatası:", e);
       return { text: "10 sayfa kitap oku", category: "personal" };
+    }
+  }
+
+  // Hedefi alt adımlara bölme
+  async decomposeGoal(goal: string, language: string = 'en'): Promise<string[]> {
+    const prompt = `Break down this main goal into EXACTLY 3 small, tactical, and actionable sub-steps.
+    MAIN GOAL: "${goal}"
+    RULES:
+    1. Steps must be concrete and very short (max 5 words each).
+    2. RETURN ONLY a JSON array of strings: ["Step 1", "Step 2", "Step 3"].
+    3. LANGUAGE: ${language}.
+    4. NO markdown, NO numbered lists, ONLY the JSON array.`;
+
+    const result = await this.requestAI(prompt, `decompose_${goal}_${language}`);
+    
+    if (!result || result.trim() === "") {
+      return [];
+    }
+
+    try {
+      // JSON temizleme: Markdown bloklarını ve gereksiz boşlukları temizle
+      let cleanJson = result.trim();
+      if (cleanJson.includes("```")) {
+        cleanJson = cleanJson.replace(/```json|```/g, "").trim();
+      }
+      
+      // Sadece dizi kısmını bulmaya çalış (bazen AI açıklama ekleyebiliyor)
+      const arrayStart = cleanJson.indexOf("[");
+      const arrayEnd = cleanJson.lastIndexOf("]");
+      if (arrayStart !== -1 && arrayEnd !== -1) {
+        cleanJson = cleanJson.substring(arrayStart, arrayEnd + 1);
+      }
+
+      const parsed = JSON.parse(cleanJson);
+      return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
+    } catch (e) {
+      console.error("AI Decompose Hatası (Ham Yanıt):", result);
+      console.error("AI Decompose Hatası (Detay):", e);
+      return [];
     }
   }
 }

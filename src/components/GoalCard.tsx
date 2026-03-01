@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   TextInput,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { Check, Trash2, Edit2, X, Target, Briefcase, Heart as HeartIcon, User, DollarSign, Tag } from "lucide-react-native";
-import { Goal, GoalCategory } from "../types/goal";
+import { Check, Trash2, Edit2, X, Target, Briefcase, Heart as HeartIcon, User, DollarSign, Tag, Play, Pause, Timer, Scissors, ChevronDown, ChevronUp } from "lucide-react-native";
+import { Goal, GoalCategory, SubTask } from "../types/goal";
 import { useTheme } from "./ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { getCategoryById } from "../constants/categories";
@@ -23,6 +25,12 @@ interface GoalCardProps {
   onToggleComplete: (id: string, completed: boolean) => void;
   onUpdateText: (id: string, text: string) => void;
   onDelete: (id: string) => void;
+  onStartTimer: (id: string) => void;
+  onStopTimer: () => void;
+  onDecompose: (id: string) => void;
+  onToggleSubTask: (goalId: string, subTaskId: string) => void;
+  isActiveTimer: boolean;
+  isAIEnabled: boolean;
   index: number;
 }
 
@@ -31,12 +39,31 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   onToggleComplete,
   onUpdateText,
   onDelete,
+  onStartTimer,
+  onStopTimer,
+  onDecompose,
+  onToggleSubTask,
+  isActiveTimer,
+  isAIEnabled,
   index,
 }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isSlicing, setIsSlicing] = useState<boolean>(false);
   const [editText, setEditText] = useState<string>(goal.text);
+
   const { colors, isDarkMode } = useTheme();
   const { t } = useTranslation();
+
+  const formatDuration = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const category = getCategoryById(goal.category);
 
@@ -183,6 +210,16 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 </TouchableOpacity>
 
                 <View style={styles.textContainer}>
+                  {/* Timer Display */}
+                  {(goal.focusTime > 0 || isActiveTimer) && !goal.completed && (
+                    <View style={styles.timerContainer}>
+                      <Timer size={12} color={isActiveTimer ? colors.primary : colors.subText} />
+                      <Text style={[styles.timerText, { color: isActiveTimer ? colors.primary : colors.subText }]}>
+                        {formatDuration(goal.focusTime || 0)}
+                      </Text>
+                    </View>
+                  )}
+                  
                   <TouchableOpacity 
                     activeOpacity={1} 
                     onPress={handleToggleComplete}
@@ -215,19 +252,79 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                         {t(category.nameKey)}
                       </Text>
                     </View>
+
+                    {/* Subtask count badge */}
+                    {goal.subTasks && goal.subTasks.length > 0 && (
+                      <TouchableOpacity 
+                        onPress={() => setIsExpanded(!isExpanded)}
+                        style={[styles.statusBadge, { backgroundColor: colors.info + '15', marginLeft: 8 }]}
+                      >
+                        <Text style={[styles.statusText, { color: colors.info }]}>
+                          {goal.subTasks.filter(st => st.completed).length}/{goal.subTasks.length}
+                        </Text>
+                        {isExpanded ? <ChevronUp size={10} color={colors.info} /> : <ChevronDown size={10} color={colors.info} />}
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
 
                 <View style={styles.actions}>
                   {!goal.completed && (
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={handleEditPress}
-                      onPressIn={handlePressIn}
-                      onPressOut={handlePressOut}
-                    >
-                      <Edit2 color={colors.subText} size={18} />
-                    </TouchableOpacity>
+                    <>
+                      {/* AI Slicer Button - Only show if AI is enabled and no subtasks exist yet */}
+                      {isAIEnabled && !goal.subTasks && (
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={async () => {
+                            setIsSlicing(true);
+                            await onDecompose(goal.id);
+                            setIsSlicing(false);
+                            
+                            // Check if it failed by looking at the goal ref or waiting for store update
+                            // Since we don't have the updated goal here instantly, 
+                            // the store will handle the update and if subTasks is still empty,
+                            // we can assume it failed or is in cooldown.
+                            setTimeout(() => {
+                              if (!goal.subTasks || goal.subTasks.length === 0) {
+                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                                Alert.alert(t("home.aiErrorTitle"), t("home.aiDecomposeError"));
+                              }
+                            }, 500);
+                          }}
+                          disabled={isSlicing}
+                          onPressIn={handlePressIn}
+                          onPressOut={handlePressOut}
+                        >
+                          {isSlicing ? (
+                            <ActivityIndicator size="small" color={colors.secondary} />
+                          ) : (
+                            <Scissors color={colors.secondary} size={20} />
+                          )}
+                        </TouchableOpacity>
+                      )}
+
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => isActiveTimer ? onStopTimer() : onStartTimer(goal.id)}
+                        onPressIn={handlePressIn}
+                        onPressOut={handlePressOut}
+                      >
+                        {isActiveTimer ? (
+                          <Pause color={colors.primary} size={20} fill={colors.primary} />
+                        ) : (
+                          <Play color={colors.primary} size={20} fill={colors.primary} />
+                        )}
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={handleEditPress}
+                        onPressIn={handlePressIn}
+                        onPressOut={handlePressOut}
+                      >
+                        <Edit2 color={colors.subText} size={18} />
+                      </TouchableOpacity>
+                    </>
                   )}
                   <TouchableOpacity
                     style={styles.actionButton}
@@ -241,6 +338,34 @@ export const GoalCard: React.FC<GoalCardProps> = ({
               </>
             )}
           </View>
+
+          {/* Expanded Subtasks Section */}
+          {isExpanded && goal.subTasks && goal.subTasks.length > 0 && (
+            <View style={[styles.subTasksContainer, { borderTopColor: colors.border + '40' }]}>
+              {goal.subTasks.map((subTask) => (
+                <TouchableOpacity
+                  key={subTask.id}
+                  style={styles.subTaskItem}
+                  onPress={() => onToggleSubTask(goal.id, subTask.id)}
+                >
+                  <View style={[
+                    styles.subTaskCheckbox, 
+                    { borderColor: subTask.completed ? colors.success : colors.subText + '40' },
+                    subTask.completed && { backgroundColor: colors.success }
+                  ]}>
+                    {subTask.completed && <Check color="#FFFFFF" size={10} strokeWidth={4} />}
+                  </View>
+                  <Text style={[
+                    styles.subTaskText, 
+                    { color: subTask.completed ? colors.subText : colors.text },
+                    subTask.completed && styles.completedText
+                  ]}>
+                    {subTask.text}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
       </View>
     </Animated.View>
   );
@@ -264,4 +389,30 @@ const styles = StyleSheet.create({
   editInput: { fontSize: 17, fontWeight: "600", borderBottomWidth: 2, paddingBottom: 8, marginBottom: 16, minHeight: 40 },
   editActions: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
   iconButton: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  timerContainer: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+  timerText: { fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  subTasksContainer: {
+    padding: 16,
+    paddingTop: 0,
+    marginTop: -8,
+    borderTopWidth: 1,
+  },
+  subTaskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  subTaskCheckbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  subTaskText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });

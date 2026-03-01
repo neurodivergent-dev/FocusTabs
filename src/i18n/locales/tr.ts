@@ -64,6 +64,8 @@ export default {
     selectCategory: 'Kategori Seçin',
     aiRefine: 'AI Düzenle',
     aiSuggestion: 'AI Önerisi',
+    aiErrorTitle: 'AI Hatası',
+    aiDecomposeError: 'Şu an hedefleri parçalayamıyoruz, lütfen tekrar deneyin.',
     emptyState: {
       title: 'Hedeflerinizi Belirleyin',
       description: 'Bugün için en önemli 3 hedefinizi belirleyin ve odaklanın.',
@@ -95,6 +97,8 @@ export default {
     timeRemaining: 'Günün Kalan Süresi',
     completed: 'Tamamlanan',
     remaining: 'Kalan',
+    dayRemaining: 'Günün Bitimine Kalan',
+    countdownAdvice: 'Bugünü tamamlamak için hala vaktin var!',
     generalPerformance: 'Genel Performans',
     weekly: 'Haftalık',
     monthly: 'Aylık',

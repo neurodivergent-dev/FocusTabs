@@ -23,7 +23,9 @@ export const initDatabase = async (): Promise<void> => {
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       date TEXT NOT NULL,
-      category TEXT NOT NULL DEFAULT 'other'
+      category TEXT NOT NULL DEFAULT 'other',
+      focusTime INTEGER NOT NULL DEFAULT 0,
+      subTasks TEXT
     );
     
     CREATE TABLE IF NOT EXISTS daily_completions (
@@ -41,6 +43,20 @@ export const initDatabase = async (): Promise<void> => {
   } catch (e) {
     // Column might already exist, which is expected on subsequent runs
   }
+
+  // Migration: Add focusTime column if it doesn't exist
+  try {
+    await db.execAsync("ALTER TABLE goals ADD COLUMN focusTime INTEGER NOT NULL DEFAULT 0;");
+    console.log('focusTime column added to goals table');
+  } catch (e) {
+    // Column might already exist
+  }
+
+  // Migration: Add subTasks column if it doesn't exist
+  try {
+    await db.execAsync("ALTER TABLE goals ADD COLUMN subTasks TEXT;");
+    console.log('subTasks column added to goals table');
+  } catch (e) {}
   
   isInitialized = true;
   // console.log('Database initialized successfully');
@@ -61,6 +77,8 @@ interface SQLGoal {
   updatedAt: string;
   date: string;
   category: string;
+  focusTime: number;
+  subTasks: string | null;
 }
 
 interface SQLDailyCompletion {
@@ -83,7 +101,9 @@ export const getGoals = async (): Promise<Goal[]> => {
     createdAt: new Date(goal.createdAt),
     updatedAt: new Date(goal.updatedAt),
     date: goal.date || today, // Garanti olması için varsayılan değer
-    category: (goal.category as any) || 'other'
+    category: (goal.category as any) || 'other',
+    focusTime: goal.focusTime || 0,
+    subTasks: goal.subTasks ? JSON.parse(goal.subTasks) : undefined
   }));
 };
 
@@ -105,6 +125,7 @@ export const addGoal = async (goalInput: GoalInput): Promise<Goal> => {
     updatedAt: new Date(),
     date: today,
     category: goalInput.category,
+    focusTime: 0,
   };
 
   await ensureInitialized();
@@ -124,8 +145,8 @@ export const addGoal = async (goalInput: GoalInput): Promise<Goal> => {
   console.log(`Yeni görev ekleniyor, ID: ${id}, Text: ${goalInput.text}, Date: ${today}, Category: ${goalInput.category}`);
 
   await db.runAsync(
-    'INSERT INTO goals (id, text, completed, createdAt, updatedAt, date, category) VALUES (?, ?, ?, ?, ?, ?, ?);',
-    [id, goalInput.text, 0, now, now, today, goalInput.category]
+    'INSERT INTO goals (id, text, completed, createdAt, updatedAt, date, category, focusTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+    [id, goalInput.text, 0, now, now, today, goalInput.category, 0]
   );
 
   console.log(`Göv başarıyla eklendi!`);
@@ -150,6 +171,21 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
   if (updates.completed !== undefined) {
     fields.push('completed = ?');
     values.push(updates.completed ? 1 : 0);
+  }
+
+  if (updates.category !== undefined) {
+    fields.push('category = ?');
+    values.push(updates.category);
+  }
+
+  if (updates.focusTime !== undefined) {
+    fields.push('focusTime = ?');
+    values.push(updates.focusTime);
+  }
+
+  if (updates.subTasks !== undefined) {
+    fields.push('subTasks = ?');
+    values.push(JSON.stringify(updates.subTasks));
   }
 
   fields.push('updatedAt = ?');
@@ -334,7 +370,9 @@ export const getGoalsByDate = async (date: string): Promise<Goal[]> => {
     createdAt: new Date(goal.createdAt),
     updatedAt: new Date(goal.updatedAt),
     date: goal.date,
-    category: (goal.category as any) || 'other'
+    category: (goal.category as any) || 'other',
+    focusTime: goal.focusTime || 0,
+    subTasks: goal.subTasks ? JSON.parse(goal.subTasks) : undefined
   }));
 };
 

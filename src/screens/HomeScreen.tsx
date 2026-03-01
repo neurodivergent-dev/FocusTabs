@@ -27,6 +27,7 @@ import Animated, {
 import { RotateCcw } from "lucide-react-native";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useDailyReset } from "../hooks/useDailyReset";
+import { useAIStore } from "../store/aiStore";
 import { GoalCard } from "../components/GoalCard";
 import { AddGoalForm } from "../components/AddGoalForm";
 import { EmptyState } from "../components/EmptyState";
@@ -47,7 +48,10 @@ export const HomeScreen: React.FC = () => {
   const { colors, isDarkMode } = useTheme();
 
   // Translation hook
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // AI Store
+  const { isAIEnabled } = useAIStore();
 
   // Keyboard state
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -65,6 +69,12 @@ export const HomeScreen: React.FC = () => {
     hasReachedMaxGoals,
     getCompletedGoalsCount,
     loading,
+    startGoalTimer,
+    stopGoalTimer,
+    incrementGoalTime,
+    activeTimerGoalId,
+    decomposeGoal,
+    toggleSubTask,
   } = useDailyGoalsStore();
 
   // Fetch goals on component mount and when goals change
@@ -95,6 +105,17 @@ export const HomeScreen: React.FC = () => {
       keyboardDidHideListener.remove();
     };
   }, [fetchGoals]);
+
+  // Timer interval
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (activeTimerGoalId) {
+      interval = setInterval(() => {
+        incrementGoalTime(activeTimerGoalId);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [activeTimerGoalId, incrementGoalTime]);
 
   // Filter goals to show only today's goals (both active and completed)
   const todayGoals = useMemo(() => {
@@ -302,6 +323,12 @@ export const HomeScreen: React.FC = () => {
                   onToggleComplete={toggleGoalCompletion}
                   onUpdateText={updateGoalText}
                   onDelete={handleDeleteGoal}
+                  onStartTimer={startGoalTimer}
+                  onStopTimer={stopGoalTimer}
+                  onDecompose={(id) => decomposeGoal(id, i18n.language)}
+                  onToggleSubTask={toggleSubTask}
+                  isActiveTimer={activeTimerGoalId === goal.id}
+                  isAIEnabled={isAIEnabled}
                 />
               </Animated.View>
             ))

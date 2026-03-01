@@ -71,6 +71,8 @@ export default {
     selectCategory: 'Select Category',
     aiRefine: 'AI Refine',
     aiSuggestion: 'AI Suggestion',
+    aiErrorTitle: 'AI Error',
+    aiDecomposeError: 'Unable to break down goals right now, please try again.',
     emptyState: {
       title: 'Set Your Goals',
       description: 'Set your 3 most important goals for today and focus.',
@@ -115,6 +117,8 @@ export default {
     timeRemaining: 'Time Remaining',
     completed: 'Completed',
     remaining: 'Remaining',
+    dayRemaining: 'Time Left in the Day',
+    countdownAdvice: 'There is still time to finish your goals!',
     generalPerformance: 'General Performance',
     weekly: 'Weekly',
     monthly: 'Monthly',

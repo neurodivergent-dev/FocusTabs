@@ -12,6 +12,7 @@ import {
   getGoalsByDate as dbGetGoalsByDate,
   resetAndRecalculateAllCompletionStats as dbResetAndRecalculateAllCompletionStats
 } from '../lib/database';
+import { aiService } from '../services/aiService';
 
 interface DailyGoalsStore extends GoalsState {
   // Undo state
@@ -24,6 +25,9 @@ interface DailyGoalsStore extends GoalsState {
   dateGoals: Goal[]; // Seçilen tarih için görevler
   dateGoalsLoading: boolean; // Seçilen tarih için görevlerin yükleme durumu
 
+  // Timer state
+  activeTimerGoalId: string | null;
+
   // Actions
   fetchGoals: () => Promise<void>;
   addGoal: (goalInput: GoalInput) => Promise<void>;
@@ -32,6 +36,16 @@ interface DailyGoalsStore extends GoalsState {
   deleteGoal: (id: string) => Promise<void>;
   undoDelete: () => Promise<void>;
   clearGoals: () => Promise<void>;
+  
+  // Timer actions
+  startGoalTimer: (id: string) => void;
+  stopGoalTimer: () => void;
+  incrementGoalTime: (id: string) => void;
+  saveGoalTime: (id: string) => Promise<void>;
+  
+  // AI Slicer actions
+  decomposeGoal: (id: string, language: string) => Promise<void>;
+  toggleSubTask: (goalId: string, subTaskId: string) => Promise<void>;
   
   // Calendar functions
   fetchAllCompletions: () => Promise<void>;
@@ -60,6 +74,7 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   loading: false,
   error: null,
   lastDeletedGoal: null,
+  activeTimerGoalId: null,
   
   // Calendar/tracking state
   completionData: [],
@@ -330,6 +345,81 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
         calendarError: error instanceof Error ? error.message : 'Failed to fetch completion data',
         calendarLoading: false
       });
+    }
+  },
+
+  // Timer actions
+  startGoalTimer: (id: string) => {
+    set({ activeTimerGoalId: id });
+  },
+
+  stopGoalTimer: () => {
+    const { activeTimerGoalId } = get();
+    if (activeTimerGoalId) {
+      get().saveGoalTime(activeTimerGoalId);
+    }
+    set({ activeTimerGoalId: null });
+  },
+
+  incrementGoalTime: (id: string) => {
+    set((state) => ({
+      goals: state.goals.map((goal) => 
+        goal.id === id ? { ...goal, focusTime: (goal.focusTime || 0) + 1 } : goal
+      )
+    }));
+  },
+
+  saveGoalTime: async (id: string) => {
+    const goal = get().goals.find(g => g.id === id);
+    if (goal) {
+      try {
+        await dbUpdateGoal(id, { focusTime: goal.focusTime });
+      } catch (error) {
+        console.error('Error saving goal focus time:', error);
+      }
+    }
+  },
+
+  // AI Slicer implementation
+  decomposeGoal: async (id: string, language: string) => {
+    const goal = get().goals.find(g => g.id === id);
+    if (!goal) return;
+
+    set({ loading: true });
+    try {
+      const subStepTexts = await aiService.decomposeGoal(goal.text, language);
+      const subTasks = subStepTexts.map((text, index) => ({
+        id: `${id}-sub-${index}`,
+        text,
+        completed: false
+      }));
+
+      await dbUpdateGoal(id, { subTasks });
+      set((state) => ({
+        goals: state.goals.map(g => g.id === id ? { ...g, subTasks } : g),
+        loading: false
+      }));
+    } catch (error) {
+      console.error('Error decomposing goal:', error);
+      set({ loading: false });
+    }
+  },
+
+  toggleSubTask: async (goalId: string, subTaskId: string) => {
+    const goal = get().goals.find(g => g.id === goalId);
+    if (!goal || !goal.subTasks) return;
+
+    const newSubTasks = goal.subTasks.map(st => 
+      st.id === subTaskId ? { ...st, completed: !st.completed } : st
+    );
+
+    try {
+      await dbUpdateGoal(goalId, { subTasks: newSubTasks });
+      set((state) => ({
+        goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
+      }));
+    } catch (error) {
+      console.error('Error toggling subtask:', error);
     }
   },
   

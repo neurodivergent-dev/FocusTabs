@@ -38,6 +38,7 @@ interface PerformanceData {
   streak: number;
   bestDay: string;
   totalCompletedTasks: number;
+  totalFocusTime: number;
   hasTasks: boolean;
 }
 
@@ -62,8 +63,16 @@ export const StatsScreen: React.FC = () => {
     streak: 0,
     bestDay: "-",
     totalCompletedTasks: 0,
+    totalFocusTime: 0,
     hasTasks: false,
   });
+
+  const formatTotalTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs}h ${mins}m ${secs}s`;
+  };
 
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [dynamicAIInsights, setDynamicAIInsights] = useState<any[]>([]);
@@ -246,13 +255,15 @@ export const StatsScreen: React.FC = () => {
       }
 
       const totalCompletedTasks = completionData.reduce((sum, item) => sum + item.completedCount, 0);
+      const totalFocusTime = goals.reduce((sum, goal) => sum + (goal.focusTime || 0), 0);
       
       setPerformanceData({
         weeklyCompletionRate: completionData.slice(0, 7).reduce((acc, curr) => acc + curr.percentage, 0) / Math.min(completionData.length, 7),
         monthlyCompletionRate: completionData.slice(0, 30).reduce((acc, curr) => acc + curr.percentage, 0) / Math.min(completionData.length, 30),
         streak,
-        bestDay: insights.productiveDayName, // Burayı düzelttim: Gerçek veriden gelen gün
+        bestDay: insights.productiveDayName,
         totalCompletedTasks,
+        totalFocusTime,
         hasTasks: totalCompletedTasks > 0,
       });
 
@@ -361,6 +372,32 @@ export const StatsScreen: React.FC = () => {
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Day Countdown Card - MOVED TO TOP */}
+        <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12, marginBottom: 8 }]}>
+          <LinearGradient
+            colors={[isDarkMode ? colors.warning + '20' : colors.warning + '10', isDarkMode ? colors.error + '20' : colors.error + '10']}
+            style={styles.cardGradient}
+          >
+            <View style={styles.cardHeader}>
+              <View style={[styles.iconBox, { backgroundColor: colors.warning + '25' }]}>
+                <Clock size={24} color={colors.warning} />
+              </View>
+              <Text style={[styles.sectionTitle, { color: colors.text, flex: 1, marginLeft: 12 }]}>
+                {t("stats.dayRemaining")}
+              </Text>
+            </View>
+            
+            <View style={styles.countdownWrapper}>
+              <Text style={[styles.countdownTime, { color: colors.text }]}>
+                {timeUntilMidnight}
+              </Text>
+              <Text style={[styles.countdownSubtext, { color: colors.subText }]}>
+                {t("stats.countdownAdvice")}
+              </Text>
+            </View>
+          </LinearGradient>
+        </View>
+
         {/* Daily Performance */}
         <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <LinearGradient
@@ -371,7 +408,9 @@ export const StatsScreen: React.FC = () => {
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("stats.dailyPerformance")}</Text>
               <View style={[styles.badge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
                 <Clock size={14} color={colors.primary} />
-                <Text style={[styles.badgeText, { color: colors.primary }]}>{timeUntilMidnight}</Text>
+                <Text style={[styles.badgeText, { color: colors.primary }]}>
+                  {formatTotalTime(performanceData.totalFocusTime)}
+                </Text>
               </View>
             </View>
 
@@ -730,6 +769,15 @@ const styles = StyleSheet.create({
   cardContainer: { marginHorizontal: 20, marginVertical: 8, borderRadius: 24, borderWidth: 1, overflow: 'hidden' },
   cardGradient: { padding: 24 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
+  badgeColumn: { alignItems: 'flex-end' },
+  badgeMinimal: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingLeft: 8, 
+    borderLeftWidth: 2,
+    gap: 6
+  },
+  badgeTextSmall: { fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
   sectionTitle: { fontSize: 18, fontWeight: "700" },
   badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   badgeText: { marginLeft: 6, fontWeight: '600', fontSize: 13 },
@@ -861,6 +909,22 @@ const styles = StyleSheet.create({
   insightDesc: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  countdownWrapper: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  countdownTime: {
+    fontSize: 36,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 1,
+  },
+  countdownSubtext: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   noDataInfo: {
     fontSize: 14,
