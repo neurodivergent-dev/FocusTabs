@@ -1,3 +1,5 @@
+export type GoalCategory = 'work' | 'health' | 'personal' | 'finance' | 'other';
+
 export interface Goal {
   id: string;
   text: string;
@@ -5,9 +7,10 @@ export interface Goal {
   createdAt: Date;
   updatedAt: Date;
   date: string; // YYYY-MM-DD formatında tarih
+  category: GoalCategory;
 }
 
-export type GoalInput = Pick<Goal, 'text'>;
+export type GoalInput = Pick<Goal, 'text' | 'category'>;
 
 export interface GoalsState {
   goals: Goal[];
@@ -20,4 +23,4 @@ export interface DailyCompletion {
   completedCount: number;
   totalCount: number;
   percentage: number;
-} 
+}

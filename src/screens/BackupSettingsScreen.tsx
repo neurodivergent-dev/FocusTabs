@@ -59,21 +59,20 @@ export default function BackupSettingsScreen() {
       if (canShare) {
         await Sharing.shareAsync(filePath, {
           mimeType: "application/json",
-          dialogTitle: t("backup.exportTitle") || "Export Backup",
+          dialogTitle: t("backup.exportTitle"),
           UTI: "public.json",
         });
       } else {
         Alert.alert(
-          t("backup.error") || "Error",
-          t("backup.sharingNotAvailable") ||
-            "Sharing is not available on this device"
+          t("backup.error"),
+          t("backup.sharingNotAvailable")
         );
       }
     } catch (error) {
       console.error("Export error:", error);
       Alert.alert(
-        t("backup.error") || "Error",
-        t("backup.exportError") || "Failed to export data"
+        t("backup.error"),
+        t("backup.exportError")
       );
     }
   };
@@ -96,36 +95,35 @@ export default function BackupSettingsScreen() {
 
       if (!data) {
         Alert.alert(
-          t("backup.error") || "Error",
-          t("backup.invalidFile") || "Invalid backup file"
+          t("backup.error"),
+          t("backup.invalidFile")
         );
         return;
       }
 
       // Confirm import
       Alert.alert(
-        t("backup.confirmImport") || "Confirm Import",
-        t("backup.importWarning") ||
-          "This will replace your current data. Continue?",
+        t("backup.confirmImport"),
+        t("backup.importWarning"),
         [
           {
-            text: t("common.cancel") || "Cancel",
+            text: t("common.cancel"),
             style: "cancel",
           },
           {
-            text: t("backup.import") || "Import",
+            text: t("backup.import"),
             style: "destructive",
             onPress: () => {
               const success = importData(data);
               if (success) {
                 Alert.alert(
-                  t("backup.success") || "Success",
-                  t("backup.importSuccess") || "Data imported successfully"
+                  t("backup.success"),
+                  t("backup.importSuccess")
                 );
               } else {
                 Alert.alert(
-                  t("backup.error") || "Error",
-                  t("backup.importError") || "Failed to import data"
+                  t("backup.error"),
+                  t("backup.importError")
                 );
               }
             },
@@ -135,8 +133,8 @@ export default function BackupSettingsScreen() {
     } catch (error) {
       console.error("Import error:", error);
       Alert.alert(
-        t("backup.error") || "Error",
-        t("backup.importError") || "Failed to import data"
+        t("backup.error"),
+        t("backup.importError")
       );
     }
   };
@@ -149,17 +147,12 @@ export default function BackupSettingsScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
       >
         <LinearGradient
-          colors={[
-            colors.primary,
-            colors.secondary || colors.primary,
-            colors.info || colors.primary,
-            colors.primary,
-          ]}
+          colors={[colors.primary, colors.secondary || colors.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          locations={[0.0, 0.3, 0.7, 1.0]}
           style={[styles.header, { paddingTop: insets.top + 12 }]}
         >
+
           {/* Decorative background elements */}
           <View style={styles.headerDecorationCircle1} />
           <View style={styles.headerDecorationCircle2} />
@@ -171,7 +164,7 @@ export default function BackupSettingsScreen() {
               numberOfLines={1}
               adjustsFontSizeToFit
             >
-              {t("settings.title") || "Settings"}
+              {t("settings.title")}
             </Text>
           </TouchableOpacity>
           <View style={styles.titleContainer}>
@@ -180,7 +173,7 @@ export default function BackupSettingsScreen() {
               numberOfLines={1}
               adjustsFontSizeToFit
             >
-              {t("backup.title") || "Backup & Restore"}
+              {t("backup.title")}
             </Text>
           </View>
           <View style={styles.rightPlaceholder} />
@@ -190,11 +183,10 @@ export default function BackupSettingsScreen() {
           <View style={styles.contentHeader}>
             <Download size={32} color={colors.primary} />
             <Text style={[styles.title, { color: colors.text }]}>
-              {t("backup.title") || "Backup & Restore"}
+              {t("backup.title")}
             </Text>
             <Text style={[styles.subtitle, { color: colors.subText }]}>
-              {t("backup.description") ||
-                "Save your data or transfer to another device"}
+              {t("backup.description")}
             </Text>
           </View>
 
@@ -206,7 +198,7 @@ export default function BackupSettingsScreen() {
             style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '20' }]}
           >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {t("backup.export") || "Export"}
+              {t("backup.export")}
             </Text>
 
             <TouchableOpacity
@@ -216,13 +208,12 @@ export default function BackupSettingsScreen() {
               <Download size={24} color={colors.primary} />
               <View style={styles.optionContent}>
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  {t("backup.exportJSON") || "Export to JSON"}
+                  {t("backup.exportJSON")}
                 </Text>
                 <Text
                   style={[styles.optionDescription, { color: colors.subText }]}
                 >
-                  {t("backup.exportJSONDescription") ||
-                    "Download your data as a JSON file"}
+                  {t("backup.exportJSONDescription")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -236,7 +227,7 @@ export default function BackupSettingsScreen() {
             style={[styles.section, { borderWidth: 1, borderColor: colors.primary + '20' }]}
           >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {t("backup.import") || "Import"}
+              {t("backup.import")}
             </Text>
 
             <TouchableOpacity
@@ -246,13 +237,12 @@ export default function BackupSettingsScreen() {
               <Upload size={24} color={colors.secondary} />
               <View style={styles.optionContent}>
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  {t("backup.importJSON") || "Import from JSON"}
+                  {t("backup.importJSON")}
                 </Text>
                 <Text
                   style={[styles.optionDescription, { color: colors.subText }]}
                 >
-                  {t("backup.importJSONDescription") ||
-                    "Restore data from a JSON file"}
+                  {t("backup.importJSONDescription")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -268,8 +258,7 @@ export default function BackupSettingsScreen() {
                 <Info size={20} color={colors.primary} />
               </View>
               <Text style={[styles.infoText, { color: colors.text }]}>
-                {t("backup.info") ||
-                  "Yedekleme; hedeflerinizi, tema ayarlarınızı ve dil tercihinizi içerir."}
+                {t("backup.info")}
               </Text>
             </LinearGradient>
           </View>

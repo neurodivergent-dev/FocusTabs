@@ -22,7 +22,8 @@ export const initDatabase = async (): Promise<void> => {
       completed INTEGER NOT NULL DEFAULT 0,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
-      date TEXT NOT NULL
+      date TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'other'
     );
     
     CREATE TABLE IF NOT EXISTS daily_completions (
@@ -32,6 +33,14 @@ export const initDatabase = async (): Promise<void> => {
       percentage REAL NOT NULL DEFAULT 0
     );
   `);
+
+  // Migration: Add category column if it doesn't exist
+  try {
+    await db.execAsync("ALTER TABLE goals ADD COLUMN category TEXT NOT NULL DEFAULT 'other';");
+    console.log('Category column added to goals table');
+  } catch (e) {
+    // Column might already exist, which is expected on subsequent runs
+  }
   
   isInitialized = true;
   // console.log('Database initialized successfully');
@@ -51,6 +60,7 @@ interface SQLGoal {
   createdAt: string;
   updatedAt: string;
   date: string;
+  category: string;
 }
 
 interface SQLDailyCompletion {
@@ -72,7 +82,8 @@ export const getGoals = async (): Promise<Goal[]> => {
     completed: Boolean(goal.completed),
     createdAt: new Date(goal.createdAt),
     updatedAt: new Date(goal.updatedAt),
-    date: goal.date || today // Garanti olması için varsayılan değer
+    date: goal.date || today, // Garanti olması için varsayılan değer
+    category: (goal.category as any) || 'other'
   }));
 };
 
@@ -93,6 +104,7 @@ export const addGoal = async (goalInput: GoalInput): Promise<Goal> => {
     createdAt: new Date(),
     updatedAt: new Date(),
     date: today,
+    category: goalInput.category,
   };
 
   await ensureInitialized();
@@ -109,11 +121,11 @@ export const addGoal = async (goalInput: GoalInput): Promise<Goal> => {
     return addGoal(goalInput);
   }
 
-  console.log(`Yeni görev ekleniyor, ID: ${id}, Text: ${goalInput.text}, Date: ${today}`);
+  console.log(`Yeni görev ekleniyor, ID: ${id}, Text: ${goalInput.text}, Date: ${today}, Category: ${goalInput.category}`);
 
   await db.runAsync(
-    'INSERT INTO goals (id, text, completed, createdAt, updatedAt, date) VALUES (?, ?, ?, ?, ?, ?);',
-    [id, goalInput.text, 0, now, now, today]
+    'INSERT INTO goals (id, text, completed, createdAt, updatedAt, date, category) VALUES (?, ?, ?, ?, ?, ?, ?);',
+    [id, goalInput.text, 0, now, now, today, goalInput.category]
   );
 
   console.log(`Göv başarıyla eklendi!`);
@@ -321,7 +333,8 @@ export const getGoalsByDate = async (date: string): Promise<Goal[]> => {
     completed: Boolean(goal.completed),
     createdAt: new Date(goal.createdAt),
     updatedAt: new Date(goal.updatedAt),
-    date: goal.date
+    date: goal.date,
+    category: (goal.category as any) || 'other'
   }));
 };
 

@@ -40,15 +40,9 @@ export const AboutScreen: React.FC = () => {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <LinearGradient
-        colors={[
-          colors.primary,
-          colors.secondary || colors.primary,
-          colors.info || colors.primary,
-          colors.primary,
-        ]}
+        colors={[colors.primary, colors.secondary || colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0.0, 0.3, 0.7, 1.0]}
         style={[styles.header, {
           paddingTop: insets.top + 12
         }]}

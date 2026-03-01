@@ -47,7 +47,12 @@ export const EmptyState: React.FC = () => {
       </View>
 
       <View style={[styles.hintContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-        <Text style={[styles.hintText, { color: colors.primary, opacity: 0.7 }]}>
+        <Text 
+          style={[styles.hintText, { color: colors.primary, opacity: 0.7 }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+        >
           {t("home.startCompleting", "Aşağıdaki butonu kullanarak hedefinizi ekleyin")}
         </Text>
       </View>
@@ -113,11 +118,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 24,
     marginTop: 20,
+    alignSelf: 'center',
+    maxWidth: '90%',
   },
   hintText: {
     fontSize: 13,
     fontWeight: "600",
     fontStyle: "italic",
     textAlign: "center",
+    flexShrink: 1,
   },
 });

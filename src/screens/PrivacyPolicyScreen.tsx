@@ -36,15 +36,9 @@ export const PrivacyPolicyScreen: React.FC = () => {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <LinearGradient
-        colors={[
-          colors.primary,
-          colors.secondary || colors.primary,
-          colors.info || colors.primary,
-          colors.primary,
-        ]}
+        colors={[colors.primary, colors.secondary || colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0.0, 0.3, 0.7, 1.0]}
         style={[styles.header, {
           paddingTop: insets.top + 12
         }]}
@@ -120,9 +114,9 @@ export const PrivacyPolicyScreen: React.FC = () => {
             <Eye size={20} color={colors.primary} style={styles.policyIcon} />
             <Text style={[styles.policyText, { color: colors.text }]}>
               <Text style={styles.bold}>
-                {t("privacy.zeroDataCollection").split(":")[0]}:{" "}
+                {t("privacy.zeroDataCollectionTitle")}:{" "}
               </Text>
-              {t("privacy.zeroDataCollection").split(": ").slice(1).join(": ")}
+              {t("privacy.zeroDataCollectionDesc")}
             </Text>
           </View>
           <View style={styles.policyItem}>
@@ -133,9 +127,9 @@ export const PrivacyPolicyScreen: React.FC = () => {
             />
             <Text style={[styles.policyText, { color: colors.text }]}>
               <Text style={styles.bold}>
-                {t("privacy.localStorageOnly").split(":")[0]}:{" "}
+                {t("privacy.localStorageOnlyTitle")}:{" "}
               </Text>
-              {t("privacy.localStorageOnly").split(": ").slice(1).join(": ")}
+              {t("privacy.localStorageOnlyDesc")}
             </Text>
           </View>
           <View style={styles.policyItem}>
@@ -146,12 +140,9 @@ export const PrivacyPolicyScreen: React.FC = () => {
             />
             <Text style={[styles.policyText, { color: colors.text }]}>
               <Text style={styles.bold}>
-                {t("privacy.noThirdPartyAnalytics").split(":")[0]}:{" "}
+                {t("privacy.noThirdPartyAnalyticsTitle")}:{" "}
               </Text>
-              {t("privacy.noThirdPartyAnalytics")
-                .split(": ")
-                .slice(1)
-                .join(": ")}
+              {t("privacy.noThirdPartyAnalyticsDesc")}
             </Text>
           </View>
         </LinearGradient>
@@ -218,7 +209,7 @@ export const PrivacyPolicyScreen: React.FC = () => {
           </Text>
 
           <View style={styles.madeWithContainer}>
-            {t("common.language", "tr") === "tr" ? (
+            {t("common.language") === "tr" ? (
               <>
                 <Text style={[styles.madeLoveText, { color: colors.subText }]}>
                   {t("about.inTurkey")}

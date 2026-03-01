@@ -12,13 +12,24 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { 
+  FadeInDown, 
+  FadeOut, 
+  LinearTransition, 
+  useDerivedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  interpolateColor 
+} from "react-native-reanimated";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useDailyReset } from "../hooks/useDailyReset";
 import { GoalCard } from "../components/GoalCard";
 import { AddGoalForm } from "../components/AddGoalForm";
 import { EmptyState } from "../components/EmptyState";
+import { Celebration } from "../components/Celebration";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
+import { GoalCategory } from "../types/goal";
 
 export const HomeScreen: React.FC = () => {
   // Use our daily reset hook to check for day changes
@@ -101,12 +112,32 @@ export const HomeScreen: React.FC = () => {
   }, [goals]);
 
   // Handle adding a new goal
-  const handleAddGoal = (text: string) => {
-    // console.log("HomeScreen: Adding new goal:", text);
-    addGoal({ text });
+  const handleAddGoal = (text: string, category: GoalCategory) => {
+    // console.log("HomeScreen: Adding new goal:", text, category);
+    addGoal({ text, category });
   };
 
   const completedCount = getCompletedGoalsCount();
+
+  // Smart Progress Animations
+  const progressPercent = todayGoals.length > 0 ? (completedCount / todayGoals.length) * 100 : 0;
+  
+  const progress = useDerivedValue(() => {
+    return withSpring(progressPercent, { damping: 15, stiffness: 100 });
+  });
+
+  const animatedProgressStyle = useAnimatedStyle(() => {
+    const backgroundColor = interpolateColor(
+      progress.value,
+      [0, 50, 100],
+      ["#F59E0B", "#6366F1", "#10B981"] // Orange -> Indigo -> Emerald
+    );
+
+    return {
+      width: `${progress.value}%`,
+      backgroundColor,
+    };
+  });
 
   const gradientColors: [string, string, string, string] = [
     colors.primary || "#6366F1",
@@ -125,10 +156,9 @@ export const HomeScreen: React.FC = () => {
       />
 
       <LinearGradient
-        colors={gradientColors}
+        colors={[colors.primary, colors.secondary || colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0.0, 0.3, 0.7, 1.0]}
         style={[styles.header, {
           paddingTop: insets.top + 12
         }]}
@@ -149,28 +179,36 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         {todayGoals.length > 0 && (
-          <View style={styles.progressCard}>
+          <View style={[
+            styles.progressCard,
+            { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.15)' }
+          ]}>
             <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>
+              <Text 
+                style={[styles.progressLabel, { color: '#FFFFFF' }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
                 {t("home.dailyProgress", "Günlük İlerleme")}
               </Text>
-              <Text style={styles.progressCount}>
+              <Text style={[styles.progressCount, { color: '#FFFFFF' }]}>
                 {completedCount}/{todayGoals.length}
               </Text>
             </View>
-            <View style={styles.progressTrack}>
-              <View
+            <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <Animated.View
                 style={[
                   styles.progressFill,
-                  {
-                    width: `${todayGoals.length > 0 ? (completedCount / todayGoals.length) * 100 : 0}%`,
-                  },
+                  animatedProgressStyle,
                 ]}
               />
             </View>
           </View>
         )}
       </LinearGradient>
+
+      <Celebration visible={todayGoals.length === 3 && completedCount === 3} />
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -192,14 +230,20 @@ export const HomeScreen: React.FC = () => {
             <EmptyState />
           ) : (
             todayGoals.map((goal, index) => (
-              <GoalCard
+              <Animated.View 
                 key={goal.id}
-                goal={goal}
-                index={index}
-                onToggleComplete={toggleGoalCompletion}
-                onUpdateText={updateGoalText}
-                onDelete={deleteGoal}
-              />
+                entering={FadeInDown.delay(index * 100).springify().damping(15)}
+                exiting={FadeOut.duration(200)}
+                layout={LinearTransition.springify().damping(15)}
+              >
+                <GoalCard
+                  goal={goal}
+                  index={index}
+                  onToggleComplete={toggleGoalCompletion}
+                  onUpdateText={updateGoalText}
+                  onDelete={deleteGoal}
+                />
+              </Animated.View>
             ))
           )}
         </ScrollView>
@@ -271,12 +315,9 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   progressCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 20,
     padding: 16,
     marginTop: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   progressHeader: {
     flexDirection: 'row',
@@ -289,6 +330,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     opacity: 0.9,
+    flexShrink: 1,
+    marginRight: 8,
   },
   progressCount: {
     color: '#FFFFFF',
@@ -303,11 +346,10 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
     borderRadius: 4,
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
   },
   scrollView: {

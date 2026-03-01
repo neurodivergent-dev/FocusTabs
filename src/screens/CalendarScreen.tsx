@@ -20,9 +20,16 @@ import {
   Circle,
   Sparkles,
   Trophy,
+  Briefcase,
+  Heart,
+  User,
+  DollarSign,
+  Tag,
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
+import { GoalCategory } from "../types/goal";
+import { getCategoryById } from "../constants/categories";
 
 export const CalendarScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -561,19 +568,30 @@ export const CalendarScreen: React.FC = () => {
     colors.primary || "#6366F1",
   ];
 
+  // Category Icon Mapper
+  const CategoryIcon = ({ id, size, color }: { id: GoalCategory, size: number, color: string }) => {
+    switch (id) {
+      case 'work': return <Briefcase size={size} color={color} />;
+      case 'health': return <Heart size={size} color={color} fill={id === 'health' ? color : 'transparent'} />;
+      case 'personal': return <User size={size} color={color} />;
+      case 'finance': return <DollarSign size={size} color={color} />;
+      default: return <Tag size={size} color={color} />;
+    }
+  };
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <LinearGradient
-        colors={gradientColors}
+        colors={[colors.primary, colors.secondary || colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        locations={[0.0, 0.3, 0.7, 1.0]}
-        style={[styles.header, { 
+        style={[styles.header, {
           paddingTop: insets.top + 12
         }]}
       >
+
         {/* Decorative background elements */}
         <View style={styles.headerDecorationCircle1} />
         <View style={styles.headerDecorationCircle2} />
@@ -757,40 +775,51 @@ export const CalendarScreen: React.FC = () => {
                   />
                 ) : dateGoals.length > 0 ? (
                   <View style={styles.goalsList}>
-                    {dateGoals.map((item) => (
-                      <View
-                        key={item.id}
-                        style={[
-                          styles.goalItem,
-                          {
-                            backgroundColor: colors.card,
-                            borderColor: item.completed ? colors.success + '30' : colors.border,
-                            borderWidth: 1,
-                          },
-                        ]}
-                      >
-                        <View style={styles.goalStatusIcon}>
-                          {item.completed ? (
-                            <CheckCircle size={22} color={colors.success} />
-                          ) : (
-                            <Circle size={22} color={colors.subText} opacity={0.5} />
-                          )}
-                        </View>
-                        <Text
+                    {dateGoals.map((item) => {
+                      const category = getCategoryById(item.category);
+                      return (
+                        <View
+                          key={item.id}
                           style={[
-                            styles.goalText,
+                            styles.goalItem,
                             {
-                              color: item.completed ? colors.subText : colors.text,
-                              textDecorationLine: item.completed
-                                ? "line-through"
-                                : "none",
+                              backgroundColor: colors.card,
+                              borderColor: item.completed ? colors.success + '30' : colors.border,
+                              borderWidth: 1,
                             },
                           ]}
                         >
-                          {item.text}
-                        </Text>
-                      </View>
-                    ))}
+                          <View style={styles.goalStatusIcon}>
+                            {item.completed ? (
+                              <CheckCircle size={22} color={colors.success} />
+                            ) : (
+                              <Circle size={22} color={colors.subText} opacity={0.5} />
+                            )}
+                          </View>
+                          <View style={styles.goalContent}>
+                            <Text
+                              style={[
+                                styles.goalText,
+                                {
+                                  color: item.completed ? colors.subText : colors.text,
+                                  textDecorationLine: item.completed
+                                    ? "line-through"
+                                    : "none",
+                                },
+                              ]}
+                            >
+                              {item.text}
+                            </Text>
+                            <View style={[styles.categoryBadge, { backgroundColor: category.color + '15' }]}>
+                              <CategoryIcon id={item.category} size={10} color={category.color} />
+                              <Text style={[styles.categoryText, { color: category.color }]}>
+                                {t(category.nameKey)}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      );
+                    })}
                   </View>
                 ) : (
                   <View style={styles.emptyGoalsContainer}>
@@ -1017,11 +1046,29 @@ const styles = StyleSheet.create({
   goalStatusIcon: {
     marginRight: 16,
   },
+  goalContent: {
+    flex: 1,
+  },
   goalText: {
     fontSize: 16,
     fontWeight: '500',
-    flex: 1,
     lineHeight: 22,
+    marginBottom: 4,
+  },
+  categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  categoryText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   emptyGoalsContainer: {
     paddingVertical: 32,

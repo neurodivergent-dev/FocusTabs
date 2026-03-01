@@ -7,6 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from "react-native";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { useTheme } from "./ThemeProvider";
 
 interface ThemedButtonProps {
@@ -31,6 +32,23 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
   icon,
 }) => {
   const { colors, isDarkMode: _isDarkMode } = useTheme();
+
+  // Scale animation for interaction
+  const scale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    if (!disabled && !loading) {
+      scale.value = withSpring(0.96, { damping: 10, stiffness: 300 });
+    }
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 300 });
+  };
+
+  const animatedButtonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   // Varyant renkleri belirle
   const getVariantStyles = () => {
@@ -71,37 +89,41 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
   const variantStyles = getVariantStyles();
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.button,
-        {
-          backgroundColor: variantStyles.backgroundColor,
-          borderColor: variantStyles.borderColor,
-          opacity: disabled ? 0.6 : 1,
-        },
-        style,
-      ]}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color="#FFFFFF" />
-      ) : (
-        <>
-          {icon && icon}
-          <Text
-            style={[
-              styles.text,
-              { color: variantStyles.textColor, marginLeft: icon ? 8 : 0 },
-              textStyle,
-            ]}
-          >
-            {title}
-          </Text>
-        </>
-      )}
-    </TouchableOpacity>
+    <Animated.View style={[animatedButtonStyle, { width: (style as any)?.width }]}>
+      <TouchableOpacity
+        style={[
+          styles.button,
+          {
+            backgroundColor: variantStyles.backgroundColor,
+            borderColor: variantStyles.borderColor,
+            opacity: disabled ? 0.6 : 1,
+          },
+          style,
+        ]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled || loading}
+        activeOpacity={0.8}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <>
+            {icon && icon}
+            <Text
+              style={[
+                styles.text,
+                { color: variantStyles.textColor, marginLeft: icon ? 8 : 0 },
+                textStyle,
+              ]}
+            >
+              {title}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 

@@ -11,12 +11,16 @@ interface ThemeState {
   isDarkMode: boolean;
   themeId: string; // Tema renk kimliği
   colors: ThemeOption['colors']; // Aktif tema renkleri
+  soundsEnabled: boolean;
   
   // Tema ayarlama metodları
   setThemeMode: (mode: ThemeMode) => void;
   setIsDarkMode: (isDark: boolean) => void;
   toggleTheme: () => void;
   setThemeId: (id: string) => void; // Yeni tema rengi seçme
+  setSoundsEnabled: (enabled: boolean) => void;
+  triggerSound: (type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare') => void;
+  soundTrigger: { type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare', timestamp: number } | null;
   getActiveTheme: () => ThemeOption; // Aktif temayı alma
 }
 
@@ -27,6 +31,8 @@ export const useThemeStore = create<ThemeState>()(
       isDarkMode: false,
       themeId: 'default',
       colors: getThemeById('default').colors,
+      soundsEnabled: true, // Kesinlikle true olarak başlıyor
+      soundTrigger: null,
       
       setThemeMode: (mode: ThemeMode) => set({ 
         themeMode: mode 
@@ -62,6 +68,15 @@ export const useThemeStore = create<ThemeState>()(
           colors: theme.colors
         });
       },
+
+      setSoundsEnabled: (enabled: boolean) => set({ 
+        soundsEnabled: enabled 
+      }),
+
+      triggerSound: (type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare') => set({ 
+        soundTrigger: { type, timestamp: Date.now() } 
+      }),
+
       
       getActiveTheme: () => {
         const state = get();

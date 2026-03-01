@@ -9,10 +9,14 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { Check, Trash2, Edit2, X } from "lucide-react-native";
-import { Goal } from "../types/goal";
+import { Check, Trash2, Edit2, X, Target, Briefcase, Heart as HeartIcon, User, DollarSign, Tag } from "lucide-react-native";
+import { Goal, GoalCategory } from "../types/goal";
 import { useTheme } from "./ThemeProvider";
 import { useTranslation } from "react-i18next";
+import { getCategoryById } from "../constants/categories";
+import { soundService } from "../services/SoundService";
+
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 
 interface GoalCardProps {
   goal: Goal;
@@ -31,21 +35,42 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editText, setEditText] = useState<string>(goal.text);
-  const { colors } = useTheme();
-  const { t: _t } = useTranslation();
+  const { colors, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
-  // Tema renkleri kullanarak gradient setleri oluşturalım
-  const gradientSets = [
-    [colors.primary, colors.secondary], // Ana tema renkleri
-    [colors.secondary, colors.primary], // Tersine çevirilmiş
-    [colors.info, colors.primary], // Bilgi rengi ve ana renk
-  ];
+  const category = getCategoryById(goal.category);
 
-  // Get the gradient colors based on the index
-  const gradientColors = gradientSets[index % gradientSets.length];
+  const CategoryIcon = ({ id, size, color }: { id: GoalCategory, size: number, color: string }) => {
+    switch (id) {
+      case 'work': return <Briefcase size={size} color={color} />;
+      case 'health': return <HeartIcon size={size} color={color} fill={id === 'health' ? color : 'transparent'} />;
+      case 'personal': return <User size={size} color={color} />;
+      case 'finance': return <DollarSign size={size} color={color} />;
+      default: return <Tag size={size} color={color} />;
+    }
+  };
+
+  const scale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96, { damping: 10, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 300 });
+  };
+
+  const animatedCardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const handleToggleComplete = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!goal.completed) {
+      soundService.playComplete();
+    } else {
+      soundService.playUndo();
+    }
     onToggleComplete(goal.id, !goal.completed);
   };
 
@@ -69,156 +94,174 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
   const handleDeletePress = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    soundService.playDelete();
     onDelete(goal.id);
   };
 
+  const cardGradient = goal.completed 
+    ? (isDarkMode ? [colors.success + '25', colors.success + '10'] : ['#FFFFFF', colors.success + '15'])
+    : (isDarkMode ? [colors.primary + '20', colors.secondary + '15'] : ['#FFFFFF', colors.primary + '08']);
+  
+  const accentColor = goal.completed ? colors.success : colors.primary;
+
   return (
-    <LinearGradient
-      colors={gradientColors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.card, goal.completed && styles.completedCard]}
-    >
-      <View style={styles.contentContainer}>
-        {isEditing ? (
-          <View style={styles.editContainer}>
-            <TextInput
-              style={styles.editInput}
-              value={editText}
-              onChangeText={setEditText}
-              autoFocus
-              multiline
-              maxLength={100}
-              placeholderTextColor="#FFFFFF99"
-              selectionColor="#FFFFFF"
-            />
-            <View style={styles.editActions}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={handleCancelEdit}
-              >
-                <X color="#FFF" size={20} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.editButton, styles.saveButton]}
-                onPress={handleSaveEdit}
-              >
-                <Check color="#FFF" size={20} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <>
-            <TouchableOpacity
-              style={styles.checkbox}
-              onPress={handleToggleComplete}
-            >
-              {goal.completed && <Check color="#FFF" size={16} />}
-            </TouchableOpacity>
-            <Text
-              style={[styles.goalText, goal.completed && styles.completedText]}
-              numberOfLines={3}
-            >
-              {goal.text}
-            </Text>
-            <View style={styles.actions}>
-              {!goal.completed && (
+    <Animated.View style={[
+      styles.cardWrapper,
+      animatedCardStyle,
+      {
+        // Temel gölge ayarları (Her zaman dışta)
+        shadowColor: goal.completed ? colors.success : (isDarkMode ? "#000" : colors.primary),
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: isDarkMode ? 0.3 : 0.08,
+        shadowRadius: 12,
+        elevation: goal.completed ? (isDarkMode ? 8 : 2) : (isDarkMode ? 4 : 3),
+      }
+    ]}>
+      <View style={[
+        styles.cardContainer, 
+        { 
+          backgroundColor: colors.card,
+          borderColor: isDarkMode 
+            ? (goal.completed ? colors.success + '30' : 'rgba(255,255,255,0.08)')
+            : (goal.completed ? colors.success + '20' : 'rgba(0,0,0,0.03)'),
+          borderWidth: 1,
+        }
+      ]}>
+        <LinearGradient
+          colors={cardGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        
+        <View style={styles.contentContainer}>
+          {isEditing ? (
+              <View style={styles.editContainer}>
+                <TextInput
+                  style={[styles.editInput, { color: colors.text, borderBottomColor: colors.primary }]}
+                  value={editText}
+                  onChangeText={setEditText}
+                  autoFocus
+                  multiline
+                  maxLength={100}
+                  placeholderTextColor={colors.subText}
+                  selectionColor={colors.primary}
+                />
+                <View style={styles.editActions}>
+                  <TouchableOpacity
+                    style={[styles.iconButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+                    onPress={handleCancelEdit}
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                  >
+                    <X color={colors.text} size={18} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.iconButton, { backgroundColor: colors.primary }]}
+                    onPress={handleSaveEdit}
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                  >
+                    <Check color="#FFFFFF" size={18} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <>
                 <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={handleEditPress}
+                  style={[
+                    styles.checkbox,
+                    { borderColor: accentColor },
+                    goal.completed && { backgroundColor: colors.success }
+                  ]}
+                  onPress={handleToggleComplete}
+                  onPressIn={handlePressIn}
+                  onPressOut={handlePressOut}
+                  activeOpacity={0.7}
                 >
-                  <Edit2 color="#FFF" size={18} />
+                  {goal.completed && <Check color="#FFFFFF" size={14} strokeWidth={3} />}
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handleDeletePress}
-              >
-                <Trash2 color="#FFF" size={18} />
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
+
+                <View style={styles.textContainer}>
+                  <TouchableOpacity 
+                    activeOpacity={1} 
+                    onPress={handleToggleComplete}
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                  >
+                    <Text
+                      style={[
+                        styles.goalText,
+                        { color: colors.text },
+                        goal.completed && styles.completedText
+                      ]}
+                      numberOfLines={3}
+                    >
+                      {goal.text}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.badgeRow}>
+                    <View style={[styles.statusBadge, { backgroundColor: accentColor + '15' }]}>
+                      <Target size={10} color={accentColor} />
+                      <Text style={[styles.statusText, { color: accentColor }]}>
+                        {goal.completed ? t("common.completed") : t("common.active")}
+                      </Text>
+                    </View>
+                    
+                    <View style={[styles.statusBadge, { backgroundColor: category.color + '15', marginLeft: 8 }]}>
+                      <CategoryIcon id={goal.category} size={10} color={category.color} />
+                      <Text style={[styles.statusText, { color: category.color }]}>
+                        {t(category.nameKey)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.actions}>
+                  {!goal.completed && (
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={handleEditPress}
+                      onPressIn={handlePressIn}
+                      onPressOut={handlePressOut}
+                    >
+                      <Edit2 color={colors.subText} size={18} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={handleDeletePress}
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                  >
+                    <Trash2 color={goal.completed ? colors.subText : colors.error} size={18} opacity={goal.completed ? 0.5 : 0.8} />
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
       </View>
-    </LinearGradient>
+    </Animated.View>
   );
 };
 
-const { width } = Dimensions.get("window");
-
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    width: width - 32,
-    overflow: "hidden",
-  },
-  completedCard: {
-    opacity: 0.7,
-  },
-  contentContainer: {
-    padding: 20,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  goalText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "500",
-    flex: 1,
-    flexWrap: "wrap",
-  },
-  completedText: {
-    textDecorationLine: "line-through",
-    opacity: 0.7,
-  },
-  actions: {
-    flexDirection: "row",
-    marginLeft: 8,
-  },
-  actionButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  editContainer: {
-    flex: 1,
-    flexDirection: "column",
-  },
-  editInput: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "500",
-    borderBottomWidth: 1,
-    borderBottomColor: "#FFFFFF80",
-    paddingBottom: 8,
-    marginBottom: 12,
-  },
-  editActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-  },
-  editButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#FFFFFF33",
-    marginLeft: 12,
-  },
-  saveButton: {
-    backgroundColor: "#FFFFFF66",
-  },
+  cardWrapper: { marginBottom: 16, width: '100%' },
+  cardContainer: { borderRadius: 24, overflow: 'hidden' },
+  gradient: { width: '100%' },
+  contentContainer: { padding: 20, flexDirection: "row", alignItems: "flex-start" },
+  checkbox: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, justifyContent: "center", alignItems: "center", marginTop: 2 },
+  textContainer: { flex: 1, marginLeft: 16, marginRight: 8 },
+  goalText: { fontSize: 17, fontWeight: "600", lineHeight: 24, marginBottom: 8 },
+  completedText: { textDecorationLine: "line-through", opacity: 0.6 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center' },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
+  statusText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  actions: { flexDirection: "row", alignItems: 'center' },
+  actionButton: { padding: 8, marginLeft: 4 },
+  editContainer: { flex: 1 },
+  editInput: { fontSize: 17, fontWeight: "600", borderBottomWidth: 2, paddingBottom: 8, marginBottom: 16, minHeight: 40 },
+  editActions: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
+  iconButton: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
 });

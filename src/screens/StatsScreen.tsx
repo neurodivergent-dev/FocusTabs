@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { StyleSheet, View, Text, SafeAreaView, ScrollView, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,9 +10,20 @@ import {
   BarChart4,
   Award,
   Lightbulb,
+  Sun,
+  Moon,
+  CheckCircle,
+  Circle,
+  Briefcase,
+  Heart,
+  User,
+  DollarSign,
+  Tag,
 } from "lucide-react-native";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
+import { GoalCategory } from "../types/goal";
+import { getCategoryById } from "../constants/categories";
 
 interface PerformanceData {
   weeklyCompletionRate: number;
@@ -23,11 +34,20 @@ interface PerformanceData {
   hasTasks: boolean;
 }
 
+interface InsightData {
+  topCategory: string;
+  topCategoryName: string;
+  productiveDay: string;
+  productiveDayName: string;
+  workStyle: 'morning' | 'night' | 'balanced';
+  hasEnoughData: boolean;
+}
+
 export const StatsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { goals, getCompletedGoalsCount, getActiveGoalsCount, completionData } = useDailyGoalsStore();
   const { colors, isDarkMode } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [performanceData, setPerformanceData] = useState<PerformanceData>({
     weeklyCompletionRate: 0,
@@ -37,6 +57,94 @@ export const StatsScreen: React.FC = () => {
     totalCompletedTasks: 0,
     hasTasks: false,
   });
+
+  // Calculate insights
+  const insights = useMemo<InsightData>(() => {
+    const completedGoals = goals.filter(g => g.completed);
+    
+    if (completedGoals.length < 3) {
+      return {
+        topCategory: 'other',
+        topCategoryName: '-',
+        productiveDay: '-',
+        productiveDayName: '-',
+        workStyle: 'balanced',
+        hasEnoughData: false
+      };
+    }
+
+    // 1. Top Category
+    const categoryCounts: Record<string, number> = {};
+    completedGoals.forEach(g => {
+      categoryCounts[g.category] = (categoryCounts[g.category] || 0) + 1;
+    });
+    const topCatId = Object.entries(categoryCounts).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+
+    // 2. Productive Day (Based on completion rate per day of week)
+    const dayStats: Record<number, { completed: number, total: number }> = {
+      0: { completed: 0, total: 0 }, // Sun
+      1: { completed: 0, total: 0 }, // Mon
+      2: { completed: 0, total: 0 }, // Tue
+      3: { completed: 0, total: 0 }, // Wed
+      4: { completed: 0, total: 0 }, // Thu
+      5: { completed: 0, total: 0 }, // Fri
+      6: { completed: 0, total: 0 }, // Sat
+    };
+
+    // Use all goals to find the day with highest completion ratio
+    goals.forEach(g => {
+      // goal.date is YYYY-MM-DD, parse safely
+      const dateParts = g.date.split('-');
+      const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+      const dayIndex = d.getDay();
+      dayStats[dayIndex].total++;
+      if (g.completed) dayStats[dayIndex].completed++;
+    });
+
+    let bestDayIndex = 0;
+    let maxRatio = -1;
+
+    Object.entries(dayStats).forEach(([day, stats]) => {
+      if (stats.total > 0) {
+        const ratio = stats.completed / stats.total;
+        if (ratio > maxRatio) {
+          maxRatio = ratio;
+          bestDayIndex = parseInt(day);
+        }
+      }
+    });
+
+    // Correct day name mapping
+    const dayNames = {
+      tr: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
+      en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    };
+    const lang = (i18n.language && i18n.language.startsWith('tr')) ? 'tr' : 'en';
+    const topDayName = dayNames[lang][bestDayIndex];
+
+    // 3. Work Style
+    const morningCount = completedGoals.filter(g => {
+      const hour = new Date(g.updatedAt).getHours();
+      return hour >= 5 && hour < 13;
+    }).length;
+    const nightCount = completedGoals.filter(g => {
+      const hour = new Date(g.updatedAt).getHours();
+      return hour >= 18 || hour < 5;
+    }).length;
+
+    let style: 'morning' | 'night' | 'balanced' = 'balanced';
+    if (morningCount > completedGoals.length * 0.45) style = 'morning';
+    else if (nightCount > completedGoals.length * 0.45) style = 'night';
+
+    return {
+      topCategory: topCatId,
+      topCategoryName: t(`common.categories.${topCatId}`),
+      productiveDay: String(bestDayIndex),
+      productiveDayName: topDayName,
+      workStyle: style,
+      hasEnoughData: true
+    };
+  }, [goals, t, i18n.language]);
 
   const [timeUntilMidnight, setTimeUntilMidnight] = useState<string>("");
 
@@ -60,8 +168,8 @@ export const StatsScreen: React.FC = () => {
   const completedCount = getCompletedGoalsCount();
   const activeCount = getActiveGoalsCount();
   
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const nowTime = new Date();
+  const today = `${nowTime.getFullYear()}-${String(nowTime.getMonth() + 1).padStart(2, '0')}-${String(nowTime.getDate()).padStart(2, '0')}`;
   const todayGoals = goals.filter((goal) => goal.date === today);
   const totalGoals = todayGoals.length;
   const completionRate = totalGoals > 0 ? (completedCount / totalGoals) * 100 : 0;
@@ -93,12 +201,12 @@ export const StatsScreen: React.FC = () => {
         weeklyCompletionRate: completionData.slice(0, 7).reduce((acc, curr) => acc + curr.percentage, 0) / Math.min(completionData.length, 7),
         monthlyCompletionRate: completionData.slice(0, 30).reduce((acc, curr) => acc + curr.percentage, 0) / Math.min(completionData.length, 30),
         streak,
-        bestDay: "Pazartesi", // Örnek veri
+        bestDay: insights.productiveDayName, // Burayı düzelttim: Gerçek veriden gelen gün
         totalCompletedTasks,
         hasTasks: totalCompletedTasks > 0,
       });
     }
-  }, [completionData]);
+  }, [completionData, insights.productiveDayName]);
 
   const getPerformanceLevelColor = (rate: number) => {
     if (rate >= 80) return colors.success;
@@ -116,12 +224,22 @@ export const StatsScreen: React.FC = () => {
     return t("stats.performanceLevels.needsImprovement");
   };
 
+  // Category Icon Mapper
+  const CategoryIcon = ({ id, size, color }: { id: GoalCategory, size: number, color: string }) => {
+    switch (id) {
+      case 'work': return <Briefcase size={size} color={color} />;
+      case 'health': return <Heart size={size} color={color} fill={id === 'health' ? color : 'transparent'} />;
+      case 'personal': return <User size={size} color={color} />;
+      case 'finance': return <DollarSign size={size} color={color} />;
+      default: return <Tag size={size} color={color} />;
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
         colors={gradientColors}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        locations={[0.0, 0.3, 0.7, 1.0]}
         style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.headerDecorationCircle1} />
@@ -184,12 +302,89 @@ export const StatsScreen: React.FC = () => {
                   style={[styles.progressFill, { width: `${Math.max(completionRate, 5)}%` }]}
                 />
               </View>
-              <Text style={[styles.progressAdvice, { color: colors.subText }]}>
-                {totalGoals === 0 ? t("stats.progressNotes.noGoals") : completionRate === 100 ? t("stats.progressNotes.allCompleted") : t("stats.progressNotes.keepGoing")}
+              <Text 
+                style={[styles.progressAdvice, { color: colors.subText }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                {totalGoals === 0 
+                  ? t("stats.progressNotes.noGoals") 
+                  : completionRate === 100 
+                    ? t("stats.progressNotes.allCompleted") 
+                    : completionRate === 0
+                      ? t("stats.progressNotes.startCompleting")
+                      : t("stats.progressNotes.keepGoing")}
               </Text>
             </View>
           </LinearGradient>
         </View>
+
+        {/* Today's Goals List */}
+        {todayGoals.length > 0 && (
+          <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12 }]}>
+            <LinearGradient
+              colors={[isDarkMode ? colors.primary + '15' : colors.primary + '05', isDarkMode ? colors.secondary + '15' : colors.secondary + '05']}
+              style={styles.cardGradient}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("calendar.goalsForDate")}</Text>
+                <View style={[styles.countPill, { backgroundColor: colors.primary + '15' }]}>
+                  <Text style={[styles.countPillText, { color: colors.primary }]}>{todayGoals.length}</Text>
+                </View>
+              </View>
+
+              <View style={styles.goalsList}>
+                {todayGoals.map((item) => {
+                  const category = getCategoryById(item.category);
+                  return (
+                    <View
+                      key={item.id}
+                      style={[
+                        styles.goalItem,
+                        {
+                          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)',
+                          borderColor: item.completed ? colors.success + '30' : colors.border,
+                          borderWidth: 1,
+                        },
+                      ]}
+                    >
+                      <View style={styles.goalStatusIcon}>
+                        {item.completed ? (
+                          <CheckCircle size={20} color={colors.success} />
+                        ) : (
+                          <Circle size={20} color={colors.subText} opacity={0.5} />
+                        )}
+                      </View>
+                      <View style={styles.goalContent}>
+                        <Text
+                          style={[
+                            styles.goalText,
+                            {
+                              color: item.completed ? colors.subText : colors.text,
+                              textDecorationLine: item.completed
+                                ? "line-through"
+                                : "none",
+                            },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {item.text}
+                        </Text>
+                        <View style={[styles.categoryBadge, { backgroundColor: category.color + '15' }]}>
+                          <CategoryIcon id={item.category} size={10} color={category.color} />
+                          <Text style={[styles.categoryText, { color: category.color }]}>
+                            {t(category.nameKey)}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </LinearGradient>
+          </View>
+        )}
 
         {/* General Performance */}
         <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12 }]}>
@@ -244,6 +439,70 @@ export const StatsScreen: React.FC = () => {
                 {t("stats.performanceLevel")}: {getPerformanceLevel(todayPerformanceRate, hasTodayTasks)}
               </Text>
             </View>
+          </LinearGradient>
+        </View>
+
+        {/* Smart Insights - New Section */}
+        <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12 }]}>
+          <LinearGradient
+            colors={[isDarkMode ? colors.primary + '15' : colors.primary + '05', isDarkMode ? colors.info + '15' : colors.info + '05']}
+            style={styles.cardGradient}
+          >
+            <View style={styles.cardHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("stats.insights.title")}</Text>
+              {!insights.hasEnoughData && (
+                <View style={[styles.badge, { backgroundColor: 'rgba(150,150,150,0.1)' }]}>
+                  <Clock size={12} color={colors.subText} />
+                  <Text style={[styles.badgeText, { color: colors.subText, fontSize: 11 }]}>{t("stats.noData")}</Text>
+                </View>
+              )}
+            </View>
+
+            {insights.hasEnoughData ? (
+              <View style={styles.insightsList}>
+                <View style={styles.insightItem}>
+                  <View style={[styles.insightIcon, { backgroundColor: colors.primary + '20' }]}>
+                    <TrendingUp size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.insightTextContent}>
+                    <Text style={[styles.insightLabel, { color: colors.text }]}>{t("stats.insights.topCategory")}</Text>
+                    <Text style={[styles.insightDesc, { color: colors.subText }]}>
+                      {t("stats.insights.topCategoryDesc", { category: insights.topCategoryName })}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.insightItem}>
+                  <View style={[styles.insightIcon, { backgroundColor: colors.success + '20' }]}>
+                    <Calendar size={20} color={colors.success} />
+                  </View>
+                  <View style={styles.insightTextContent}>
+                    <Text style={[styles.insightLabel, { color: colors.text }]}>{t("stats.insights.productiveDay")}</Text>
+                    <Text style={[styles.insightDesc, { color: colors.subText }]}>
+                      {t("stats.insights.productiveDayDesc", { day: insights.productiveDayName })}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.insightItem}>
+                  <View style={[styles.insightIcon, { backgroundColor: colors.warning + '20' }]}>
+                    {insights.workStyle === 'morning' ? <Sun size={20} color={colors.warning} /> : <Moon size={20} color={colors.warning} />}
+                  </View>
+                  <View style={styles.insightTextContent}>
+                    <Text style={[styles.insightLabel, { color: colors.text }]}>
+                      {insights.workStyle === 'morning' ? t("stats.insights.morningPerson") : insights.workStyle === 'night' ? t("stats.insights.nightOwl") : t("stats.performanceLevel")}
+                    </Text>
+                    <Text style={[styles.insightDesc, { color: colors.subText }]}>
+                      {insights.workStyle === 'morning' ? t("stats.insights.morningPersonDesc") : insights.workStyle === 'night' ? t("stats.insights.nightOwlDesc") : t("stats.achievements.default")}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <Text style={[styles.noDataInfo, { color: colors.subText }]}>
+                {t("stats.insights.noData")}
+              </Text>
+            )}
           </LinearGradient>
         </View>
 
@@ -321,7 +580,47 @@ const styles = StyleSheet.create({
   progressPercent: { fontSize: 18, fontWeight: '800' },
   progressTrack: { height: 10, backgroundColor: 'rgba(0, 0, 0, 0.05)', borderRadius: 5, overflow: 'hidden', marginBottom: 12 },
   progressFill: { height: '100%', borderRadius: 5 },
-  progressAdvice: { fontSize: 13, fontStyle: 'italic' },
+  progressAdvice: { fontSize: 13, fontStyle: 'italic', flexShrink: 1 },
+  goalsList: { marginTop: 8 },
+  goalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 10,
+  },
+  goalStatusIcon: { marginRight: 12 },
+  goalContent: { flex: 1 },
+  goalText: {
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  categoryText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  countPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  countPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   verticalStack: { gap: 12 },
   stackCard: { width: '100%', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   stackIcon: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
@@ -336,6 +635,39 @@ const styles = StyleSheet.create({
   levelText: { fontSize: 14, fontWeight: '700' },
   achievementBox: { padding: 20, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   achievementText: { fontSize: 15, lineHeight: 22 },
+  insightsList: {
+    gap: 20,
+  },
+  insightItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  insightIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  insightTextContent: {
+    flex: 1,
+  },
+  insightLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  insightDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  noDataInfo: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 10,
+  },
   tipsList: { gap: 12 },
   tipItem: { flexDirection: 'row', alignItems: 'center' },
   tipText: { flex: 1, fontSize: 14, lineHeight: 20, marginLeft: 12 },

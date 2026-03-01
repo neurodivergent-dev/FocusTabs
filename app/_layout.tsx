@@ -13,6 +13,7 @@ import { useAppColorScheme } from "../src/hooks/useAppColorScheme";
 import { ThemeProvider as CustomThemeProvider } from "../src/components/ThemeProvider";
 import { useLanguageStore } from "../src/store/languageStore";
 import { useOnboardingStore } from "../src/store/onboardingStore";
+import { SoundPlayer } from "../src/components/SoundPlayer";
 import "../src/i18n/i18n"; // Import i18n initialization
 
 // Catch any errors thrown by the Layout component
@@ -86,6 +87,7 @@ function RootLayoutNav() {
     <SafeAreaProvider>
       <CustomThemeProvider>
         <ThemeProvider value={safeTheme}>
+          <SoundPlayer />
           <Stack
             screenOptions={{
               contentStyle: {
