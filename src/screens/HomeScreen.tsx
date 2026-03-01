@@ -31,6 +31,7 @@ import { GoalCard } from "../components/GoalCard";
 import { AddGoalForm } from "../components/AddGoalForm";
 import { EmptyState } from "../components/EmptyState";
 import { Celebration } from "../components/Celebration";
+import { BackgroundEffects } from "../components/BackgroundEffects";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { GoalCategory } from "../types/goal";
@@ -349,6 +350,7 @@ export const HomeScreen: React.FC = () => {
         visible={isCelebrationVisible} 
         goals={todayGoals.map(g => g.text)} 
       />
+      <BackgroundEffects />
     </SafeAreaView>
   );
 };

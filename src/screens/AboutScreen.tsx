@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -8,17 +8,45 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Linking,
-  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeft, Github, Mail, Heart, CheckCircle2, Layout, Moon, ShieldCheck, Palette, CalendarDays } from "lucide-react-native";
+import { 
+  ChevronLeft, 
+  Github, 
+  Mail, 
+  Heart, 
+  CheckCircle2, 
+  Layout, 
+  Moon, 
+  ShieldCheck, 
+  Palette, 
+  CalendarDays, 
+  Play, 
+  ExternalLink 
+} from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import FocusTabsLogo from "../../components/LogoComponent";
 import Constants from "expo-constants";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming 
+} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { Svg, Circle, Path } from "react-native-svg";
+
+const ProductHuntIcon = ({ size = 20, color }: { size?: number, color: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M10 8H13.5C14.8807 8 16 9.11929 16 10.5C16 11.8807 14.8807 13 13.5 13H10V8Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M10 13V17" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    <Path d="M10 8V13" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth="2" />
+  </Svg>
+);
 
 export const AboutScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -38,39 +66,54 @@ export const AboutScreen: React.FC = () => {
     Linking.openURL("mailto:melihcandemir@protonmail.com");
   };
 
-  // Feature Card component with animation
+  const handleOpenPlayStore = () => {
+    Linking.openURL("https://play.google.com/store/apps/dev?id=5145471264212833611&hl=en");
+  };
+
+  const handleOpenProductHunt = () => {
+    Linking.openURL("https://www.producthunt.com/@melihcandemir");
+  };
+
+  // Advanced Feature Card component with Reanimated
   const FeatureCard = ({ icon: Icon, label, color }: { icon: any, label: string, color: string }) => {
-    const scaleAnim = React.useRef(new Animated.Value(1)).current;
+    const scale = useSharedValue(1);
+    const opacity = useSharedValue(1);
+
+    const animatedStyle = useAnimatedStyle(() => {
+      return {
+        transform: [{ scale: scale.value }],
+        opacity: opacity.value,
+      };
+    });
 
     const handlePressIn = () => {
-      Animated.spring(scaleAnim, {
-        toValue: 0.95,
-        useNativeDriver: true,
-      }).start();
+      scale.value = withSpring(0.92, { damping: 10, stiffness: 200 });
+      opacity.value = withTiming(0.85, { duration: 100 });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     };
 
     const handlePressOut = () => {
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-      }).start();
+      scale.value = withSpring(1, { damping: 12, stiffness: 200 });
+      opacity.value = withTiming(1, { duration: 150 });
     };
 
     return (
       <TouchableWithoutFeedback
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
       >
         <Animated.View style={[
           styles.featureCard, 
           { 
             backgroundColor: colors.card, 
             borderColor: colors.border,
-            transform: [{ scale: scaleAnim }] 
-          }
+          },
+          animatedStyle
         ]}>
-          <Icon size={24} color={color} />
+          <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
+            <Icon size={22} color={color} />
+          </View>
           <Text style={[styles.featureLabel, { color: colors.text }]}>{label}</Text>
         </Animated.View>
       </TouchableWithoutFeedback>
@@ -188,11 +231,29 @@ export const AboutScreen: React.FC = () => {
           <View style={styles.connectButtons}>
             <TouchableOpacity
               style={[styles.connectButton, { backgroundColor: colors.card }]}
+              onPress={handleOpenPlayStore}
+            >
+              <Play size={20} color={colors.text} />
+              <Text style={[styles.connectButtonText, { color: colors.text }]}>
+                Google Play
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.connectButton, { backgroundColor: colors.card }]}
               onPress={handleOpenGithub}
             >
               <Github size={20} color={colors.text} />
               <Text style={[styles.connectButtonText, { color: colors.text }]}>
-                {t("about.github")}
+                GitHub
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.connectButton, { backgroundColor: colors.card }]}
+              onPress={handleOpenProductHunt}
+            >
+              <ProductHuntIcon size={20} color={colors.text} />
+              <Text style={[styles.connectButtonText, { color: colors.text, marginLeft: 8 }]}>
+                Product Hunt
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -362,22 +423,33 @@ const styles = StyleSheet.create({
   },
   featureCard: {
     width: '48%',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 24,
+    padding: 18,
     marginBottom: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
   },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   featureLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    marginTop: 10,
+    fontWeight: '700',
+    marginTop: 6,
     textAlign: 'center',
+    letterSpacing: 0.2,
   },
   connectButtons: {
     flexDirection: "row",
+    flexWrap: 'wrap',
     marginTop: 8,
+    gap: 12,
   },
   connectButton: {
     flexDirection: "row",
@@ -385,7 +457,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    marginRight: 12,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
   },

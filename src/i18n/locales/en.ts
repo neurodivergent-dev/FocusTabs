@@ -293,6 +293,13 @@ export default {
     currentlyUsing: 'Theme you are currently using',
     default: 'Default',
     themes: 'Themes',
+    backgroundEffects: 'Background Effects',
+    effectShapes: '3D Shapes',
+    effectParticles: 'Particles',
+    effectWaves: 'Aura',
+    effectCrystals: 'Atomic Model',
+    effectTesseract: 'Tesseract',
+    effectNone: 'None',
     preview: 'Preview',
     sampleCard: 'Sample Card',
     themeAppearance: 'Appearance of your selected theme',
@@ -316,6 +323,9 @@ export default {
     nova: 'Nova Space',
     zenith: 'Zenith',
     universe: '👑 Universe',
+    exquisite: '✨ Exquisite',
+    bordeaux: 'Rich Bordeaux red',
+    emerald: '💎 Royal Emerald',
   },
   
   // Tabs

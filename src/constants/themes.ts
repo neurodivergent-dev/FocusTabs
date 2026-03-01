@@ -518,6 +518,60 @@ export const THEMES: ThemeOption[] = [
       info: '#B8860B',
     },
   },
+  {
+    id: 'exquisite',
+    name: '✨ Exquisite',
+    colors: {
+      ...darkBase,
+      background: '#0B0A0C',
+      card: 'rgba(25, 22, 28, 0.85)',
+      primary: '#E2B14B', // Champagne Gold
+      secondary: '#F9E5C9', // Soft Pearl
+      text: '#FBF8F1',
+      subText: '#A89F91',
+      border: 'rgba(226, 177, 75, 0.25)',
+      success: '#4ADE80',
+      warning: '#FBBF24',
+      error: '#F87171',
+      info: '#60A5FA',
+    },
+  },
+  {
+    id: 'bordeaux',
+    name: '🍷 Bordeaux Sovereign',
+    colors: {
+      ...darkBase,
+      background: '#1A0505', // Ultra deep vintage wine
+      card: 'rgba(40, 10, 10, 0.8)',
+      primary: '#D94E4E', // Rich Bordeaux red
+      secondary: '#E2A76F', // Vintage Copper / Tan
+      text: '#FFF1F1',
+      subText: '#A67B7B',
+      border: 'rgba(217, 78, 78, 0.25)',
+      success: '#4ADE80',
+      warning: '#FBBF24',
+      error: '#FF0000',
+      info: '#60A5FA',
+    },
+  },
+  {
+    id: 'emerald',
+    name: '💎 Royal Emerald',
+    colors: {
+      ...darkBase,
+      background: '#021F1A', // Deepest emerald forest
+      card: 'rgba(5, 45, 38, 0.8)',
+      primary: '#10B981', // Vivid Emerald
+      secondary: '#D1FAE5', // Mint Frost
+      text: '#F0FDF4',
+      subText: '#6EE7B7',
+      border: 'rgba(16, 185, 129, 0.3)',
+      success: '#34D399',
+      warning: '#FCD34D',
+      error: '#F87171',
+      info: '#38BDF8',
+    },
+  },
 ];
 
 export const getThemeById = (id: string): ThemeOption => {

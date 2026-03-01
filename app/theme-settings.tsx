@@ -15,14 +15,19 @@ import { THEMES } from "../src/constants/themes";
 import { useTheme } from "../src/components/ThemeProvider";
 import ThemedCard from "../src/components/ThemedCard";
 import ThemedButton from "../src/components/ThemedButton";
-import { ChevronLeft, Palette } from "lucide-react-native";
+import { ChevronLeft, Palette, Box, Sparkles, Waves, CircleOff, Gem, Atom, Hexagon } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { BackgroundEffectType } from "../src/store/themeStore";
 
 export default function ThemeSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors, isDarkMode, themeId } = useTheme();
-  const setThemeId = useThemeStore((state) => state.setThemeId);
+  const { setBackgroundEffect, backgroundEffect, setThemeId } = useThemeStore((state) => ({
+    setThemeId: state.setThemeId,
+    setBackgroundEffect: state.setBackgroundEffect,
+    backgroundEffect: state.backgroundEffect,
+  }));
   const { t } = useTranslation();
 
   // Handle back navigation
@@ -274,6 +279,49 @@ export default function ThemeSettingsScreen() {
             ))}
           </View>
 
+          <Text
+            style={[styles.sectionTitle, { color: colors.text }]}
+          >
+            {t("themeSettings.backgroundEffects", "Arka Plan Efektleri")}
+          </Text>
+
+          <View style={styles.effectsContainer}>
+            {[
+              { id: 'shapes', name: t("themeSettings.effectShapes", "3D Şekiller"), icon: Box },
+              { id: 'particles', name: t("themeSettings.effectParticles", "Parçacıklar"), icon: Sparkles },
+              { id: 'waves', name: t("themeSettings.effectWaves", "Aura"), icon: Waves },
+              { id: 'crystals', name: t("themeSettings.effectCrystals", "Atom Modeli"), icon: Atom },
+              { id: 'tesseract', name: t("themeSettings.effectTesseract", "Tesseract"), icon: Hexagon },
+              { id: 'none', name: t("themeSettings.effectNone", "Yok"), icon: CircleOff },
+            ].map((effect) => (
+              <TouchableOpacity
+                key={effect.id}
+                style={[
+                  styles.effectCard,
+                  { 
+                    backgroundColor: colors.card,
+                    borderColor: backgroundEffect === effect.id ? colors.primary : colors.border,
+                    borderWidth: backgroundEffect === effect.id ? 2 : 1,
+                  }
+                ]}
+                onPress={() => setBackgroundEffect(effect.id as BackgroundEffectType)}
+              >
+                <View style={[
+                  styles.effectIconContainer, 
+                  { backgroundColor: backgroundEffect === effect.id ? colors.primary + '20' : colors.subText + '10' }
+                ]}>
+                  <effect.icon size={20} color={backgroundEffect === effect.id ? colors.primary : colors.subText} />
+                </View>
+                <Text style={[
+                  styles.effectName, 
+                  { color: backgroundEffect === effect.id ? colors.text : colors.subText }
+                ]}>
+                  {effect.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <View style={styles.previewSection}>
             <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 20 }]}>
               {t("themeSettings.preview", "Önizleme")}
@@ -425,6 +473,32 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     marginBottom: 24,
+  },
+  effectsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 24,
+    gap: 8,
+  },
+  effectCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  effectIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  effectName: {
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   themeCard: {
     width: "48%",
