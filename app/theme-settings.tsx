@@ -141,6 +141,111 @@ export default function ThemeSettingsScreen() {
                       ]}
                     />
                   </View>
+                  {theme.id === 'nova' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#38BDF8' }]}>
+                      <Text style={styles.specialBadgeText}>RARE</Text>
+                    </View>
+                  )}
+                  {theme.id === 'zenith' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#00F5D4' }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#000' }]}>BEST</Text>
+                    </View>
+                  )}
+                  {theme.id === 'cosmos' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#7B2CBF' }]}>
+                      <Text style={styles.specialBadgeText}>COSMIC</Text>
+                    </View>
+                  )}
+                  {theme.id === 'nebula' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#9D4EDD' }]}>
+                      <Text style={styles.specialBadgeText}>DEEP</Text>
+                    </View>
+                  )}
+                  {theme.id === 'supernova' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#FF2E00' }]}>
+                      <Text style={[styles.specialBadgeText]}>HOT</Text>
+                    </View>
+                  )}
+                  {theme.id === 'galaxy' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#9B5DE5' }]}>
+                      <Text style={styles.specialBadgeText}>STAR</Text>
+                    </View>
+                  )}
+                  {theme.id === 'void' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#6B6B80' }]}>
+                      <Text style={styles.specialBadgeText}>DARK</Text>
+                    </View>
+                  )}
+                  {theme.id === 'universe' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#00E5FF', shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 10, elevation: 5 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#0B0014', fontWeight: 'bold' }]}>ULTIMATE</Text>
+                    </View>
+                  )}
+                  {theme.id === 'dimension-x' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#00F0FF' }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#000' }]}>X-MAN</Text>
+                    </View>
+                  )}
+                  {theme.id === 'atlantis' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#00B4D8' }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#000' }]}>DEEP</Text>
+                    </View>
+                  )}
+                  {theme.id === 'sakura' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#FFB7C5' }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#000' }]}>ZEN</Text>
+                    </View>
+                  )}
+                  {theme.id === 'vaporwave' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#FF71CE' }]}>
+                      <Text style={styles.specialBadgeText}>RETRO</Text>
+                    </View>
+                  )}
+                  {theme.id === 'enchanted' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#2D5A3D' }]}>
+                      <Text style={styles.specialBadgeText}>MAGIC</Text>
+                    </View>
+                  )}
+                  {theme.id === 'ottoman' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#D4AF37', shadowColor: '#D4AF37', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 8, elevation: 4 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#0B1426', fontWeight: 'bold' }]}>SULTAN</Text>
+                    </View>
+                  )}
+                  {theme.id === 'vampire' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#8B0000', shadowColor: '#DC143C', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 10, elevation: 5 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#F5E6E0', fontWeight: 'bold' }]}>IMMORTAL</Text>
+                    </View>
+                  )}
+                  {theme.id === 'midnight' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#FF006E', shadowColor: '#FF006E', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 12, elevation: 8 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#FFE5EC', fontWeight: 'bold', letterSpacing: 1 }]}>HOT</Text>
+                    </View>
+                  )}
+                  {theme.id === 'dragon' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#FF2400', shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 14, elevation: 8 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#FFD700', fontWeight: 'bold', letterSpacing: 1 }]}>LEGENDARY</Text>
+                    </View>
+                  )}
+                  {theme.id === 'ice' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#A5F2F3', shadowColor: '#A5F2F3', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 15, elevation: 8 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#000810', fontWeight: 'bold', letterSpacing: 1 }]}>FROZEN</Text>
+                    </View>
+                  )}
+                  {theme.id === 'dna' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#00CED1', shadowColor: '#00CED1', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 12, elevation: 7 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#000C10', fontWeight: 'bold', letterSpacing: 1 }]}>SCIENCE</Text>
+                    </View>
+                  )}
+                  {theme.id === 'amber' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#FFBF00', shadowColor: '#FFBF00', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 14, elevation: 8 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#0C0804', fontWeight: 'bold', letterSpacing: 1 }]}>FOSSIL</Text>
+                    </View>
+                  )}
+                  {theme.id === 'peacock' && (
+                    <View style={[styles.specialBadge, { backgroundColor: '#0077BE', shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 16, elevation: 10 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#FFD700', fontWeight: 'bold', letterSpacing: 1 }]}>ROYAL</Text>
+                    </View>
+                  )}
                   {themeId === theme.id && (
                     <View style={[styles.checkmarkContainer, { backgroundColor: theme.colors.primary }]}>
                       <Text style={styles.checkmark}>✓</Text>
@@ -361,6 +466,25 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  specialBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  specialBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   themeCardTitle: {
     fontSize: 14,

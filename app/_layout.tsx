@@ -14,6 +14,7 @@ import { ThemeProvider as CustomThemeProvider } from "../src/components/ThemePro
 import { useLanguageStore } from "../src/store/languageStore";
 import { useOnboardingStore } from "../src/store/onboardingStore";
 import { SoundPlayer } from "../src/components/SoundPlayer";
+import { useAIStore } from "../src/store/aiStore";
 import "../src/i18n/i18n"; // Import i18n initialization
 
 // Catch any errors thrown by the Layout component
@@ -48,6 +49,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (currentLanguage) {
       setI18nInitialized(true);
+      // Load AI settings
+      useAIStore.getState().loadApiKey();
     }
   }, [currentLanguage]);
 
@@ -102,6 +105,7 @@ function RootLayoutNav() {
             <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
             <Stack.Screen name="theme-settings" options={{ headerShown: false }} />
             <Stack.Screen name="backup-settings" options={{ headerShown: false }} />
+            <Stack.Screen name="ai-settings" options={{ headerShown: false }} />
           </Stack>
         </ThemeProvider>
       </CustomThemeProvider>

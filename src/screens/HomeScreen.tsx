@@ -126,6 +126,19 @@ export const HomeScreen: React.FC = () => {
     return withSpring(progressPercent, { damping: 15, stiffness: 100 });
   });
 
+  const [isCelebrationVisible, setIsCelebrationVisible] = useState(false);
+
+  // Trigger celebration only when reaching 3/3 for the first time in session
+  useEffect(() => {
+    if (todayGoals.length === 3 && completedCount === 3) {
+      // Small delay to let the last checkbox animation finish
+      const timer = setTimeout(() => setIsCelebrationVisible(true), 500);
+      return () => clearTimeout(timer);
+    } else {
+      setIsCelebrationVisible(false);
+    }
+  }, [completedCount, todayGoals.length]);
+
   const animatedProgressStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
       progress.value,
@@ -208,8 +221,6 @@ export const HomeScreen: React.FC = () => {
         )}
       </LinearGradient>
 
-      <Celebration visible={todayGoals.length === 3 && completedCount === 3} />
-
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -257,9 +268,15 @@ export const HomeScreen: React.FC = () => {
             onAddGoal={handleAddGoal}
             disabled={hasReachedMaxGoals()}
             currentCount={todayGoals.length}
+            existingGoals={todayGoals.map(g => g.text)}
           />
         </View>
       </KeyboardAvoidingView>
+
+      <Celebration 
+        visible={isCelebrationVisible} 
+        goals={todayGoals.map(g => g.text)} 
+      />
     </SafeAreaView>
   );
 };

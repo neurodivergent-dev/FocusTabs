@@ -14,61 +14,97 @@ import { useTheme } from "./ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import { soundService } from "../services/SoundService";
+import { aiService } from "../services/aiService";
+import { useAIStore } from "../store/aiStore";
 import * as Haptics from "expo-haptics";
 
 const { width, height } = Dimensions.get("window");
 
 interface CelebrationProps {
   visible: boolean;
+  goals?: string[];
 }
 
-export const Celebration: React.FC<CelebrationProps> = ({ visible }) => {
+export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] }) => {
   const { colors, isDarkMode } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [shouldRender, setShouldRender] = useState(false);
-  const [internalVisible, setInternalVisible] = useState(false);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const { isAIEnabled, lastCelebrationMessage, lastCelebrationDate, setCelebrationCache } = useAIStore();
 
-  // Shared values must be defined at the top level
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
 
   useEffect(() => {
     if (visible) {
+      console.log("[CELEBRATION] Görünürlük tetiklendi!");
       setShouldRender(true);
-      setInternalVisible(true);
+      
+      // Animasyonları başlat
       scale.value = withSpring(1, { damping: 12 });
       opacity.value = withTiming(1, { duration: 500 });
       translateY.value = withSpring(0, { damping: 12 });
 
-      // Play celebration sound and haptics
+      // Ses ve Titreşim
       soundService.playFanfare();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // 3 saniye sonra otomatik gizle
-      const timer = setTimeout(() => {
-        setInternalVisible(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [visible]);
+      // Otomatik kapanma süresi
+      let closeTimer: NodeJS.Timeout;
 
-  useEffect(() => {
-    if (!internalVisible && shouldRender) {
-      scale.value = withTiming(0, { duration: 300 });
-      opacity.value = withTiming(0, { duration: 300 });
-      translateY.value = withTiming(50, { duration: 300 });
-      const timer = setTimeout(() => setShouldRender(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [internalVisible]);
+      // AI Mesajını çek
+      if (isAIEnabled && goals.length > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Önce kalıcı hafızaya bak (RPD kısıtlaması için kritik!)
+        if (lastCelebrationDate === today && lastCelebrationMessage) {
+          console.log("[CELEBRATION] Günlük cache'den mesaj yüklendi.");
+          setAiMessage(lastCelebrationMessage);
+          closeTimer = setTimeout(() => hide(), 6000);
+        } else {
+          setAiMessage(t("common.loading", "Gemini senin için bir mesaj hazırlıyor..."));
+          
+          aiService.getCelebrationMessage(goals, i18n.language).then(msg => {
+            if (msg) {
+              console.log("[CELEBRATION] Gemini'den taze mesaj geldi.");
+              setAiMessage(msg);
+              setCelebrationCache(msg); // Kalıcı hafızaya kaydet
+              closeTimer = setTimeout(() => hide(), 6000);
+            } else {
+              setAiMessage(null);
+              closeTimer = setTimeout(() => hide(), 4000);
+            }
+          }).catch(err => {
+            console.log("AI Hata:", err);
+            setAiMessage(null);
+            closeTimer = setTimeout(() => hide(), 4000);
+          });
+        }
+      } else {
+        closeTimer = setTimeout(() => hide(), 4000);
+      }
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }, { translateY: translateY.value }],
-      opacity: opacity.value,
-    };
-  });
+      return () => {
+        if (closeTimer) clearTimeout(closeTimer);
+      };
+    }
+  }, [visible, isAIEnabled]);
+
+  const hide = () => {
+    scale.value = withTiming(0, { duration: 400 });
+    opacity.value = withTiming(0, { duration: 400 });
+    translateY.value = withTiming(50, { duration: 400 });
+    setTimeout(() => {
+      setShouldRender(false);
+      setAiMessage(null);
+    }, 400);
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+    opacity: opacity.value,
+  }));
 
   if (!shouldRender) return null;
 
@@ -93,15 +129,15 @@ export const Celebration: React.FC<CelebrationProps> = ({ visible }) => {
                 {t("home.celebration.title", "Mükemmel Odak!")}
               </Text>
               <Text style={styles.subtitle}>
-                {t("home.celebration.subtitle", "Bugünkü tüm hedeflerini tamamladın.")}
+                {aiMessage || t("home.celebration.subtitle", "Bugünkü tüm hedeflerini tamamladın.")}
               </Text>
             </View>
           </View>
         </LinearGradient>
       </Animated.View>
       
-      {/* Simple animated dots as light confetti */}
-      {visible && [1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+      {/* Konfeti efektleri */}
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
         <ConfettiPiece key={i} index={i} color={i % 2 === 0 ? colors.primary : colors.secondary} />
       ))}
     </View>
@@ -114,34 +150,21 @@ const ConfettiPiece = ({ index, color }: { index: number; color: string }) => {
   const rot = useSharedValue(0);
 
   useEffect(() => {
-    fall.value = withDelay(
-      index * 100,
-      withTiming(height, {
-        duration: 2000,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      })
-    );
-    side.value = withDelay(
-      index * 100,
-      withSpring(Math.random() * 200 - 100, { damping: 10 })
-    );
-    rot.value = withTiming(360, { duration: 2000 });
+    fall.value = withDelay(index * 50, withTiming(height, { duration: 2500 }));
+    side.value = withDelay(index * 50, withSpring(Math.random() * 300 - 150));
+    rot.value = withTiming(720, { duration: 2500 });
   }, []);
 
   const style = useAnimatedStyle(() => ({
     position: "absolute",
     top: -20,
     left: width / 2,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: color,
-    transform: [
-      { translateY: fall.value },
-      { translateX: side.value },
-      { rotate: `${rot.value}deg` },
-    ],
-    opacity: withSequence(withTiming(1, { duration: 100 }), withTiming(0, { duration: 1900 })),
+    transform: [{ translateY: fall.value }, { translateX: side.value }, { rotate: `${rot.value}deg` }],
+    opacity: withSequence(withTiming(1, { duration: 100 }), withTiming(0, { duration: 2400 })),
   }));
 
   return <Animated.View style={style} />;
@@ -152,51 +175,31 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 999,
+    zIndex: 9999, // En tepede!
+    elevation: 9999,
   },
   badge: {
-    width: width * 0.85,
-    borderRadius: 24,
+    width: width * 0.9,
+    borderRadius: 28,
     overflow: "hidden",
-    elevation: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.4,
+    shadowRadius: 25,
+    elevation: 20,
   },
-  gradient: {
-    padding: 20,
-  },
-  content: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  gradient: { padding: 24 },
+  content: { flexDirection: "row", alignItems: "center" },
   iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
     justifyContent: "center",
     alignItems: "center",
   },
-  sparklePosition: {
-    position: "absolute",
-    top: -5,
-    right: -5,
-  },
-  textContainer: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  title: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 4,
-  },
-  subtitle: {
-    color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 13,
-    fontWeight: "500",
-  },
+  sparklePosition: { position: "absolute", top: -5, right: -5 },
+  textContainer: { marginLeft: 18, flex: 1 },
+  title: { color: "#FFFFFF", fontSize: 20, fontWeight: "900", marginBottom: 4 },
+  subtitle: { color: "rgba(255, 255, 255, 0.95)", fontSize: 14, fontWeight: "600", lineHeight: 20 },
 });

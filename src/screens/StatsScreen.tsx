@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { StyleSheet, View, Text, SafeAreaView, ScrollView, Platform } from "react-native";
+import { StyleSheet, View, Text, SafeAreaView, ScrollView, Platform, ActivityIndicator, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
@@ -19,11 +19,18 @@ import {
   User,
   DollarSign,
   Tag,
+  BrainCircuit,
+  RefreshCw,
 } from "lucide-react-native";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { GoalCategory } from "../types/goal";
 import { getCategoryById } from "../constants/categories";
+import { aiService } from "../services/aiService";
+import { useAIStore } from "../store/aiStore";
+import { MarkdownText } from "../components/MarkdownText";
+import { soundService } from "../services/SoundService";
+import * as Haptics from "expo-haptics";
 
 interface PerformanceData {
   weeklyCompletionRate: number;
@@ -57,6 +64,45 @@ export const StatsScreen: React.FC = () => {
     totalCompletedTasks: 0,
     hasTasks: false,
   });
+
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [dynamicAIInsights, setDynamicAIInsights] = useState<any[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [forceRefreshTrigger, setForceRefreshTrigger] = useState(0);
+  const { isAIEnabled } = useAIStore();
+
+  const handleRefresh = () => {
+    soundService.playClick();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    
+    // UI'ı hemen temizle ve yenileme simülasyonu yap
+    setIsAiLoading(true);
+    setAiInsight(null);
+    setDynamicAIInsights([]);
+    setForceRefreshTrigger(prev => prev + 1);
+    
+    // 1 saniye sonra yükleniyor modundan çık (useEffect zaten arkada çalışacak)
+    setTimeout(() => setIsAiLoading(false), 1000);
+  };
+
+  // Gemini gelmezse diye gerçek verilere dayalı "Statik ama Dinamik" rozetler
+  const fallbackAchievements = useMemo(() => [
+    {
+      title: performanceData.streak >= 3 ? "Seri Kralı" : "Yolun Başında",
+      desc: performanceData.streak > 0 ? `${performanceData.streak} gündür durdurulamaz gidiyorsun!` : "İlk serini başlatmak için bugün tüm hedefleri bitir.",
+      type: 'streak'
+    },
+    {
+      title: "Verimlilik",
+      desc: `Haftalık ortalaman %${Math.round(performanceData.weeklyCompletionRate)}. Harika bir denge!`,
+      type: 'consistency'
+    },
+    {
+      title: "Görev Avcısı",
+      desc: `Toplamda ${performanceData.totalCompletedTasks} hedefi başarıyla tarihe gömdün.`,
+      type: 'focus'
+    }
+  ], [performanceData]);
 
   // Calculate insights
   const insights = useMemo<InsightData>(() => {
@@ -205,14 +251,61 @@ export const StatsScreen: React.FC = () => {
         totalCompletedTasks,
         hasTasks: totalCompletedTasks > 0,
       });
+
+      // Fetch AI performance insight and weekly achievements if enabled and not already loaded
+      if (isAIEnabled && !aiInsight && !isAiLoading) {
+        setIsAiLoading(true);
+        const statsSummary = {
+          weeklyRate: Math.round(completionData.slice(0, 7).reduce((acc, curr) => acc + curr.percentage, 0) / Math.min(completionData.length, 7)),
+          streak,
+          total: totalCompletedTasks,
+          bestDay: insights.productiveDayName,
+          topCategory: insights.topCategoryName
+        };
+        
+        console.log("AI Analizi ve Haftalık Başarılar başlatılıyor...");
+        
+        // Paralel olarak her iki isteği de atıyoruz
+        Promise.all([
+          aiService.getPerformanceInsight(statsSummary, i18n.language),
+          aiService.getWeeklyInsights(statsSummary, i18n.language)
+        ]).then(([insightRes, weeklyRes]) => {
+          if (insightRes) setAiInsight(insightRes);
+          if (weeklyRes && weeklyRes.length > 0) setDynamicAIInsights(weeklyRes);
+        }).catch(err => {
+          console.error("AI Stats Hatası:", err);
+        }).finally(() => setIsAiLoading(false));
+      }
     }
-  }, [completionData, insights.productiveDayName]);
+  }, [completionData, insights.productiveDayName, isAIEnabled, aiInsight, isAiLoading]);
 
   const getPerformanceLevelColor = (rate: number) => {
     if (rate >= 80) return colors.success;
     if (rate >= 50) return colors.info;
     if (rate >= 20) return colors.warning;
     return colors.error;
+  };
+
+  const getInsightIcon = (type: string) => {
+    switch (type) {
+      case 'streak': return <TrendingUp size={20} color={colors.primary} />;
+      case 'focus': return <TrendingUp size={20} color={colors.info} />;
+      case 'speed': return <Clock size={20} color={colors.warning} />;
+      case 'consistency': return <Calendar size={20} color={colors.success} />;
+      case 'variety': return <Lightbulb size={20} color={colors.secondary} />;
+      default: return <Award size={20} color={colors.primary} />;
+    }
+  };
+
+  const getInsightBgColor = (type: string) => {
+    switch (type) {
+      case 'streak': return colors.primary + '20';
+      case 'focus': return colors.info + '20';
+      case 'speed': return colors.warning + '20';
+      case 'consistency': return colors.success + '20';
+      case 'variety': return colors.secondary + '20';
+      default: return colors.primary + '20';
+    }
   };
 
   const getPerformanceLevel = (rate: number, hasTasks: boolean = true): string => {
@@ -244,8 +337,19 @@ export const StatsScreen: React.FC = () => {
       >
         <View style={styles.headerDecorationCircle1} />
         <View style={styles.headerDecorationCircle2} />
-        <Text style={[styles.title, { color: "#FFFFFF" }]}>{t("stats.title")}</Text>
-        <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>{t("stats.subtitle")}</Text>
+        <View style={styles.headerTitleRow}>
+          <View>
+            <Text style={[styles.title, { color: "#FFFFFF" }]}>{t("stats.title")}</Text>
+            <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>{t("stats.subtitle")}</Text>
+          </View>
+          <TouchableOpacity 
+            style={[styles.refreshButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]} 
+            onPress={handleRefresh}
+            disabled={isAiLoading}
+          >
+            <RefreshCw size={20} color="#FFFFFF" style={isAiLoading && { transform: [{ rotate: '45deg' }] }} />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       <ScrollView 
@@ -458,7 +562,43 @@ export const StatsScreen: React.FC = () => {
               )}
             </View>
 
-            {insights.hasEnoughData ? (
+            {isAIEnabled && (isAiLoading || aiInsight) && (
+              <View style={[styles.aiInsightCard, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '20' }]}>
+                {isAiLoading ? (
+                  <>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={[styles.aiInsightText, { color: colors.subText }]}>Gemini verilerini analiz ediyor...</Text>
+                  </>
+                ) : (
+                  <>
+                    <BrainCircuit size={18} color={colors.primary} />
+                    <MarkdownText 
+                      content={aiInsight} 
+                      style={styles.aiInsightText} 
+                      baseColor={colors.text} 
+                    />
+                  </>
+                )}
+              </View>
+            )}
+
+            {isAIEnabled && dynamicAIInsights.length > 0 ? (
+              <View style={styles.insightsList}>
+                {dynamicAIInsights.map((insight, idx) => (
+                  <View key={idx} style={styles.insightItem}>
+                    <View style={[styles.insightIcon, { backgroundColor: getInsightBgColor(insight.type) }]}>
+                      {getInsightIcon(insight.type)}
+                    </View>
+                    <View style={styles.insightTextContent}>
+                      <Text style={[styles.insightLabel, { color: colors.text }]}>{insight.title}</Text>
+                      <Text style={[styles.insightDesc, { color: colors.subText }]}>
+                        {insight.desc}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : insights.hasEnoughData ? (
               <View style={styles.insightsList}>
                 <View style={styles.insightItem}>
                   <View style={[styles.insightIcon, { backgroundColor: colors.primary + '20' }]}>
@@ -516,10 +656,23 @@ export const StatsScreen: React.FC = () => {
               <View style={[styles.iconBox, { backgroundColor: colors.primary + '25' }]}><Award size={24} color={colors.primary} /></View>
               <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0, marginLeft: 12 }]}>{t("stats.achievements.title")}</Text>
             </View>
-            <View style={[styles.achievementBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)' }]}>
-              <Text style={[styles.achievementText, { color: colors.text }]}>
-                {performanceData.streak >= 7 ? t("stats.achievements.streakAchievement") : t("stats.achievements.default")}
-              </Text>
+            
+            <View style={styles.achievementsList}>
+              {(isAIEnabled && dynamicAIInsights.length > 0 ? dynamicAIInsights : fallbackAchievements).map((achievement, idx) => (
+                <View key={idx} style={[styles.achievementListItem, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)' }]}>
+                  <View style={[styles.badgeIconBox, { backgroundColor: getInsightBgColor(achievement.type) }]}>
+                    {getInsightIcon(achievement.type)}
+                  </View>
+                  <View style={styles.badgeContent}>
+                    <Text style={[styles.badgeTitle, { color: colors.text }]} numberOfLines={1}>
+                      {achievement.title}
+                    </Text>
+                    <Text style={[styles.badgeDesc, { color: colors.subText }]} numberOfLines={2}>
+                      {achievement.desc}
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
           </LinearGradient>
         </View>
@@ -556,6 +709,18 @@ const styles = StyleSheet.create({
   headerDecorationCircle2: { position: 'absolute', bottom: -30, left: -40, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255, 255, 255, 0.05)' },
   title: { fontSize: 30, fontWeight: "800", letterSpacing: -0.5, marginBottom: 4 },
   subtitle: { fontSize: 16, fontWeight: "500", opacity: 0.9 },
+  headerTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  refreshButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   scrollView: { flex: 1 },
   scrollViewContent: { paddingBottom: 20 },
   cardContainer: { marginHorizontal: 20, marginVertical: 8, borderRadius: 24, borderWidth: 1, overflow: 'hidden' },
@@ -635,6 +800,39 @@ const styles = StyleSheet.create({
   levelText: { fontSize: 14, fontWeight: '700' },
   achievementBox: { padding: 20, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   achievementText: { fontSize: 15, lineHeight: 22 },
+  achievementsList: {
+    gap: 12,
+  },
+  achievementListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  badgeContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  badgeIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  badgeDesc: {
+    fontSize: 12,
+    opacity: 0.8,
+    lineHeight: 16,
+  },
   insightsList: {
     gap: 20,
   },
@@ -667,6 +865,22 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 10,
+  },
+  aiInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 24,
+    gap: 12,
+  },
+  aiInsightText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    lineHeight: 20,
   },
   tipsList: { gap: 12 },
   tipItem: { flexDirection: 'row', alignItems: 'center' },

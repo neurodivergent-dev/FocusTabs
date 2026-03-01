@@ -28,11 +28,13 @@ import {
   Heart,
   Volume2,
   VolumeX,
+  BrainCircuit,
 } from "lucide-react-native";
 import { useThemeStore } from "../store/themeStore";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useOnboardingStore } from "../store/onboardingStore";
+import { useAIStore } from "../store/aiStore";
 import { soundService } from "../services/SoundService";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
@@ -53,6 +55,7 @@ export const SettingsScreen: React.FC = () => {
   const { colors, isDarkMode } = useTheme();
 
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [aiModalVisible, setAiModalVisible] = useState(false);
 
   // Update isDarkMode based on system preference when using system theme
   useEffect(() => {
@@ -80,6 +83,12 @@ export const SettingsScreen: React.FC = () => {
     soundService.playClick();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/privacy-policy");
+  };
+
+  const handleNavigateToAISettings = () => {
+    soundService.playClick();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/ai-settings");
   };
 
   const handleThemeChange = (mode: "light" | "dark" | "system") => {
@@ -212,6 +221,20 @@ export const SettingsScreen: React.FC = () => {
               />
             </View>
           </View>
+
+          <TouchableOpacity 
+            style={[styles.settingItem, { backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: colors.primary }]} 
+            onPress={handleNavigateToAISettings}
+          >
+            <View style={[styles.settingIconContainer, { backgroundColor: colors.primary + '15' }]}>
+              <BrainCircuit size={20} color={colors.primary} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={[styles.settingLabel, { color: colors.text, fontWeight: '700' }]}>{t("settings.ai.title")}</Text>
+              <Text style={[styles.settingDescription, { color: colors.subText }]}>{t("settings.ai.description")}</Text>
+            </View>
+            <ChevronRight size={20} color={colors.subText} opacity={0.5} />
+          </TouchableOpacity>
 
           {[
             { label: "settings.theme", desc: "settings.customizeYourExperience", icon: Paintbrush, color: "#A855F7", onPress: handleNavigateToThemeSettings },

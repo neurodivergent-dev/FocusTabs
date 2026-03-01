@@ -15,23 +15,76 @@ import { useTranslation } from "react-i18next";
 import { CATEGORIES } from "../constants/categories";
 import { GoalCategory } from "../types/goal";
 import { soundService } from "../services/SoundService";
+import { aiService } from "../services/aiService";
+import { useAIStore } from "../store/aiStore";
+import { BrainCircuit, Sparkles, Loader2 } from "lucide-react-native";
+import { ActivityIndicator } from "react-native";
 
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withRepeat, withTiming, cancelAnimation } from "react-native-reanimated";
 
 interface AddGoalFormProps {
   onAddGoal: (text: string, category: GoalCategory) => void;
   disabled: boolean;
   currentCount?: number;
+  existingGoals?: string[];
 }
 
 export const AddGoalForm: React.FC<AddGoalFormProps> = ({
   onAddGoal,
   disabled,
   currentCount = 0,
+  existingGoals = [],
 }) => {
   const [text, setText] = useState<string>("");
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<GoalCategory>("other");
+  const [isRefining, setIsRefining] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const { isAIEnabled } = useAIStore();
+  const { i18n } = useTranslation();
+
+  const handleAIRefine = async () => {
+    if (text.trim() === "" || isRefining) return;
+    
+    setIsRefining(true);
+    soundService.playClick();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const refined = await aiService.refineGoal(text, i18n.language);
+      if (refined === text) {
+        // Eğer AI orijinal metni döndürdüyse (hata/kota durumu)
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        // İstersen buraya bir Alert veya küçük bir toast mesajı da koyabiliriz
+      } else {
+        setText(refined);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const handleAISuggest = async () => {
+    if (isSuggesting) return;
+    
+    setIsSuggesting(true);
+    soundService.playClick();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      const suggestion = await aiService.suggestGoal(existingGoals, "tr"); 
+      setText(suggestion.text);
+      setSelectedCategory(suggestion.category);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
 
   // Category Icon Mapper
   const CategoryIcon = ({ id, size, color }: { id: GoalCategory, size: number, color: string }) => {
@@ -110,6 +163,42 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
             autoFocus
           />
 
+          {isAIEnabled && (
+            <View style={styles.aiActionsRow}>
+              {text.length > 2 ? (
+                <TouchableOpacity 
+                  style={[styles.aiActionButton, { borderColor: colors.primary + '40' }]} 
+                  onPress={handleAIRefine}
+                  disabled={isRefining}
+                >
+                  {isRefining ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <>
+                      <Sparkles size={14} color={colors.primary} />
+                      <Text style={[styles.aiActionText, { color: colors.primary }]}>AI Refine</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.aiActionButton, { borderColor: colors.secondary + '40' }]} 
+                  onPress={handleAISuggest}
+                  disabled={isSuggesting}
+                >
+                  {isSuggesting ? (
+                    <ActivityIndicator size="small" color={colors.secondary} />
+                  ) : (
+                    <>
+                      <BrainCircuit size={14} color={colors.secondary} />
+                      <Text style={[styles.aiActionText, { color: colors.secondary }]}>AI Suggestion</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           <Text style={[styles.categoryLabel, { color: colors.subText }]}>
             {t("home.selectCategory", "Kategori Seçin")}
           </Text>
@@ -174,20 +263,25 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
             style={{ width: '100%' }}
           >
             <LinearGradient
-              colors={disabled ? [colors.subText + '40', colors.subText + '40'] : [colors.primary, colors.secondary || colors.primary]}
+              colors={
+                disabled 
+                  ? [colors.primary + '60', colors.primary + '40'] 
+                  : [colors.primary, colors.secondary || colors.primary]
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={[
                 styles.addButtonCollapsed,
-                disabled && styles.disabledButton,
               ]}
             >
               {disabled ? (
                 <View style={styles.disabledContent}>
-                  <View style={styles.countBadge}>
-                    <Text style={styles.countBadgeText}>{currentCount}/3</Text>
+                  <View style={[styles.countBadge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.25)' }]}>
+                    <Text style={[styles.countBadgeText, { color: '#FFFFFF' }]}>
+                      {currentCount}/3
+                    </Text>
                   </View>
-                  <Text style={styles.addButtonCollapsedSubtext}>
+                  <Text style={[styles.addButtonCollapsedSubtext, { color: '#FFFFFF', opacity: 0.85 }]}>
                     {t("home.maxGoalsReached")}
                   </Text>
                 </View>
@@ -228,6 +322,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  aiActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  aiActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+  },
+  aiActionText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   categoryLabel: {
     fontSize: 12,
