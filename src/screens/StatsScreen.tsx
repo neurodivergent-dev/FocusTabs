@@ -375,12 +375,12 @@ export const StatsScreen: React.FC = () => {
         {/* Day Countdown Card - MOVED TO TOP */}
         <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12, marginBottom: 8 }]}>
           <LinearGradient
-            colors={[isDarkMode ? colors.warning + '20' : colors.warning + '10', isDarkMode ? colors.error + '20' : colors.error + '10']}
+            colors={[isDarkMode ? colors.primary + '25' : colors.primary + '15', isDarkMode ? colors.secondary + '25' : colors.secondary + '15']}
             style={styles.cardGradient}
           >
             <View style={styles.cardHeader}>
-              <View style={[styles.iconBox, { backgroundColor: colors.warning + '25' }]}>
-                <Clock size={24} color={colors.warning} />
+              <View style={[styles.iconBox, { backgroundColor: colors.primary + '25' }]}>
+                <Clock size={24} color={colors.primary} />
               </View>
               <Text style={[styles.sectionTitle, { color: colors.text, flex: 1, marginLeft: 12 }]}>
                 {t("stats.dayRemaining")}
@@ -388,7 +388,7 @@ export const StatsScreen: React.FC = () => {
             </View>
             
             <View style={styles.countdownWrapper}>
-              <Text style={[styles.countdownTime, { color: colors.text }]}>
+              <Text style={[styles.countdownTime, { color: colors.primary }]}>
                 {timeUntilMidnight}
               </Text>
               <Text style={[styles.countdownSubtext, { color: colors.subText }]}>

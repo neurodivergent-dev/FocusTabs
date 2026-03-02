@@ -3,8 +3,10 @@ import { StyleSheet, View, Dimensions } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
+  useAnimatedProps,
   withRepeat, 
   withTiming, 
+  withDelay,
   Easing,
   interpolate,
 } from 'react-native-reanimated';
@@ -149,7 +151,7 @@ const Tesseract4D = () => {
           angleY={angleY} 
           angleZ={angleZ} 
           color={colors.primary}
-          size={100}
+          size={75}
         />
       ))}
     </View>
@@ -165,7 +167,6 @@ const AtomicOrbit = ({ size, color, opacity, rx, ry, rotation, pulse, speedFacto
   useEffect(() => { dashOffset.value = withRepeat(withTiming(circ, { duration: 3000 / Math.abs(speedFactor), easing: Easing.linear }), -1, false); }, []);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ perspective: 1200 }, { rotateX: rx }, { rotateY: ry }, { rotateZ: `${rotation.value * speedFactor}deg` }], opacity: 0.3 + (pulse.value * 0.4) }));
   const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-  const useAnimatedProps = require('react-native-reanimated').useAnimatedProps;
   const animatedPathProps = useAnimatedProps(() => ({ strokeDashoffset: dashOffset.value }));
   return (
     <Animated.View style={[styles.ringsOverlay, animatedStyle]}>

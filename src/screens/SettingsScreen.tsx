@@ -40,6 +40,7 @@ import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import LanguageModal from "../components/LanguageModal";
+import { CustomAlert } from "../components/CustomAlert";
 import Constants from "expo-constants";
 import * as Haptics from "expo-haptics";
 
@@ -56,6 +57,7 @@ export const SettingsScreen: React.FC = () => {
 
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [resetAlertVisible, setResetAlertVisible] = useState(false);
 
   // Update isDarkMode based on system preference when using system theme
   useEffect(() => {
@@ -123,30 +125,24 @@ export const SettingsScreen: React.FC = () => {
   const handleResetAllData = () => {
     soundService.playClick();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Alert.alert(
-      t("settings.resetConfirmTitle"),
-      t("settings.resetConfirmMessage"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("settings.reset"),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const { clearGoals } = useDailyGoalsStore.getState();
-              await clearGoals();
-              useOnboardingStore.getState().resetState();
-              useThemeStore.getState().setThemeId("default");
-              useThemeStore.getState().setThemeMode("system");
-              useLanguageStore.getState().resetState();
-              router.replace("/onboarding");
-            } catch (error) {
-              console.error("Reset data error:", error);
-            }
-          },
-        },
-      ]
-    );
+    setResetAlertVisible(true);
+  };
+
+  const confirmResetAllData = async () => {
+    setResetAlertVisible(false);
+    try {
+      const { clearGoals } = useDailyGoalsStore.getState();
+      await clearGoals();
+      useOnboardingStore.getState().resetState();
+      useThemeStore.getState().setThemeId("default");
+      useThemeStore.getState().setThemeMode("system");
+      useLanguageStore.getState().resetState();
+      
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.replace("/onboarding");
+    } catch (error) {
+      console.error("Reset data error:", error);
+    }
   };
 
   const gradientColors: [string, string, string, string] = [
@@ -292,6 +288,17 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </ScrollView>
       <LanguageModal visible={languageModalVisible} onClose={() => setLanguageModalVisible(false)} />
+      
+      <CustomAlert
+        visible={resetAlertVisible}
+        title={t("settings.clearDataConfirmTitle")}
+        message={t("settings.clearDataConfirmMessage")}
+        type="danger"
+        confirmText={t("settings.reset")}
+        cancelText={t("settings.cancel")}
+        onConfirm={confirmResetAllData}
+        onCancel={() => setResetAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 };

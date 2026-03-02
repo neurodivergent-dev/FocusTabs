@@ -73,13 +73,15 @@ function RootLayoutNav() {
   useEffect(() => {
     // Convert segments to a string to check the path
     const path = segments.join("/");
-
     const inOnboarding = path.includes("onboarding");
 
     // If onboarding is not completed, redirect to onboarding
     if (!hasCompletedOnboarding && !inOnboarding) {
-      router.replace("/onboarding");
-      return;
+      // Use setTimeout to ensure the navigation root is ready
+      const timer = setTimeout(() => {
+        router.replace("/onboarding");
+      }, 1);
+      return () => clearTimeout(timer);
     }
   }, [segments, hasCompletedOnboarding]);
 

@@ -195,6 +195,11 @@ export default {
     currentLanguage: 'Mevcut Dil',
     resetAllData: 'Tüm Verileri Sıfırla',
     resetAllDataDescription: 'Tüm hedeflerinizi, tema ve dil ayarlarınızı sıfırlayın',
+    clearDataConfirmTitle: 'Evreni Sıfırla',
+    clearDataConfirmMessage: 'Tüm hedefleriniz, istatistikleriniz ve başarılarınız sonsuza dek silinecek. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?',
+    clearDataSuccess: 'Tüm izler temizlendi.',
+    cancel: 'Vazgeç',
+    reset: 'Sıfırla',
     success: 'Başarılı',
     ai: {
       title: 'AI Özellikleri',

@@ -4,9 +4,11 @@ import { Home, Calendar, BarChart2, Settings } from "lucide-react-native";
 import { useTheme } from "../../src/components/ThemeProvider";
 import { soundService } from "../../src/services/SoundService";
 import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
 
 export default function TabLayout() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const tabListeners = {
     tabPress: () => {
@@ -31,7 +33,7 @@ export default function TabLayout() {
         name="index"
         listeners={tabListeners}
         options={{
-          title: "Goals",
+          title: t("tabs.goals"),
           tabBarIcon: ({ color }) => <Home size={24} color={color} />,
         }}
       />
@@ -39,7 +41,7 @@ export default function TabLayout() {
         name="calendar"
         listeners={tabListeners}
         options={{
-          title: "Calendar",
+          title: t("tabs.calendar"),
           tabBarIcon: ({ color }) => <Calendar size={24} color={color} />,
         }}
       />
@@ -47,7 +49,7 @@ export default function TabLayout() {
         name="stats"
         listeners={tabListeners}
         options={{
-          title: "Stats",
+          title: t("tabs.stats"),
           tabBarIcon: ({ color }) => <BarChart2 size={24} color={color} />,
         }}
       />
@@ -55,7 +57,7 @@ export default function TabLayout() {
         name="settings"
         listeners={tabListeners}
         options={{
-          title: "Settings",
+          title: t("tabs.settings"),
           tabBarIcon: ({ color }) => <Settings size={24} color={color} />,
         }}
       />

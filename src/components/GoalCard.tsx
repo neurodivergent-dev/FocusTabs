@@ -27,7 +27,7 @@ interface GoalCardProps {
   onDelete: (id: string) => void;
   onStartTimer: (id: string) => void;
   onStopTimer: () => void;
-  onDecompose: (id: string) => void;
+  onDecompose: (id: string) => Promise<boolean>;
   onToggleSubTask: (goalId: string, subTaskId: string) => void;
   isActiveTimer: boolean;
   isAIEnabled: boolean;
@@ -277,19 +277,13 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                           style={styles.actionButton}
                           onPress={async () => {
                             setIsSlicing(true);
-                            await onDecompose(goal.id);
+                            const success = await onDecompose(goal.id);
                             setIsSlicing(false);
                             
-                            // Check if it failed by looking at the goal ref or waiting for store update
-                            // Since we don't have the updated goal here instantly, 
-                            // the store will handle the update and if subTasks is still empty,
-                            // we can assume it failed or is in cooldown.
-                            setTimeout(() => {
-                              if (!goal.subTasks || goal.subTasks.length === 0) {
-                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                                Alert.alert(t("home.aiErrorTitle"), t("home.aiDecomposeError"));
-                              }
-                            }, 500);
+                            if (!success) {
+                              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                              Alert.alert(t("home.aiErrorTitle"), t("home.aiDecomposeError"));
+                            }
                           }}
                           disabled={isSlicing}
                           onPressIn={handlePressIn}

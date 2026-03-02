@@ -44,7 +44,7 @@ interface DailyGoalsStore extends GoalsState {
   saveGoalTime: (id: string) => Promise<void>;
   
   // AI Slicer actions
-  decomposeGoal: (id: string, language: string) => Promise<void>;
+  decomposeGoal: (id: string, language: string) => Promise<boolean>;
   toggleSubTask: (goalId: string, subTaskId: string) => Promise<void>;
   
   // Calendar functions
@@ -383,11 +383,16 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   // AI Slicer implementation
   decomposeGoal: async (id: string, language: string) => {
     const goal = get().goals.find(g => g.id === id);
-    if (!goal) return;
+    if (!goal) return false;
 
     set({ loading: true });
     try {
       const subStepTexts = await aiService.decomposeGoal(goal.text, language);
+      if (!subStepTexts || subStepTexts.length === 0) {
+        set({ loading: false });
+        return false;
+      }
+
       const subTasks = subStepTexts.map((text, index) => ({
         id: `${id}-sub-${index}`,
         text,
@@ -399,9 +404,11 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
         goals: state.goals.map(g => g.id === id ? { ...g, subTasks } : g),
         loading: false
       }));
+      return true;
     } catch (error) {
       console.error('Error decomposing goal:', error);
       set({ loading: false });
+      return false;
     }
   },
 
