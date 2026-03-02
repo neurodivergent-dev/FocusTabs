@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, Text, Animated } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import { Target, Sparkles } from "lucide-react-native";
 import { useTheme } from "./ThemeProvider";
 import { useTranslation } from "react-i18next";

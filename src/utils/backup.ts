@@ -84,8 +84,8 @@ export const importData = (data: BackupData): boolean => {
     data.goals.forEach((goal) => {
       addGoal({
         text: goal.text,
-        category: (goal as any).category || 'other',
-        date: (goal as any).date,
+        category: (goal as unknown as { category: import('../types/goal').GoalCategory }).category || 'other',
+        date: goal.date,
       });
     });
 

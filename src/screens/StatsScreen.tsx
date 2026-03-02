@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { StyleSheet, View, Text, SafeAreaView, ScrollView, Platform, ActivityIndicator, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Text, SafeAreaView, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
@@ -51,6 +51,12 @@ interface InsightData {
   hasEnoughData: boolean;
 }
 
+export interface DynamicAIInsight {
+  title: string;
+  desc: string;
+  type: string;
+}
+
 export const StatsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { goals, getCompletedGoalsCount, getActiveGoalsCount, completionData } = useDailyGoalsStore();
@@ -75,7 +81,7 @@ export const StatsScreen: React.FC = () => {
   };
 
   const [aiInsight, setAiInsight] = useState<string | null>(null);
-  const [dynamicAIInsights, setDynamicAIInsights] = useState<any[]>([]);
+  const [dynamicAIInsights, setDynamicAIInsights] = useState<DynamicAIInsight[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const { isAIEnabled, apiKey } = useAIStore();
 
@@ -285,7 +291,7 @@ export const StatsScreen: React.FC = () => {
         hasTasks: totalCompletedTasks > 0,
       });
     }
-  }, [completionData, insights.productiveDayName]);
+  }, [completionData, insights.productiveDayName, goals]);
 
   const getPerformanceLevelColor = (rate: number) => {
     if (rate >= 80) return colors.success;

@@ -23,7 +23,7 @@ interface AIConfigModalProps {
 }
 
 export const AIConfigModal: React.FC<AIConfigModalProps> = ({ visible, onClose }) => {
-  const { apiKey, setApiKey, isAIEnabled, toggleAI } = useAIStore();
+  const { apiKey, setApiKey } = useAIStore();
   const { colors, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [inputKey, setInputKey] = useState(apiKey || "");

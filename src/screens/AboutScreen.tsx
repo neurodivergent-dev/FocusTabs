@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import {
   StyleSheet,
   View,
@@ -22,7 +22,6 @@ import {
   Palette, 
   CalendarDays, 
   Play, 
-  ExternalLink 
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
@@ -75,7 +74,7 @@ export const AboutScreen: React.FC = () => {
   };
 
   // Advanced Feature Card component with Reanimated
-  const FeatureCard = ({ icon: Icon, label, color }: { icon: any, label: string, color: string }) => {
+  const FeatureCard = ({ icon: Icon, label, color }: { icon: React.ElementType, label: string, color: string }) => {
     const scale = useSharedValue(1);
     const opacity = useSharedValue(1);
 

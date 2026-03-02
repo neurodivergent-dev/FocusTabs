@@ -29,7 +29,7 @@ const AI_ENABLED_STORAGE_KEY = 'ai_enabled_status';
 
 export const useAIStore = create<AIState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       apiKey: null,
       isAIEnabled: false,
       lastCelebrationMessage: null,

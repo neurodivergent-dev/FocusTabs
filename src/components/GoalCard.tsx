@@ -5,14 +5,13 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  Dimensions,
   ActivityIndicator,
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Check, Trash2, Edit2, X, Target, Briefcase, Heart as HeartIcon, User, DollarSign, Tag, Play, Pause, Timer, Scissors, ChevronDown, ChevronUp } from "lucide-react-native";
-import { Goal, GoalCategory, SubTask } from "../types/goal";
+import { Goal, GoalCategory } from "../types/goal";
 import { useTheme } from "./ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { getCategoryById } from "../constants/categories";
@@ -31,7 +30,6 @@ interface GoalCardProps {
   onToggleSubTask: (goalId: string, subTaskId: string) => void;
   isActiveTimer: boolean;
   isAIEnabled: boolean;
-  index: number;
 }
 
 export const GoalCard: React.FC<GoalCardProps> = ({
@@ -45,7 +43,6 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   onToggleSubTask,
   isActiveTimer,
   isAIEnabled,
-  index,
 }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
@@ -155,7 +152,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         }
       ]}>
         <LinearGradient
-          colors={cardGradient as any}
+          colors={cardGradient as [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}

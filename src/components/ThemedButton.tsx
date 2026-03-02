@@ -90,7 +90,7 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
   const variantStyles = getVariantStyles();
 
   return (
-    <Animated.View style={[animatedButtonStyle, { width: (style as any)?.width }]}>
+    <Animated.View style={[animatedButtonStyle, { width: (style as ViewStyle)?.width }]}>
       <TouchableOpacity
         style={[
           styles.button,

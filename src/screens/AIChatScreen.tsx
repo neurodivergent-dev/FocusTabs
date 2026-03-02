@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   ActivityIndicator,
-  Keyboard,
   StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -128,7 +127,7 @@ const AIChatScreen = () => {
     clearChatMessages();
   };
 
-  const renderMessage = ({ item }: { item: any }) => {
+  const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isAi = item.role === 'model';
     
     return (

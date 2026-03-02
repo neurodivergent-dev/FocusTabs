@@ -7,7 +7,6 @@ import {
   Animated,
   TouchableOpacity,
   StatusBar,
-  SafeAreaView,
   Image,
   Dimensions,
   ViewToken,

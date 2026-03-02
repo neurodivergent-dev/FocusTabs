@@ -9,6 +9,7 @@ import Animated, {
   withDelay,
   Easing,
   interpolate,
+  SharedValue
 } from 'react-native-reanimated';
 import { useTheme } from './ThemeProvider';
 import { useThemeStore } from '../store/themeStore';
@@ -16,8 +17,14 @@ import Svg, { Path, RadialGradient, Defs, Stop, Circle } from 'react-native-svg'
 
 const { width, height } = Dimensions.get('window');
 
+interface Point3D {
+  x: number;
+  y: number;
+  z: number;
+}
+
 // --- 3D MATH HELPERS (Worklets) ---
-const rotateX = (p: any, theta: number) => {
+const rotateX = (p: Point3D, theta: number) => {
   'worklet';
   const cos = Math.cos(theta);
   const sin = Math.sin(theta);
@@ -28,7 +35,7 @@ const rotateX = (p: any, theta: number) => {
   };
 };
 
-const rotateY = (p: any, theta: number) => {
+const rotateY = (p: Point3D, theta: number) => {
   'worklet';
   const cos = Math.cos(theta);
   const sin = Math.sin(theta);
@@ -39,7 +46,7 @@ const rotateY = (p: any, theta: number) => {
   };
 };
 
-const rotateZ = (p: any, theta: number) => {
+const rotateZ = (p: Point3D, theta: number) => {
   'worklet';
   const cos = Math.cos(theta);
   const sin = Math.sin(theta);
@@ -50,7 +57,7 @@ const rotateZ = (p: any, theta: number) => {
   };
 };
 
-const project = (p: any, size: number) => {
+const project = (p: Point3D, size: number) => {
   'worklet';
   const fov = 300;
   const distance = 2.5;
@@ -63,7 +70,18 @@ const project = (p: any, size: number) => {
 };
 
 // --- LINE COMPONENT ---
-const TesseractLine = ({ idx1, idx2, vertices, angleX, angleY, angleZ, color, size }: any) => {
+interface TesseractLineProps {
+  idx1: number;
+  idx2: number;
+  vertices: Point3D[];
+  angleX: SharedValue<number>;
+  angleY: SharedValue<number>;
+  angleZ: SharedValue<number>;
+  color: string;
+  size: number;
+}
+
+const TesseractLine = ({ idx1, idx2, vertices, angleX, angleY, angleZ, color, size }: TesseractLineProps) => {
   const animatedStyle = useAnimatedStyle(() => {
     const v1 = vertices[idx1];
     const v2 = vertices[idx2];
@@ -111,7 +129,7 @@ const Tesseract4D = () => {
     angleX.value = withRepeat(withTiming(Math.PI * 2, { duration: 15000, easing: Easing.linear }), -1, false);
     angleY.value = withRepeat(withTiming(Math.PI * 2, { duration: 20000, easing: Easing.linear }), -1, false);
     angleZ.value = withRepeat(withTiming(Math.PI * 2, { duration: 25000, easing: Easing.linear }), -1, false);
-  }, []);
+  }, [angleX, angleY, angleZ]);
 
   // 16 Köşeli HyperCube (Tesseract)
   const vertices = useMemo(() => {
@@ -160,11 +178,22 @@ const Tesseract4D = () => {
 
 // --- DIĞER EFEKTLER (Shapes, Particles, Aura, Atomic) ---
 
-const AtomicOrbit = ({ size, color, opacity, rx, ry, rotation, pulse, speedFactor = 1 }: any) => {
+interface AtomicOrbitProps {
+  size: number;
+  color: string;
+  opacity: number;
+  rx: string;
+  ry: string;
+  rotation: SharedValue<number>;
+  pulse: SharedValue<number>;
+  speedFactor?: number;
+}
+
+const AtomicOrbit = ({ size, color, opacity, rx, ry, rotation, pulse, speedFactor = 1 }: AtomicOrbitProps) => {
   const r = size / 2;
   const circ = 2 * Math.PI * r;
   const dashOffset = useSharedValue(0);
-  useEffect(() => { dashOffset.value = withRepeat(withTiming(circ, { duration: 3000 / Math.abs(speedFactor), easing: Easing.linear }), -1, false); }, []);
+  useEffect(() => { dashOffset.value = withRepeat(withTiming(circ, { duration: 3000 / Math.abs(speedFactor), easing: Easing.linear }), -1, false); }, [circ, dashOffset, speedFactor]);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ perspective: 1200 }, { rotateX: rx }, { rotateY: ry }, { rotateZ: `${rotation.value * speedFactor}deg` }], opacity: 0.3 + (pulse.value * 0.4) }));
   const AnimatedCircle = Animated.createAnimatedComponent(Circle);
   const animatedPathProps = useAnimatedProps(() => ({ strokeDashoffset: dashOffset.value }));
@@ -187,7 +216,7 @@ const AtomicSystem = () => {
   useEffect(() => {
     rotation.value = withRepeat(withTiming(360, { duration: 25000, easing: Easing.linear }), -1, false);
     pulse.value = withRepeat(withTiming(0.8, { duration: 2000, easing: Easing.inOut(Easing.sin) }), -1, true);
-  }, []);
+  }, [rotation, pulse]);
   return (
     <View style={styles.saturnContainer}>
       <View style={[styles.saturnGroup, { top: height / 2 - 80 }]}>
@@ -208,7 +237,7 @@ const AtomicSystem = () => {
 const IsometricCube = ({ size = 100, initialX = 0, initialY = 0, delay = 0, duration = 15000 }) => {
   const { colors } = useTheme();
   const progress = useSharedValue(0);
-  useEffect(() => { progress.value = withDelay(delay, withRepeat(withTiming(1, { duration, easing: Easing.linear }), -1, false)); }, []);
+  useEffect(() => { progress.value = withDelay(delay, withRepeat(withTiming(1, { duration, easing: Easing.linear }), -1, false)); }, [delay, duration, progress]);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: initialX }, { translateY: initialY + Math.sin(progress.value * Math.PI * 2) * 30 }, { rotate: `${progress.value * 360}deg` }] }));
   return (
     <Animated.View style={[styles.cubeWrapper, animatedStyle]}>
@@ -219,7 +248,7 @@ const IsometricCube = ({ size = 100, initialX = 0, initialY = 0, delay = 0, dura
   );
 };
 
-const FloatingParticle = ({ index }: { index: number }) => {
+const FloatingParticle = () => {
   const { colors } = useTheme();
   const tx = useSharedValue(Math.random() * width);
   const ty = useSharedValue(Math.random() * height);
@@ -228,7 +257,7 @@ const FloatingParticle = ({ index }: { index: number }) => {
     tx.value = withRepeat(withTiming(Math.random() * width, { duration: 15000 + Math.random() * 10000, easing: Easing.inOut(Easing.sin) }), -1, true);
     ty.value = withRepeat(withTiming(Math.random() * height, { duration: 15000 + Math.random() * 10000, easing: Easing.inOut(Easing.sin) }), -1, true);
     opacity.value = withRepeat(withTiming(0.1, { duration: 2000 + Math.random() * 3000 }), -1, true);
-  }, []);
+  }, [opacity, tx, ty]);
   return <Animated.View style={[styles.particle, { backgroundColor: colors.primary }, useAnimatedStyle(() => ({ transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: 1 }], opacity: opacity.value }))] } />;
 };
 
@@ -239,7 +268,7 @@ const AuraOrb = ({ delay = 0, initialX = 0, initialY = 0, size = 400, color = '#
   useEffect(() => {
     scale.value = withDelay(delay, withRepeat(withTiming(1.4, { duration: 10000, easing: Easing.inOut(Easing.sin) }), -1, true));
     opacity.value = withDelay(delay, withRepeat(withTiming(0.35, { duration: 8000, easing: Easing.inOut(Easing.sin) }), -1, true));
-  }, []);
+  }, [delay, opacity, scale]);
   return (
     <Animated.View style={[styles.auraOrb, { width: size, height: size, left: initialX, top: initialY }, useAnimatedStyle(() => ({ transform: [{ scale: scale.value }], opacity: opacity.value }))]}>
       <Svg width={size} height={size}><Defs><RadialGradient id={gradId} cx="50%" cy="50%" rx="50%" ry="50%"><Stop offset="0%" stopColor={color} stopOpacity="1" /><Stop offset="100%" stopColor={color} stopOpacity="0" /></RadialGradient></Defs><Circle cx={size / 2} cy={size / 2} r={size / 2} fill={`url(#${gradId})`} /></Svg>
@@ -250,13 +279,23 @@ const AuraOrb = ({ delay = 0, initialX = 0, initialY = 0, size = 400, color = '#
 export const BackgroundEffects = () => {
   const { colors } = useTheme();
   const { backgroundEffect } = useThemeStore();
-  const cubes = useMemo(() => [...Array(10)].map((_, i) => ({ id: i, size: 60 + Math.random() * 120, x: (Math.random() * width) - 50, y: (Math.random() * height) - 50, delay: i * 800, duration: 15000 + Math.random() * 10000 })), []);
+  
+  interface CubeData {
+    id: number;
+    size: number;
+    x: number;
+    y: number;
+    delay: number;
+    duration: number;
+  }
+
+  const cubes = useMemo<CubeData[]>(() => [...Array(10)].map((_, i) => ({ id: i, size: 60 + Math.random() * 120, x: (Math.random() * width) - 50, y: (Math.random() * height) - 50, delay: i * 800, duration: 15000 + Math.random() * 10000 })), []);
 
   if (backgroundEffect === 'none') return null;
-  if (backgroundEffect === 'particles') return <View style={StyleSheet.absoluteFill} pointerEvents="none">{[...Array(15)].map((_, i) => <FloatingParticle key={i} index={i} />)}</View>;
+  if (backgroundEffect === 'particles') return <View style={StyleSheet.absoluteFill} pointerEvents="none">{[...Array(15)].map((_, i) => <FloatingParticle key={i} />)}</View>;
   if (backgroundEffect === 'waves') return <View style={StyleSheet.absoluteFill} pointerEvents="none"><AuraOrb color={colors.primary} initialX={-100} initialY={-100} size={width * 1.2} delay={0} /><AuraOrb color={colors.secondary} initialX={width * 0.2} initialY={height * 0.5} size={width} delay={2000} /></View>;
-  if (backgroundEffect === ('crystals' as any)) return <View style={StyleSheet.absoluteFill} pointerEvents="none"><AtomicSystem /></View>;
-  if (backgroundEffect === ('tesseract' as any)) return <View style={StyleSheet.absoluteFill} pointerEvents="none"><Tesseract4D /></View>;
+  if (backgroundEffect === 'crystals') return <View style={StyleSheet.absoluteFill} pointerEvents="none"><AtomicSystem /></View>;
+  if (backgroundEffect === 'tesseract') return <View style={StyleSheet.absoluteFill} pointerEvents="none"><Tesseract4D /></View>;
 
   return <View style={StyleSheet.absoluteFill} pointerEvents="none">{cubes.map(cube => <IsometricCube key={cube.id} size={cube.size} initialX={cube.x} initialY={cube.y} delay={cube.delay} duration={cube.duration} />)}</View>;
 };

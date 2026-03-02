@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { createAudioPlayer } from 'expo-audio';
+import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 import { useThemeStore } from '../store/themeStore';
 
-const SOUND_ASSETS: Record<string, any> = {
+const SOUND_ASSETS: Record<string, number> = {
   complete: require('../../assets/sounds/complete.mp3'),
   delete: require('../../assets/sounds/delete.mp3'),
   undo: require('../../assets/sounds/undo.mp3'),
@@ -12,7 +12,7 @@ const SOUND_ASSETS: Record<string, any> = {
 
 export const SoundPlayer: React.FC = () => {
   const { soundTrigger, soundsEnabled } = useThemeStore();
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
 
   useEffect(() => {
     if (!soundsEnabled || !soundTrigger) return;
@@ -31,20 +31,19 @@ export const SoundPlayer: React.FC = () => {
       
       // Ses seviyesi ayarları
       if (soundTrigger.type === 'fanfare') {
-        // @ts-ignore
         player.volume = 0.7; // Fanfar daha duyulur olsun
       } else if (soundTrigger.type === 'click') {
-        // @ts-ignore
         player.volume = 0.3;
       } else {
-        // @ts-ignore
         player.volume = 0.5;
       }
       
       player.play();
       
-    } catch (error: any) {
-      console.log('Yerel ses çalma hatası:', error.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log('Yerel ses çalma hatası:', error.message);
+      }
     }
 
     return () => {

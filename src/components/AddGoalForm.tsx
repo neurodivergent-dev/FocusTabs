@@ -33,15 +33,22 @@ interface AddGoalFormProps {
   existingGoals?: string[];
 }
 
+interface CategoryCardProps {
+  category: typeof CATEGORIES[0];
+  isSelected: boolean;
+  onSelect: (id: GoalCategory) => void;
+  isDarkMode: boolean;
+}
+
 // --- ELITE CATEGORY CARD COMPONENT ---
-const CategoryCard = ({ category, isSelected, onSelect, colors, isDarkMode }: any) => {
+const CategoryCard = ({ category, isSelected, onSelect, isDarkMode }: CategoryCardProps) => {
   const scale = useSharedValue(isSelected ? 1.2 : 1);
   const glow = useSharedValue(isSelected ? 1 : 0);
 
   useEffect(() => {
     scale.value = withSpring(isSelected ? 1.25 : 1, { damping: 12, stiffness: 200 });
     glow.value = withTiming(isSelected ? 1 : 0, { duration: 300 });
-  }, [isSelected]);
+  }, [isSelected, scale, glow]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -228,7 +235,6 @@ export const AddGoalForm: React.FC<AddGoalFormProps> = ({
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setSelectedCategory(id);
                 }}
-                colors={colors}
                 isDarkMode={isDarkMode}
               />
             ))}

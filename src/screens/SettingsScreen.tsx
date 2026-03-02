@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Alert,
   useColorScheme,
   Linking,
   Switch,
@@ -25,7 +24,6 @@ import {
   Languages,
   CloudUpload,
   Trash2,
-  Heart,
   Volume2,
   VolumeX,
   BrainCircuit,
@@ -34,7 +32,6 @@ import { useThemeStore } from "../store/themeStore";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useOnboardingStore } from "../store/onboardingStore";
-import { useAIStore } from "../store/aiStore";
 import { soundService } from "../services/SoundService";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
@@ -56,7 +53,6 @@ export const SettingsScreen: React.FC = () => {
   const { colors, isDarkMode } = useTheme();
 
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
-  const [aiModalVisible, setAiModalVisible] = useState(false);
   const [resetAlertVisible, setResetAlertVisible] = useState(false);
 
   // Easter Egg State

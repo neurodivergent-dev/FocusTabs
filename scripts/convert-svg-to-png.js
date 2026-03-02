@@ -1,4 +1,5 @@
 // Bu script, assets/images/onboarding dizinindeki SVG dosyalarını PNG formatına dönüştürür
+/* eslint-disable @typescript-eslint/no-var-requires */
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
@@ -18,7 +19,6 @@ async function convertAll() {
       const pngPath = path.join(ONBOARDING_DIR, `${name}.png`);
       
       console.log(`SVG okunuyor: ${svgPath}`);
-      const svgContent = fs.readFileSync(svgPath);
       
       // SVG'yi PNG'ye dönüştür
       await sharp(svgPath)

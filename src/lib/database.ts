@@ -1,5 +1,5 @@
 import { openDatabaseSync } from 'expo-sqlite';
-import { Goal, GoalInput, DailyCompletion } from '../types/goal';
+import { Goal, GoalInput, DailyCompletion, GoalCategory } from '../types/goal';
 
 // Open a database connection
 const db = openDatabaseSync('focustabs.db');
@@ -56,7 +56,9 @@ export const initDatabase = async (): Promise<void> => {
   try {
     await db.execAsync("ALTER TABLE goals ADD COLUMN subTasks TEXT;");
     console.log('subTasks column added to goals table');
-  } catch (e) {}
+  } catch (e) {
+    // Column might already exist
+  }
   
   isInitialized = true;
   // console.log('Database initialized successfully');
@@ -101,7 +103,7 @@ export const getGoals = async (): Promise<Goal[]> => {
     createdAt: new Date(goal.createdAt),
     updatedAt: new Date(goal.updatedAt),
     date: goal.date || today, // Garanti olması için varsayılan değer
-    category: (goal.category as any) || 'other',
+    category: (goal.category as GoalCategory) || 'other',
     focusTime: goal.focusTime || 0,
     subTasks: goal.subTasks ? JSON.parse(goal.subTasks) : undefined
   }));
@@ -370,7 +372,7 @@ export const getGoalsByDate = async (date: string): Promise<Goal[]> => {
     createdAt: new Date(goal.createdAt),
     updatedAt: new Date(goal.updatedAt),
     date: goal.date,
-    category: (goal.category as any) || 'other',
+    category: (goal.category as GoalCategory) || 'other',
     focusTime: goal.focusTime || 0,
     subTasks: goal.subTasks ? JSON.parse(goal.subTasks) : undefined
   }));

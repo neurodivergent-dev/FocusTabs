@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { CalendarScreen } from "../../src/screens/CalendarScreen";
 import { useFocusEffect } from "@react-navigation/native";
 

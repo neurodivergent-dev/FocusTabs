@@ -545,7 +545,7 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       const allGoals = await dbGetGoals();
       
       // ID'lere göre görevleri grupla
-      const goalsByIds: Record<string, any[]> = {};
+      const goalsByIds: Record<string, Goal[]> = {};
       allGoals.forEach(goal => {
         if (!goalsByIds[goal.id]) {
           goalsByIds[goal.id] = [];

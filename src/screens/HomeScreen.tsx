@@ -21,7 +21,6 @@ import Animated, {
   useAnimatedStyle, 
   withSpring,
   interpolateColor,
-  SlideInUp,
   SlideOutDown,
 } from "react-native-reanimated";
 import { RotateCcw } from "lucide-react-native";
@@ -54,7 +53,6 @@ export const HomeScreen: React.FC = () => {
   const { isAIEnabled } = useAIStore();
 
   // Keyboard state
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   // Get goals and actions from our store
@@ -85,8 +83,7 @@ export const HomeScreen: React.FC = () => {
     // Keyboard listeners
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
-      (event) => {
-        setKeyboardHeight(event.endCoordinates.height);
+      () => {
         setKeyboardVisible(true);
       }
     );
@@ -94,7 +91,6 @@ export const HomeScreen: React.FC = () => {
     const keyboardDidHideListener = Keyboard.addListener(
       "keyboardDidHide",
       () => {
-        setKeyboardHeight(0);
         setKeyboardVisible(false);
       }
     );
@@ -222,13 +218,6 @@ export const HomeScreen: React.FC = () => {
     };
   });
 
-  const gradientColors: [string, string, string, string] = [
-    colors.primary || "#6366F1",
-    colors.secondary || colors.primary || "#EC4899",
-    colors.info || colors.primary || "#3B82F6",
-    colors.primary || "#6366F1",
-  ];
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -319,7 +308,6 @@ export const HomeScreen: React.FC = () => {
               >
                 <GoalCard
                   goal={goal}
-                  index={index}
                   onToggleComplete={toggleGoalCompletion}
                   onUpdateText={updateGoalText}
                   onDelete={handleDeleteGoal}

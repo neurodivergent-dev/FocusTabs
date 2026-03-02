@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   ScrollView,
+  ViewStyle,
+  TextStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -109,7 +111,6 @@ export const CalendarScreen: React.FC = () => {
     calendarLoading,
     calendarError,
     fetchAllCompletions,
-    updateDailyStats,
     dateGoals,
     dateGoalsLoading,
     fetchGoalsByDate,
@@ -177,15 +178,8 @@ export const CalendarScreen: React.FC = () => {
     marked?: boolean;
     dotColor?: string;
     customStyles?: {
-      container?: {
-        backgroundColor?: string;
-        borderWidth?: number;
-        borderColor?: string;
-      };
-      text?: {
-        color?: string;
-        fontWeight?: string;
-      };
+      container?: ViewStyle;
+      text?: TextStyle;
     };
   }
 
@@ -202,7 +196,7 @@ export const CalendarScreen: React.FC = () => {
     fetchGoalsByDate(today);
     fetchAllCompletions();
     // updateDailyStats() - Gereksiz, zaten fetchAllCompletions yeterli
-  }, []);
+  }, [fetchAllCompletions, fetchGoalsByDate]);
 
   // Refresh data when tab is focused
   useFocusEffect(
@@ -289,7 +283,7 @@ export const CalendarScreen: React.FC = () => {
               },
               text: {
                 color: item.date === selectedDate ? "#FFFFFF" : colors.text,
-                fontWeight: item.date === selectedDate ? "bold" : "normal",
+                fontWeight: (item.date === selectedDate ? "bold" : "normal") as "bold" | "normal",
               },
             },
           };
@@ -313,7 +307,7 @@ export const CalendarScreen: React.FC = () => {
           },
           text: {
             color: today === selectedDate ? "#FFFFFF" : colors.text,
-            fontWeight: today === selectedDate ? "bold" : "normal",
+            fontWeight: (today === selectedDate ? "bold" : "normal") as "bold" | "normal",
           },
         },
       };
@@ -332,7 +326,7 @@ export const CalendarScreen: React.FC = () => {
           },
           text: {
             color: "#FFFFFF",
-            fontWeight: "bold",
+            fontWeight: "bold" as const,
           },
         },
       };
@@ -420,9 +414,9 @@ export const CalendarScreen: React.FC = () => {
       indicatorColor: colors.primary,
 
       // Text styles
-      textDayFontWeight: "400",
-      textMonthFontWeight: "bold",
-      textDayHeaderFontWeight: "600",
+      textDayFontWeight: "400" as const,
+      textMonthFontWeight: "bold" as const,
+      textDayHeaderFontWeight: "600" as const,
       textDayFontSize: 16,
       textMonthFontSize: 16,
       textDayHeaderFontSize: 14,
@@ -561,13 +555,6 @@ export const CalendarScreen: React.FC = () => {
     }
   };
 
-  const gradientColors: [string, string, string, string] = [
-    colors.primary || "#6366F1",
-    colors.secondary || colors.primary || "#EC4899",
-    colors.info || colors.primary || "#3B82F6",
-    colors.primary || "#6366F1",
-  ];
-
   // Category Icon Mapper
   const CategoryIcon = ({ id, size, color }: { id: GoalCategory, size: number, color: string }) => {
     switch (id) {
@@ -621,9 +608,9 @@ export const CalendarScreen: React.FC = () => {
             current={displayDate}
             onDayPress={handleDateSelect}
             onMonthChange={handleMonthChange}
-            markedDates={markedDates as any}
+            markedDates={markedDates}
             markingType="custom"
-            theme={calendarTheme as any}
+            theme={calendarTheme}
             enableSwipeMonths={true}
             hideExtraDays={false}
             firstDay={getFirstDayOfWeek()} // First day of week based on language

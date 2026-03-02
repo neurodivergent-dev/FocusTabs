@@ -53,8 +53,8 @@ class AIService {
       // Önbelleğe al
       this.cache[cacheKey] = { msg: text, time: now };
       return text;
-    } catch (e: any) {
-      if (e.message?.includes('429')) {
+    } catch (e) {
+      if (e instanceof Error && e.message?.includes('429')) {
         console.log("Kota doldu, fallback veya cache deneniyor...");
         if (!useFallback) {
           return this.requestAI(prompt, cacheKey, forceRefresh, true);
@@ -87,7 +87,7 @@ class AIService {
     return this.requestAI(prompt, `celebration_${today}_${goalsKey}_${language}`);
   }
 
-  async getPerformanceInsight(stats: any, language: string = 'en', forceRefresh = false): Promise<string> {
+  async getPerformanceInsight(stats: Record<string, unknown>, language: string = 'en', forceRefresh = false): Promise<string> {
     const prompt = `Analyze these productivity stats: ${JSON.stringify(stats)}. 
     Give one very short (max 15 words), encouraging advice or insight in ${language}. 
     YOU CAN use basic Markdown like **bold** for emphasis. 
@@ -97,7 +97,7 @@ class AIService {
   }
 
   // Haftalık başarıları analiz etme (Achievements kartı için)
-  async getWeeklyInsights(stats: any, language: string = 'en', forceRefresh = false): Promise<any[]> {
+  async getWeeklyInsights(stats: Record<string, unknown>, language: string = 'en', forceRefresh = false): Promise<import('../screens/StatsScreen').DynamicAIInsight[]> {
     const prompt = `Analyze these productivity stats: ${JSON.stringify(stats)}. 
     Create THREE specific achievement badges.
     RULES:
@@ -117,7 +117,7 @@ class AIService {
   }
 
   // Yeni hedef önerisi oluşturma
-  async suggestGoal(existingGoals: string[], language: string = 'en'): Promise<{ text: string, category: any }> {
+  async suggestGoal(existingGoals: string[], language: string = 'en'): Promise<{ text: string, category: import('../types/goal').GoalCategory }> {
     this.init();
     if (!this.genAI) return { text: "", category: "other" };
 

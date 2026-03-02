@@ -5,20 +5,17 @@ import {
   Text,
   Modal,
   TouchableOpacity,
-  Dimensions,
   Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from './ThemeProvider';
-import { AlertTriangle, Info, CheckCircle2, X } from 'lucide-react-native';
+import { AlertTriangle, Info, CheckCircle2 } from 'lucide-react-native';
 import Animated, { 
   FadeIn, 
   FadeOut, 
   ZoomIn, 
   ZoomOut 
 } from 'react-native-reanimated';
-
-const { width } = Dimensions.get('window');
 
 export type AlertType = 'warning' | 'info' | 'success' | 'danger';
 

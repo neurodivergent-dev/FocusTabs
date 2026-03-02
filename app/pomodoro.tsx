@@ -18,7 +18,6 @@ import { useDailyGoalsStore } from "../src/store/dailyGoalsStore";
 import Animated, { 
   useAnimatedStyle, 
   useSharedValue, 
-  withSpring,
   withTiming,
   interpolate,
   Easing
@@ -64,7 +63,7 @@ export default function PomodoroScreen() {
       switchMode();
     }
     return () => clearInterval(interval);
-  }, [isActive, isPaused, timeLeft]);
+  }, [isActive, isPaused, timeLeft, tick, triggerSound, switchMode]);
 
   // Formatting time
   const formatTime = (seconds: number) => {
@@ -79,7 +78,7 @@ export default function PomodoroScreen() {
 
   useEffect(() => {
     progressValue.value = withTiming(timeLeft / totalTime, { duration: 1000, easing: Easing.linear });
-  }, [timeLeft]);
+  }, [timeLeft, totalTime, progressValue]);
 
   const animatedCircleStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progressValue.value, [0, 1], [0.5, 1]),

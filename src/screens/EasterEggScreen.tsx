@@ -56,7 +56,7 @@ const EasterEggScreen = () => {
               REALITY_BREACH
             </Text>
           </View>
-          <Text style={styles.subText}>Hyperkähler Manifold Raymarching</Text>
+          <Text style={styles.subText}>Trans-Dimensional Latent Geometry</Text>
           <View style={[styles.statusBadge, { borderColor: colors.primary + '60' }]}>
             <Text style={[styles.statusText, { color: colors.primary }]}>
               STATUS: ARCHITECT VERIFIED

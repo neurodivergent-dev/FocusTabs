@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, { createContext, useContext, useEffect, useRef } from "react";
 import { useColorScheme, StyleSheet, View } from "react-native";
 import { useThemeStore } from "../store/themeStore";
 import { ThemeOption } from "../constants/themes";
@@ -6,9 +6,7 @@ import Animated, {
   useSharedValue, 
   useAnimatedStyle, 
   withTiming, 
-  runOnJS,
   Easing,
-  interpolate
 } from "react-native-reanimated";
 
 // Tema içeriği türü
@@ -44,7 +42,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Transition state
   const contentOpacity = useSharedValue(1);
-  const [prevColors, setPrevColors] = useState(colors);
   const prevThemeIdRef = useRef(themeId);
   const prevIsDarkRef = useRef(isDarkMode);
 
@@ -60,12 +57,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         easing: Easing.out(Easing.quad) 
       });
 
-      // Ref'leri ve önceki renkleri güncelle
-      setPrevColors(colors);
+      // Ref'leri güncelle
       prevThemeIdRef.current = themeId;
       prevIsDarkRef.current = isDarkMode;
     }
-  }, [themeId, isDarkMode]);
+  }, [themeId, isDarkMode, contentOpacity]);
 
   const animatedContentStyle = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,

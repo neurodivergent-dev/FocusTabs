@@ -7,7 +7,6 @@ import Animated, {
   withDelay,
   withSequence,
   withTiming,
-  Easing,
 } from "react-native-reanimated";
 import { Trophy, Sparkles } from "lucide-react-native";
 import { useTheme } from "./ThemeProvider";
@@ -26,7 +25,7 @@ interface CelebrationProps {
 }
 
 export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] }) => {
-  const { colors, isDarkMode } = useTheme();
+  const { colors } = useTheme();
   const { t, i18n } = useTranslation();
   const [shouldRender, setShouldRender] = useState(false);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
@@ -35,6 +34,16 @@ export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] })
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
+
+  const hide = React.useCallback(() => {
+    scale.value = withTiming(0, { duration: 400 });
+    opacity.value = withTiming(0, { duration: 400 });
+    translateY.value = withTiming(50, { duration: 400 });
+    setTimeout(() => {
+      setShouldRender(false);
+      setAiMessage(null);
+    }, 400);
+  }, [scale, opacity, translateY]);
 
   useEffect(() => {
     if (visible) {
@@ -89,17 +98,7 @@ export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] })
         if (closeTimer) clearTimeout(closeTimer);
       };
     }
-  }, [visible, isAIEnabled]);
-
-  const hide = () => {
-    scale.value = withTiming(0, { duration: 400 });
-    opacity.value = withTiming(0, { duration: 400 });
-    translateY.value = withTiming(50, { duration: 400 });
-    setTimeout(() => {
-      setShouldRender(false);
-      setAiMessage(null);
-    }, 400);
-  };
+  }, [visible, isAIEnabled, goals, hide, i18n.language, lastCelebrationDate, lastCelebrationMessage, opacity, scale, setCelebrationCache, t, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }, { translateY: translateY.value }],
@@ -153,7 +152,7 @@ const ConfettiPiece = ({ index, color }: { index: number; color: string }) => {
     fall.value = withDelay(index * 50, withTiming(height, { duration: 2500 }));
     side.value = withDelay(index * 50, withSpring(Math.random() * 300 - 150));
     rot.value = withTiming(720, { duration: 2500 });
-  }, []);
+  }, [index, fall, side, rot]);
 
   const style = useAnimatedStyle(() => ({
     position: "absolute",

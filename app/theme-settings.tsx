@@ -13,16 +13,15 @@ import { Stack, useRouter } from "expo-router";
 import { useThemeStore } from "../src/store/themeStore";
 import { THEMES } from "../src/constants/themes";
 import { useTheme } from "../src/components/ThemeProvider";
-import ThemedCard from "../src/components/ThemedCard";
 import ThemedButton from "../src/components/ThemedButton";
-import { ChevronLeft, Palette, Box, Sparkles, Waves, CircleOff, Gem, Atom, Hexagon } from "lucide-react-native";
+import { ChevronLeft, Palette, Box, Sparkles, Waves, CircleOff, Atom, Hexagon } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { BackgroundEffectType } from "../src/store/themeStore";
 
 export default function ThemeSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { colors, isDarkMode, themeId } = useTheme();
+  const { colors, themeId } = useTheme();
   const { setBackgroundEffect, backgroundEffect, setThemeId } = useThemeStore((state) => ({
     setThemeId: state.setThemeId,
     setBackgroundEffect: state.setBackgroundEffect,
