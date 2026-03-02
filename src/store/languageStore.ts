@@ -18,7 +18,7 @@ export const useLanguageStore = create<LanguageState>()(
       
       setLanguage: (lang: string) => {
         // Ensure the language is supported
-        if (lang !== LANGUAGES.EN && lang !== LANGUAGES.TR && lang !== LANGUAGES.DE) {
+        if (lang !== LANGUAGES.EN && lang !== LANGUAGES.TR) {
           console.warn(`Unsupported language: ${lang}, falling back to English`);
           lang = LANGUAGES.EN;
         }

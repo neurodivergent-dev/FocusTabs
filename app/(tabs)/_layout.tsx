@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { Home, Calendar, BarChart2, Settings } from "lucide-react-native";
+import { Home, Calendar, BarChart2, Settings, Sparkles } from "lucide-react-native";
 import { useTheme } from "../../src/components/ThemeProvider";
 import { soundService } from "../../src/services/SoundService";
 import * as Haptics from "expo-haptics";
@@ -51,6 +51,14 @@ export default function TabLayout() {
         options={{
           title: t("tabs.stats"),
           tabBarIcon: ({ color }) => <BarChart2 size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ai-chat"
+        listeners={tabListeners}
+        options={{
+          title: t("tabs.ai"),
+          tabBarIcon: ({ color }) => <Sparkles size={24} color={color} />,
         }}
       />
       <Tabs.Screen

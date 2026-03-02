@@ -408,14 +408,18 @@ export const resetAndRecalculateAllCompletionStats = async (): Promise<void> => 
       continue;
     }
     
+    let totalCount = 0;
+    let completedCount = 0;
+    let percentage = 0;
+
     try {
       // Bu tarih için tüm görevleri al
       const goals = await getGoalsByDate(date);
-      const totalCount = goals.length;
-      const completedCount = goals.filter(goal => goal.completed).length;
+      totalCount = goals.length;
+      completedCount = goals.filter(goal => goal.completed).length;
       
       // Tamamlanma yüzdesi hesapla
-      const percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+      percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
       
       // Check if a record already exists for this date
       const existingRecord = await db.getFirstAsync<SQLDailyCompletion>(

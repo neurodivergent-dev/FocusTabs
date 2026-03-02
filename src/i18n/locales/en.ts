@@ -253,6 +253,14 @@ export default {
       smartRefineDesc: 'Gemini transforms your simple goals into more professional and trackable daily tasks.',
       aiMotivationTitle: 'AI Motivation',
       aiMotivationDesc: 'When you finish all 3 goals, Gemini prepares fresh and motivating celebration messages for you.',
+      chat: {
+        title: 'AI Coach',
+        placeholder: 'Chat with your assistant...',
+        welcome: 'Hello! I am your productivity coach. We can talk about your goals for today or I can suggest new strategies.',
+        noApiKey: 'Please enter your Gemini API key in settings.',
+        error: 'An error occurred. Please try again.',
+        typing: 'Gemini is typing...',
+      },
     },
   },
 
@@ -339,6 +347,7 @@ export default {
     goals: 'Goals',
     calendar: 'Calendar',
     stats: 'Stats',
+    ai: 'AI Coach',
     settings: 'Settings',
   },
 

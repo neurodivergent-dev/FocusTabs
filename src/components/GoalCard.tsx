@@ -155,7 +155,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         }
       ]}>
         <LinearGradient
-          colors={cardGradient}
+          colors={cardGradient as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}

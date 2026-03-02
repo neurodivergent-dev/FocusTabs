@@ -18,7 +18,12 @@ export interface Goal {
   subTasks?: SubTask[]; // AI tarafından parçalanmış alt görevler
 }
 
-export type GoalInput = Pick<Goal, 'text' | 'category'>;
+export type GoalInput = {
+  text: string;
+  category: GoalCategory;
+  date?: string;
+  completed?: boolean;
+};
 
 export interface GoalsState {
   goals: Goal[];

@@ -84,6 +84,8 @@ export const importData = (data: BackupData): boolean => {
     data.goals.forEach((goal) => {
       addGoal({
         text: goal.text,
+        category: (goal as any).category || 'other',
+        date: (goal as any).date,
       });
     });
 

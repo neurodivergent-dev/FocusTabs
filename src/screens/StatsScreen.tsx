@@ -616,7 +616,7 @@ export const StatsScreen: React.FC = () => {
                   <>
                     <BrainCircuit size={18} color={colors.primary} />
                     <MarkdownText 
-                      content={aiInsight} 
+                      content={aiInsight || ""} 
                       style={styles.aiInsightText} 
                       baseColor={colors.text} 
                     />

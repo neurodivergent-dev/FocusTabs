@@ -28,14 +28,16 @@ class AIService {
 
     const now = Date.now();
     
-    // 1. Önbellek kontrolü (Eğer zorla yenileme yoksa ve son 1 saat içindeyse aynısını ver)
+    // 1. Önbellek kontrolü
     if (!forceRefresh && this.cache[cacheKey] && (now - this.cache[cacheKey].time < 3600000)) {
       return this.cache[cacheKey].msg;
     }
 
-    // 2. Cooldown kontrolü (Eğer zorla yenileme yoksa ve çok sık istek atılıyorsa engelle)
-    if (!forceRefresh && (now - this.lastRequestTime < this.COOLDOWN_MS)) {
-      console.log(`[AI SERVICE] Cooldown aktif. Kalan süre: ${Math.round((this.COOLDOWN_MS - (now - this.lastRequestTime))/1000)}s`);
+    // 2. Cooldown kontrolü (Chat için cooldown'u esnetelim)
+    const isChat = cacheKey.startsWith('chat_');
+    const cooldown = isChat ? 1000 : this.COOLDOWN_MS;
+
+    if (!forceRefresh && (now - this.lastRequestTime < cooldown)) {
       return this.cache[cacheKey]?.msg || "";
     }
 
@@ -181,6 +183,44 @@ class AIService {
       console.error("AI Decompose Hatası (Ham Yanıt):", result);
       console.error("AI Decompose Hatası (Detay):", e);
       return [];
+    }
+  }
+
+  // AI Chatbot fonksiyonu
+  async chat(message: string, history: { role: string, parts: { text: string }[] }[], goalContext: string, language: string = 'en'): Promise<string> {
+    this.init();
+    if (!this.genAI) return "";
+
+    try {
+      const model = this.genAI.getGenerativeModel({ 
+        model: this.MODEL_NAME,
+        systemInstruction: `You are an expert Productivity Coach for the "FocusTabs" app.
+        Your tone is professional, encouraging, minimalist, and smart.
+        You have access to the user's current goals and subtasks:
+        ${goalContext}
+        
+        RULES:
+        1. Keep responses concise (max 80 words).
+        2. Use Markdown heavily for better readability:
+           - Use **bold** for key actions or importance.
+           - Use *italic* for secondary emphasis.
+           - Use bullet points (- or *) for lists of tips or steps.
+           - Use new lines to separate ideas.
+        3. Language: ${language}.
+        4. Focus on helping the user achieve their goals.
+        5. If asked about something unrelated to productivity, politely bring the conversation back to their focus.`
+      });
+
+      const chat = model.startChat({
+        history: history,
+      });
+
+      const result = await chat.sendMessage(message);
+      const response = await result.response;
+      return response.text().trim();
+    } catch (e) {
+      console.error("AI Chat Error:", e);
+      return "";
     }
   }
 }

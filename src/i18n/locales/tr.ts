@@ -220,10 +220,18 @@ export default {
       smartRefineDesc: 'Yazdığınız basit hedefleri, Gemini daha profesyonel ve takip edilebilir günlük görevlere dönüştürür.',
       aiMotivationTitle: 'AI Motivasyon',
       aiMotivationDesc: '3 hedefi de bitirdiğinizde Gemini size özel, taze ve motive edici kutlama mesajları hazırlar.',
+      chat: {
+        title: 'AI Koçu',
+        placeholder: 'Asistanla konuşun...',
+        welcome: 'Merhaba! Ben senin verimlilik koçunum. Bugünkü hedeflerin üzerine konuşabiliriz veya sana yeni stratejiler önerebilirim.',
+        noApiKey: 'Lütfen ayarlardan Gemini API anahtarınızı girin.',
+        error: 'Bir hata oluştu. Lütfen tekrar deneyin.',
+        typing: 'Gemini yazıyor...',
+      },
     },
   },
   backup: {
-    title: 'Yedekle & Geri Yükle',
+      title: 'Yedekle & Geri Yükle',
     description: 'Verilerinizi yedekleyin veya başka cihaza aktarın',
     export: 'Dışa Aktar',
     exportJSON: 'JSON olarak dışa aktar',
@@ -287,6 +295,7 @@ export default {
     goals: 'Hedefler',
     calendar: 'Takvim',
     stats: 'İstatistik',
+    ai: 'Asistan',
     settings: 'Ayarlar',
   },
   about: {

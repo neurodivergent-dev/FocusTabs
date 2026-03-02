@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   ViewStyle,
   TextStyle,
+  StyleProp,
 } from "react-native";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { useTheme } from "./ThemeProvider";
@@ -16,8 +17,8 @@ interface ThemedButtonProps {
   variant?: "primary" | "secondary" | "outline" | "danger";
   disabled?: boolean;
   loading?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
 }
 

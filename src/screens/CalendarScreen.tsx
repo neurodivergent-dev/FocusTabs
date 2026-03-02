@@ -621,13 +621,12 @@ export const CalendarScreen: React.FC = () => {
             current={displayDate}
             onDayPress={handleDateSelect}
             onMonthChange={handleMonthChange}
-            markedDates={markedDates}
+            markedDates={markedDates as any}
             markingType="custom"
-            theme={calendarTheme}
+            theme={calendarTheme as any}
             enableSwipeMonths={true}
             hideExtraDays={false}
             firstDay={getFirstDayOfWeek()} // First day of week based on language
-            locale={i18n.language} // Language setting directly from i18n
             renderArrow={(direction: string) =>
               direction === "left" ? (
                 <ChevronLeft size={20} color={colors.primary} />
@@ -922,10 +921,36 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
+  detailsContainer: {
+    margin: 16,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
   detailsContainerWrapper: {
     margin: 16,
     borderRadius: 24,
     overflow: 'hidden',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 12,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
   detailsContainerGradient: {
     padding: 24,

@@ -7,6 +7,8 @@ export interface ThemeOption {
     secondary: string;
     background: string;
     card: string;
+    cardBackground: string; // Added for compatibility
+    cardBorder: string; // Added for compatibility
     text: string;
     subText: string;
     border: string;
@@ -19,7 +21,9 @@ export interface ThemeOption {
 
 const lightBase = {
   background: '#F2F2F7',
-  card: '#FFFFFF', // Tam mat beyaz yaptık
+  card: '#FFFFFF',
+  cardBackground: '#FFFFFF',
+  cardBorder: 'rgba(0, 0, 0, 0.05)',
   text: '#1C1C1E',
   subText: '#8E8E93',
   border: 'rgba(0, 0, 0, 0.05)',
@@ -32,6 +36,8 @@ const lightBase = {
 const darkBase = {
   background: '#0F0F11',
   card: 'rgba(30, 30, 35, 0.6)',
+  cardBackground: 'rgba(30, 30, 35, 0.6)',
+  cardBorder: 'rgba(255, 255, 255, 0.1)',
   text: '#FFFFFF',
   subText: '#8E8E93',
   border: 'rgba(255, 255, 255, 0.1)',

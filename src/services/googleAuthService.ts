@@ -31,11 +31,9 @@ class GoogleAuthService {
           web: authConfig.google.webClientId,
           ios: authConfig.google.iosClientId,
           android: authConfig.google.webClientId,
-        }),
+        }) || '',
         responseType: AuthSession.ResponseType.Token,
-        redirectUri: AuthSession.makeRedirectUri({
-          useProxy: true,
-        }),
+        redirectUri: AuthSession.makeRedirectUri(),
         scopes: ['profile', 'email'],
       },
       discovery
