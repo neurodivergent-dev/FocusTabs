@@ -77,23 +77,39 @@ export const StatsScreen: React.FC = () => {
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [dynamicAIInsights, setDynamicAIInsights] = useState<any[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [forceRefreshTrigger, setForceRefreshTrigger] = useState(0);
   const { isAIEnabled, apiKey } = useAIStore();
 
-  const handleRefresh = () => {
-    if (!isAIEnabled || !apiKey) return;
+  const handleRefresh = async () => {
+    if (!isAIEnabled || !apiKey || isAiLoading) return;
     
     soundService.playClick();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     
-    // UI'ı hemen temizle ve yenileme simülasyonu yap
     setIsAiLoading(true);
     setAiInsight(null);
     setDynamicAIInsights([]);
-    setForceRefreshTrigger(prev => prev + 1);
+
+    const statsSummary = {
+      weeklyRate: Math.round(performanceData.weeklyCompletionRate),
+      streak: performanceData.streak,
+      total: performanceData.totalCompletedTasks,
+      bestDay: performanceData.bestDay,
+      topCategory: insights.topCategoryName
+    };
     
-    // 1 saniye sonra yükleniyor modundan çık (useEffect zaten arkada çalışacak)
-    setTimeout(() => setIsAiLoading(false), 1000);
+    try {
+      const [insightRes, weeklyRes] = await Promise.all([
+        aiService.getPerformanceInsight(statsSummary, i18n.language),
+        aiService.getWeeklyInsights(statsSummary, i18n.language)
+      ]);
+      
+      if (insightRes) setAiInsight(insightRes);
+      if (weeklyRes && weeklyRes.length > 0) setDynamicAIInsights(weeklyRes);
+    } catch (err) {
+      console.error("AI Stats Hatası:", err);
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   // Gemini gelmezse diye gerçek verilere dayalı "Statik ama Dinamik" rozetler
@@ -268,33 +284,8 @@ export const StatsScreen: React.FC = () => {
         totalFocusTime,
         hasTasks: totalCompletedTasks > 0,
       });
-
-      // Fetch AI performance insight and weekly achievements if enabled and not already loaded
-      if (isAIEnabled && apiKey && !aiInsight && !isAiLoading) {
-        setIsAiLoading(true);
-        const statsSummary = {
-          weeklyRate: Math.round(completionData.slice(0, 7).reduce((acc, curr) => acc + curr.percentage, 0) / Math.min(completionData.length, 7)),
-          streak,
-          total: totalCompletedTasks,
-          bestDay: insights.productiveDayName,
-          topCategory: insights.topCategoryName
-        };
-        
-        console.log("AI Analizi ve Haftalık Başarılar başlatılıyor...");
-        
-        // Paralel olarak her iki isteği de atıyoruz
-        Promise.all([
-          aiService.getPerformanceInsight(statsSummary, i18n.language),
-          aiService.getWeeklyInsights(statsSummary, i18n.language)
-        ]).then(([insightRes, weeklyRes]) => {
-          if (insightRes) setAiInsight(insightRes);
-          if (weeklyRes && weeklyRes.length > 0) setDynamicAIInsights(weeklyRes);
-        }).catch(err => {
-          console.error("AI Stats Hatası:", err);
-        }).finally(() => setIsAiLoading(false));
-      }
     }
-  }, [completionData, insights.productiveDayName, isAIEnabled, apiKey, aiInsight, isAiLoading, forceRefreshTrigger]);
+  }, [completionData, insights.productiveDayName]);
 
   const getPerformanceLevelColor = (rate: number) => {
     if (rate >= 80) return colors.success;
