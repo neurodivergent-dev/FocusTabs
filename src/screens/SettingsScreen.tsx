@@ -59,6 +59,26 @@ export const SettingsScreen: React.FC = () => {
   const [aiModalVisible, setAiModalVisible] = useState(false);
   const [resetAlertVisible, setResetAlertVisible] = useState(false);
 
+  // Easter Egg State
+  const [tapCount, setTapCount] = useState(0);
+  const [lastTapTime, setLastTapTime] = useState(0);
+
+  const handleLogoPress = () => {
+    const now = Date.now();
+    if (now - lastTapTime > 1000) {
+      setTapCount(1);
+    } else {
+      const newCount = tapCount + 1;
+      setTapCount(newCount);
+      if (newCount >= 5) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.push('/easter-egg');
+        setTapCount(0);
+      }
+    }
+    setLastTapTime(now);
+  };
+
   // Update isDarkMode based on system preference when using system theme
   useEffect(() => {
     if (themeMode === "system" && systemColorScheme) {
@@ -171,7 +191,13 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("settings.preferences")}</Text>
 
-          <View style={[styles.themeSectionContainer, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.primary + '15' }]}>
+          <View style={[styles.themeSectionContainer, { 
+            backgroundColor: colors.card, 
+            borderWidth: 1, 
+            borderColor: colors.primary + '15',
+            borderLeftWidth: 4,
+            borderLeftColor: colors.primary
+          }]}>
             <Text style={[styles.themeLabel, { color: colors.text }]}>{t("settings.theme")}</Text>
             <View style={styles.themeOptionsContainer}>
               {(["light", "dark", "system"] as const).map((mode) => (
@@ -237,7 +263,11 @@ export const SettingsScreen: React.FC = () => {
             { label: "settings.language", desc: "settings.languageDescription", icon: Languages, color: "#3B82F6", onPress: handleOpenLanguageModal },
             { label: "settings.backup", desc: "settings.backupDescription", icon: CloudUpload, color: "#10B981", onPress: handleNavigateToBackupSettings },
           ].map((item, idx) => (
-            <TouchableOpacity key={idx} style={[styles.settingItem, { backgroundColor: colors.card }]} onPress={item.onPress}>
+            <TouchableOpacity 
+              key={idx} 
+              style={[styles.settingItem, { backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: item.color }]} 
+              onPress={item.onPress}
+            >
               <View style={[styles.settingIconContainer, { backgroundColor: item.color + '15' }]}>
                 <item.icon size={20} color={item.color} />
               </View>
@@ -262,19 +292,23 @@ export const SettingsScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("settings.about")}</Text>
-          <View style={styles.logoContainer}>
+          <TouchableOpacity activeOpacity={1} onPress={handleLogoPress} style={styles.logoContainer}>
             <FocusTabsLogo size={100} color={colors.primary} />
             <View style={styles.versionBadge}>
               <Text style={[styles.versionText, { color: colors.primary }]}>FocusTabs v{Constants.expoConfig?.version || "1.0.0"}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           {[
             { label: "settings.rateApp", desc: "settings.supportUsWithARating", icon: Star, color: "#F59E0B", onPress: handleRateApp },
             { label: "settings.about", desc: "settings.versionAndAppInformation", icon: Layout, color: "#6366F1", onPress: handleNavigateToAbout },
             { label: "settings.privacyPolicy", desc: "settings.howWeHandleYourData", icon: Lock, color: "#10B981", onPress: handleNavigateToPrivacyPolicy },
           ].map((item, idx) => (
-            <TouchableOpacity key={idx} style={[styles.settingItem, { backgroundColor: colors.card }]} onPress={item.onPress}>
+            <TouchableOpacity 
+              key={idx} 
+              style={[styles.settingItem, { backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: item.color }]} 
+              onPress={item.onPress}
+            >
               <View style={[styles.settingIconContainer, { backgroundColor: item.color + '15' }]}>
                 <item.icon size={20} color={item.color} />
               </View>

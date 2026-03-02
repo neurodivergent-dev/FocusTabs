@@ -78,9 +78,11 @@ export const StatsScreen: React.FC = () => {
   const [dynamicAIInsights, setDynamicAIInsights] = useState<any[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [forceRefreshTrigger, setForceRefreshTrigger] = useState(0);
-  const { isAIEnabled } = useAIStore();
+  const { isAIEnabled, apiKey } = useAIStore();
 
   const handleRefresh = () => {
+    if (!isAIEnabled || !apiKey) return;
+    
     soundService.playClick();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     
@@ -268,7 +270,7 @@ export const StatsScreen: React.FC = () => {
       });
 
       // Fetch AI performance insight and weekly achievements if enabled and not already loaded
-      if (isAIEnabled && !aiInsight && !isAiLoading) {
+      if (isAIEnabled && apiKey && !aiInsight && !isAiLoading) {
         setIsAiLoading(true);
         const statsSummary = {
           weeklyRate: Math.round(completionData.slice(0, 7).reduce((acc, curr) => acc + curr.percentage, 0) / Math.min(completionData.length, 7)),
@@ -292,7 +294,7 @@ export const StatsScreen: React.FC = () => {
         }).finally(() => setIsAiLoading(false));
       }
     }
-  }, [completionData, insights.productiveDayName, isAIEnabled, aiInsight, isAiLoading]);
+  }, [completionData, insights.productiveDayName, isAIEnabled, apiKey, aiInsight, isAiLoading, forceRefreshTrigger]);
 
   const getPerformanceLevelColor = (rate: number) => {
     if (rate >= 80) return colors.success;
@@ -357,13 +359,15 @@ export const StatsScreen: React.FC = () => {
             <Text style={[styles.title, { color: "#FFFFFF" }]}>{t("stats.title")}</Text>
             <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>{t("stats.subtitle")}</Text>
           </View>
-          <TouchableOpacity 
-            style={[styles.refreshButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]} 
-            onPress={handleRefresh}
-            disabled={isAiLoading}
-          >
-            <RefreshCw size={20} color="#FFFFFF" style={isAiLoading && { transform: [{ rotate: '45deg' }] }} />
-          </TouchableOpacity>
+          {isAIEnabled && apiKey && (
+            <TouchableOpacity 
+              style={[styles.refreshButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]} 
+              onPress={handleRefresh}
+              disabled={isAiLoading}
+            >
+              <RefreshCw size={20} color="#FFFFFF" style={isAiLoading && { transform: [{ rotate: '45deg' }] }} />
+            </TouchableOpacity>
+          )}
         </View>
       </LinearGradient>
 
@@ -605,7 +609,7 @@ export const StatsScreen: React.FC = () => {
               )}
             </View>
 
-            {isAIEnabled && (isAiLoading || aiInsight) && (
+            {isAIEnabled && apiKey && (isAiLoading || aiInsight) && (
               <View style={[styles.aiInsightCard, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '20' }]}>
                 {isAiLoading ? (
                   <>
@@ -625,7 +629,7 @@ export const StatsScreen: React.FC = () => {
               </View>
             )}
 
-            {isAIEnabled && dynamicAIInsights.length > 0 ? (
+            {isAIEnabled && apiKey && dynamicAIInsights.length > 0 ? (
               <View style={styles.insightsList}>
                 {dynamicAIInsights.map((insight, idx) => (
                   <View key={idx} style={styles.insightItem}>
@@ -701,7 +705,7 @@ export const StatsScreen: React.FC = () => {
             </View>
             
             <View style={styles.achievementsList}>
-              {(isAIEnabled && dynamicAIInsights.length > 0 ? dynamicAIInsights : fallbackAchievements).map((achievement, idx) => (
+              {(isAIEnabled && apiKey && dynamicAIInsights.length > 0 ? dynamicAIInsights : fallbackAchievements).map((achievement, idx) => (
                 <View key={idx} style={[styles.achievementListItem, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)' }]}>
                   <View style={[styles.badgeIconBox, { backgroundColor: getInsightBgColor(achievement.type) }]}>
                     {getInsightIcon(achievement.type)}

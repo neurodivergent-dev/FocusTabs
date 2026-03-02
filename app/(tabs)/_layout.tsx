@@ -5,10 +5,12 @@ import { useTheme } from "../../src/components/ThemeProvider";
 import { soundService } from "../../src/services/SoundService";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
+import { useAIStore } from "../../src/store/aiStore";
 
 export default function TabLayout() {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { isAIEnabled, apiKey } = useAIStore();
 
   const tabListeners = {
     tabPress: () => {
@@ -59,6 +61,7 @@ export default function TabLayout() {
         options={{
           title: t("tabs.ai"),
           tabBarIcon: ({ color }) => <Sparkles size={24} color={color} />,
+          href: isAIEnabled && apiKey ? "/ai-chat" : null,
         }}
       />
       <Tabs.Screen
