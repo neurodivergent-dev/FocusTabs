@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 import Animated, {
   useSharedValue,
@@ -30,6 +30,9 @@ export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] })
   const [shouldRender, setShouldRender] = useState(false);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const { isAIEnabled, lastCelebrationMessage, lastCelebrationDate, setCelebrationCache } = useAIStore();
+  
+  // Prevent multiple triggers during the same visibility cycle
+  const isProcessing = useRef(false);
 
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
@@ -42,12 +45,14 @@ export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] })
     setTimeout(() => {
       setShouldRender(false);
       setAiMessage(null);
-    }, 400);
+      isProcessing.current = false;
+    }, 450);
   }, [scale, opacity, translateY]);
 
   useEffect(() => {
-    if (visible) {
+    if (visible && !isProcessing.current) {
       console.log("[CELEBRATION] Görünürlük tetiklendi!");
+      isProcessing.current = true;
       setShouldRender(true);
       
       // Animasyonları başlat
@@ -59,16 +64,13 @@ export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] })
       soundService.playFanfare();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // Otomatik kapanma süresi
       let closeTimer: NodeJS.Timeout;
 
       // AI Mesajını çek
       if (isAIEnabled && goals.length > 0) {
         const today = new Date().toISOString().split('T')[0];
         
-        // Önce kalıcı hafızaya bak (RPD kısıtlaması için kritik!)
         if (lastCelebrationDate === today && lastCelebrationMessage) {
-          console.log("[CELEBRATION] Günlük cache'den mesaj yüklendi.");
           setAiMessage(lastCelebrationMessage);
           closeTimer = setTimeout(() => hide(), 6000);
         } else {
@@ -76,16 +78,15 @@ export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] })
           
           aiService.getCelebrationMessage(goals, i18n.language).then(msg => {
             if (msg) {
-              console.log("[CELEBRATION] Gemini'den taze mesaj geldi.");
               setAiMessage(msg);
-              setCelebrationCache(msg); // Kalıcı hafızaya kaydet
+              setCelebrationCache(msg);
               closeTimer = setTimeout(() => hide(), 6000);
             } else {
               setAiMessage(null);
               closeTimer = setTimeout(() => hide(), 4000);
             }
           }).catch(err => {
-            console.log("AI Hata:", err);
+            console.log("AI Celebration Error:", err);
             setAiMessage(null);
             closeTimer = setTimeout(() => hide(), 4000);
           });
@@ -97,8 +98,12 @@ export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] })
       return () => {
         if (closeTimer) clearTimeout(closeTimer);
       };
+    } else if (!visible && shouldRender) {
+      // If visibility is manually toggled off, reset
+      hide();
     }
-  }, [visible, isAIEnabled, goals, hide, i18n.language, lastCelebrationDate, lastCelebrationMessage, opacity, scale, setCelebrationCache, t, translateY]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]); // ONLY focus on visible prop
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }, { translateY: translateY.value }],
@@ -152,7 +157,8 @@ const ConfettiPiece = ({ index, color }: { index: number; color: string }) => {
     fall.value = withDelay(index * 50, withTiming(height, { duration: 2500 }));
     side.value = withDelay(index * 50, withSpring(Math.random() * 300 - 150));
     rot.value = withTiming(720, { duration: 2500 });
-  }, [index, fall, side, rot]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Static effect on mount
 
   const style = useAnimatedStyle(() => ({
     position: "absolute",
@@ -174,7 +180,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 9999, // En tepede!
+    zIndex: 9999,
     elevation: 9999,
   },
   badge: {
