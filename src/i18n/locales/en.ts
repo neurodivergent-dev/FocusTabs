@@ -20,6 +20,8 @@ export default {
     undo: 'Undo',
     goalDeleted: 'Goal deleted',
     success: 'Success',
+    focus: 'Focus',
+    focusModeDesc: 'It is time to focus on this goal.',
     categories: {
       work: 'Work',
       health: 'Health',
@@ -127,6 +129,8 @@ export default {
     bestDay: 'Best day',
     totalCompleted: 'Total completed',
     tasks: 'tasks',
+    focusTime: 'Focus Time',
+    topFocusTasks: 'Top Focus Tasks',
     performanceLevel: 'Performance level',
     noData: 'No data yet',
     goalsCompleted: 'goals completed',

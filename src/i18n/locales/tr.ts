@@ -17,6 +17,8 @@ export default {
     undo: 'Geri Al',
     goalDeleted: 'Hedef silindi',
     success: 'Başarılı',
+    focus: 'Odaklan',
+    focusModeDesc: 'Şimdi bu göreve odaklanma vakti.',
     categories: {
       work: 'İş',
       health: 'Sağlık',
@@ -107,6 +109,8 @@ export default {
     bestDay: 'En başarılı gün',
     totalCompleted: 'Toplam tamamlanan',
     tasks: 'görev',
+    focusTime: 'Odaklanma Süresi',
+    topFocusTasks: 'En Çok Odaklanılan Görevler',
     performanceLevel: 'Performans seviyesi',
     noData: 'Henüz veri yok',
     goalsCompleted: 'görev tamamlandı',

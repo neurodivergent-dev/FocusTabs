@@ -20,6 +20,10 @@ class SoundService {
   playFanfare() {
     useThemeStore.getState().triggerSound('fanfare');
   }
+
+  playTimer() {
+    useThemeStore.getState().triggerSound('timer');
+  }
 }
 
 export const soundService = new SoundService();

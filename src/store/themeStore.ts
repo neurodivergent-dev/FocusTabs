@@ -22,8 +22,8 @@ interface ThemeState {
   setThemeId: (id: string) => void; // Yeni tema rengi seçme
   setSoundsEnabled: (enabled: boolean) => void;
   setBackgroundEffect: (effect: BackgroundEffectType) => void;
-  triggerSound: (type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare') => void;
-  soundTrigger: { type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare', timestamp: number } | null;
+  triggerSound: (type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare' | 'timer') => void;
+  soundTrigger: { type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare' | 'timer', timestamp: number } | null;
   getActiveTheme: () => ThemeOption; // Aktif temayı alma
 }
 
@@ -81,7 +81,7 @@ export const useThemeStore = create<ThemeState>()(
         backgroundEffect: effect 
       }),
 
-      triggerSound: (type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare') => set({ 
+      triggerSound: (type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare' | 'timer') => set({ 
         soundTrigger: { type, timestamp: Date.now() } 
       }),
 

@@ -21,6 +21,7 @@ import {
   Tag,
   BrainCircuit,
   RefreshCw,
+  Timer,
 } from "lucide-react-native";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
@@ -228,6 +229,14 @@ export const StatsScreen: React.FC = () => {
       hasEnoughData: true
     };
   }, [goals, t, i18n.language]);
+
+  // Top focus tasks (all time)
+  const topFocusGoals = useMemo(() => {
+    return [...goals]
+      .filter(g => (g.focusTime || 0) > 0)
+      .sort((a, b) => (b.focusTime || 0) - (a.focusTime || 0))
+      .slice(0, 5);
+  }, [goals]);
 
   const [timeUntilMidnight, setTimeUntilMidnight] = useState<string>("");
 
@@ -519,11 +528,21 @@ export const StatsScreen: React.FC = () => {
                         >
                           {item.text}
                         </Text>
-                        <View style={[styles.categoryBadge, { backgroundColor: category.color + '15' }]}>
-                          <CategoryIcon id={item.category} size={10} color={category.color} />
-                          <Text style={[styles.categoryText, { color: category.color }]}>
-                            {t(category.nameKey)}
-                          </Text>
+                        <View style={styles.goalFooter}>
+                          <View style={[styles.categoryBadge, { backgroundColor: category.color + '15' }]}>
+                            <CategoryIcon id={item.category} size={10} color={category.color} />
+                            <Text style={[styles.categoryText, { color: category.color }]}>
+                              {t(category.nameKey)}
+                            </Text>
+                          </View>
+                          {(item.focusTime || 0) > 0 && (
+                            <View style={[styles.timeBadge, { backgroundColor: colors.primary + '10' }]}>
+                              <Timer size={10} color={colors.primary} />
+                              <Text style={[styles.timeBadgeText, { color: colors.primary }]}>
+                                {formatTotalTime(item.focusTime || 0)}
+                              </Text>
+                            </View>
+                          )}
                         </View>
                       </View>
                     </View>
@@ -690,6 +709,47 @@ export const StatsScreen: React.FC = () => {
           </LinearGradient>
         </View>
 
+        {/* Top Focus Tasks */}
+        {topFocusGoals.length > 0 && (
+          <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12 }]}>
+            <LinearGradient
+              colors={[isDarkMode ? colors.info + '15' : colors.info + '05', isDarkMode ? colors.primary + '15' : colors.primary + '05']}
+              style={styles.cardGradient}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("stats.topFocusTasks")}</Text>
+                <View style={[styles.badge, { backgroundColor: colors.info + '15' }]}>
+                  <Timer size={14} color={colors.info} />
+                  <Text style={[styles.badgeText, { color: colors.info }]}>{t("stats.focusTime")}</Text>
+                </View>
+              </View>
+
+              <View style={styles.topTasksList}>
+                {topFocusGoals.map((item, index) => {
+                  const category = getCategoryById(item.category);
+                  return (
+                    <View key={item.id} style={[styles.topTaskItem, { borderBottomColor: index === topFocusGoals.length - 1 ? 'transparent' : colors.border + '40' }]}>
+                      <View style={[styles.rankBadge, { backgroundColor: index === 0 ? colors.warning : colors.border }]}>
+                        <Text style={[styles.rankText, { color: index === 0 ? '#000' : colors.text }]}>{index + 1}</Text>
+                      </View>
+                      <View style={styles.topTaskContent}>
+                        <Text style={[styles.topTaskText, { color: colors.text }]} numberOfLines={1}>{item.text}</Text>
+                        <View style={styles.topTaskMeta}>
+                          <Text style={[styles.categoryTextSmall, { color: category.color }]}>{t(category.nameKey)}</Text>
+                          <Text style={[styles.dateTextSmall, { color: colors.subText }]}>{item.date}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.topTaskTime}>
+                        <Text style={[styles.timeText, { color: colors.primary }]}>{formatTotalTime(item.focusTime || 0)}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
         {/* Achievements */}
         <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12 }]}>
           <LinearGradient
@@ -809,11 +869,16 @@ const styles = StyleSheet.create({
   },
   goalStatusIcon: { marginRight: 12 },
   goalContent: { flex: 1 },
+  goalFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
   goalText: {
     fontSize: 15,
     fontWeight: '600',
     lineHeight: 20,
-    marginBottom: 4,
   },
   categoryBadge: {
     flexDirection: 'row',
@@ -821,13 +886,76 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
-    alignSelf: 'flex-start',
     gap: 4,
+  },
+  timeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 4,
+  },
+  timeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   categoryText: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  topTasksList: {
+    marginTop: 8,
+  },
+  topTaskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  rankBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  rankText: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  topTaskContent: {
+    flex: 1,
+  },
+  topTaskText: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  topTaskMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryTextSmall: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  dateTextSmall: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  topTaskTime: {
+    marginLeft: 12,
+    alignItems: 'flex-end',
+  },
+  timeText: {
+    fontSize: 13,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   countPill: {
     paddingHorizontal: 10,

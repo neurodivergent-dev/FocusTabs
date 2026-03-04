@@ -7,9 +7,14 @@ const SOUND_ASSETS: Record<string, number> = {
   delete: require('../../assets/sounds/delete.mp3'),
   undo: require('../../assets/sounds/undo.mp3'),
   click: require('../../assets/sounds/click.mp3'),
-  fanfare: require('../../assets/sounds/fanfare.mp3'), // fanfare.mp3 dosyasını kullanıyoruz
+  fanfare: require('../../assets/sounds/fanfare.mp3'),
+  timer: require('../../assets/sounds/timer.mp3'),
 };
 
+/**
+ * High-performance Sound Player.
+ * FIXED: Always creates a fresh instance for UI sounds to prevent Native Bridge deadlocks (5s locks).
+ */
 export const SoundPlayer: React.FC = () => {
   const { soundTrigger, soundsEnabled } = useThemeStore();
   const playerRef = useRef<AudioPlayer | null>(null);
@@ -17,41 +22,33 @@ export const SoundPlayer: React.FC = () => {
   useEffect(() => {
     if (!soundsEnabled || !soundTrigger) return;
 
-    const soundAsset = SOUND_ASSETS[soundTrigger.type];
-    if (!soundAsset) return;
+    const playSound = async () => {
+      const soundAsset = SOUND_ASSETS[soundTrigger.type];
+      if (!soundAsset) return;
 
-    try {
-      if (playerRef.current) {
-        playerRef.current.release();
-        playerRef.current = null;
-      }
+      try {
+        // ALWAYS release existing player before playing a new sound
+        // This prevents the 5-second "Busy Bridge" timeout in expo-audio
+        if (playerRef.current) {
+          playerRef.current.release();
+          playerRef.current = null;
+        }
 
-      const player = createAudioPlayer(soundAsset);
-      playerRef.current = player;
-      
-      // Ses seviyesi ayarları
-      if (soundTrigger.type === 'fanfare') {
-        player.volume = 0.7; // Fanfar daha duyulur olsun
-      } else if (soundTrigger.type === 'click') {
-        player.volume = 0.3;
-      } else {
-        player.volume = 0.5;
-      }
-      
-      player.play();
-      
-    } catch (error) {
-      if (error instanceof Error) {
-        console.log('Yerel ses çalma hatası:', error.message);
-      }
-    }
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.release();
-        playerRef.current = null;
+        // Create a fresh instance for this specific trigger
+        const player = createAudioPlayer(soundAsset);
+        playerRef.current = player;
+        
+        if (soundTrigger.type === 'fanfare') player.volume = 0.7;
+        else if (soundTrigger.type === 'click') player.volume = 0.3;
+        else player.volume = 0.5;
+        
+        player.play();
+      } catch (error) {
+        console.log('[SOUND PLAYER] Native Lock Error:', error);
       }
     };
+
+    playSound();
   }, [soundTrigger, soundsEnabled]);
 
   return null;

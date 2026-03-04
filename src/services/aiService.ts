@@ -82,7 +82,8 @@ class AIService {
     Write a very short, highly motivating one-sentence celebration message in ${language} that acknowledges their specific effort or the combination of these tasks. 
     Make it feel personal and smart. DO NOT use quotes. Max 15 words.`;
     
-    const today = new Date().toISOString().split('T')[0];
+    const nowLocal = new Date();
+    const today = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
     const goalsKey = goals.join("_").substring(0, 30);
     return this.requestAI(prompt, `celebration_${today}_${goalsKey}_${language}`);
   }
@@ -92,7 +93,8 @@ class AIService {
     Give one very short (max 15 words), encouraging advice or insight in ${language}. 
     YOU CAN use basic Markdown like **bold** for emphasis. 
     DO NOT use quotes. Be direct and helpful.`;
-    const today = new Date().toISOString().split('T')[0];
+    const nowLocal = new Date();
+    const today = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
     return this.requestAI(prompt, `insight_${today}_${language}`, forceRefresh);
   }
 
@@ -107,7 +109,8 @@ class AIService {
     4. Language: ${language}.
     Return ONLY JSON: [{"title": "...", "desc": "...", "type": "..."}]`;
     
-    const today = new Date().toISOString().split('T')[0];
+    const nowLocal = new Date();
+    const today = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
     const result = await this.requestAI(prompt, `achievements_${today}_${language}`, forceRefresh);
     try {
       return result ? JSON.parse(result) : [];

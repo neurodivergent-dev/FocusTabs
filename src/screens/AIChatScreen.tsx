@@ -27,7 +27,7 @@ const AIChatScreen = () => {
   const { colors, isDarkMode } = useTheme();
   const { t, i18n } = useTranslation();
   const { apiKey, isAIEnabled, chatMessages, addChatMessage, clearChatMessages } = useAIStore();
-  const { goals } = useDailyGoalsStore();
+  const { goals, completionData } = useDailyGoalsStore();
   const insets = useSafeAreaInsets();
   
   const [inputText, setInputText] = useState('');
@@ -47,18 +47,49 @@ const AIChatScreen = () => {
     return chatMessages;
   }, [chatMessages, t]);
 
+  // İstatistik ve Geçmiş bağlamını (context) hazırla
+  const statsContext = useMemo(() => {
+    const totalCompletedTasks = completionData.reduce((sum, item) => sum + item.completedCount, 0);
+    const totalFocusTime = goals.reduce((sum, goal) => sum + (goal.focusTime || 0), 0);
+    
+    // Tüm geçmiş görevleri AI'nın anlayabileceği çok sıkışık bir formatta hazırla
+    // Format: [Date|Task|Mins|Status]
+    const historyLog = goals
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 50) // Son 50 görevi gönder (context limiti için)
+      .map(g => `${g.date}|${g.text}|${Math.floor((g.focusTime || 0) / 60)}m|${g.completed ? 'Done' : 'Active'}`)
+      .join("\n");
+
+    return `
+    USER PERFORMANCE SUMMARY:
+    - Lifetime Focus Time: ${Math.floor(totalFocusTime / 3600)}h ${Math.floor((totalFocusTime % 3600) / 60)}m
+    - Lifetime Goals Completed: ${totalCompletedTasks}
+    - 7-Day Completion Rates: ${completionData.slice(-7).map(d => `${d.date}: ${d.percentage}%`).join(", ")}
+    
+    TASK HISTORY (Date|Task|FocusTime|Status):
+    ${historyLog || "No history yet."}
+    `;
+  }, [goals, completionData]);
+
   // Görev bağlamını (context) hazırla
   const goalContext = useMemo(() => {
     if (goals.length === 0) return "User has no goals set for today yet.";
     
-    return "Current user goals for today:\n" + goals.map((g, i) => {
-      let str = `${i+1}. ${g.text} (${g.completed ? 'Completed' : 'Active'})`;
+    const goalsList = goals.map((g, i) => {
+      let str = `${i+1}. ${g.text} (${g.completed ? 'Completed' : 'Active'}, Focus: ${Math.floor((g.focusTime || 0) / 60)}m)`;
       if (g.subTasks && g.subTasks.length > 0) {
         str += "\n   Subtasks: " + g.subTasks.map(st => `${st.text} (${st.completed ? 'Done' : 'Pending'})`).join(", ");
       }
       return str;
     }).join("\n");
-  }, [goals]);
+
+    return `
+    ${statsContext}
+    
+    Current user goals for today:
+    ${goalsList}
+    `;
+  }, [goals, statsContext]);
 
   // Sohbet geçmişini Gemini formatına çevir
   const chatHistory = useMemo(() => {
