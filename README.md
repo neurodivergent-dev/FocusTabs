@@ -2,7 +2,7 @@
 
 *Your Mind in 3 Steps.*
 
-FocusTabs is a minimalist, local-first goal management app designed with FAANG-level architecture and a 2025 aesthetic. It allows you to focus on just 3 daily goals at a time, providing a distraction-free environment.
+FocusTabs is a minimalist, local-first goal management app designed with FAANG-level architecture and a 2026 aesthetic. It allows you to focus on just 3 daily goals at a time, providing a distraction-free environment.
 
 ## 🌟 Features
 
@@ -11,7 +11,7 @@ FocusTabs is a minimalist, local-first goal management app designed with FAANG-l
 - **Offline-First**: All data stored locally on your device (No Login Required)
 - **SQLite Database**: Reliable and persistent storage
 - **Midnight Reset**: Start fresh every day
-- **Gradient Cards**: Beautiful 2025-level UI
+- **Gradient Cards**: Beautiful 2026-level UI
 - **Ad-Free**: No distractions, just your goals
 
 ## 🚀 Tech Stack
