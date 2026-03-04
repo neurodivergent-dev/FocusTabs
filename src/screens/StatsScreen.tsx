@@ -729,8 +729,8 @@ export const StatsScreen: React.FC = () => {
                   const category = getCategoryById(item.category);
                   return (
                     <View key={item.id} style={[styles.topTaskItem, { borderBottomColor: index === topFocusGoals.length - 1 ? 'transparent' : colors.border + '40' }]}>
-                      <View style={[styles.rankBadge, { backgroundColor: index === 0 ? colors.warning : colors.border }]}>
-                        <Text style={[styles.rankText, { color: index === 0 ? '#000' : colors.text }]}>{index + 1}</Text>
+                      <View style={[styles.rankBadge, { backgroundColor: index === 0 ? colors.primary : (index < 3 ? colors.primary + 'B0' : colors.border + '40') }]}>
+                        <Text style={[styles.rankText, { color: index < 3 ? '#FFFFFF' : colors.subText }]}>{index + 1}</Text>
                       </View>
                       <View style={styles.topTaskContent}>
                         <Text style={[styles.topTaskText, { color: colors.text }]} numberOfLines={1}>{item.text}</Text>
@@ -739,7 +739,7 @@ export const StatsScreen: React.FC = () => {
                           <Text style={[styles.dateTextSmall, { color: colors.subText }]}>{item.date}</Text>
                         </View>
                       </View>
-                      <View style={styles.topTaskTime}>
+                      <View style={styles.topTaskTimeContainer}>
                         <Text style={[styles.timeText, { color: colors.primary }]}>{formatTotalTime(item.focusTime || 0)}</Text>
                       </View>
                     </View>
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
   scrollViewContent: { paddingBottom: 20 },
   cardContainer: { marginHorizontal: 20, marginVertical: 8, borderRadius: 24, borderWidth: 1, overflow: 'hidden' },
   cardGradient: { padding: 24 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 8 },
   badgeColumn: { alignItems: 'flex-end' },
   badgeMinimal: { 
     flexDirection: 'row', 
@@ -911,24 +911,26 @@ const styles = StyleSheet.create({
   },
   topTaskItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
+    alignItems: 'flex-start',
+    paddingVertical: 16,
     borderBottomWidth: 1,
+    gap: 14,
   },
   rankBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginTop: 2,
   },
   rankText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '900',
   },
   topTaskContent: {
     flex: 1,
+    paddingTop: 2,
   },
   topTaskText: {
     fontSize: 14,
@@ -948,9 +950,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
-  topTaskTime: {
+  topTaskTimeContainer: {
     marginLeft: 12,
     alignItems: 'flex-end',
+    justifyContent: 'center',
+    minWidth: 80,
   },
   timeText: {
     fontSize: 13,

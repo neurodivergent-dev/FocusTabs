@@ -360,9 +360,13 @@ const GoalCardComponent = ({
   const handlePressOut = () => scale.value = withSpring(1);
   const animatedCardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  const cardGradient = goal.completed 
-    ? (isDarkMode ? [colors.success + '25', colors.success + '10'] : ['#FFFFFF', colors.success + '15'])
-    : (isDarkMode ? [colors.primary + '20', colors.secondary + '15'] : ['#FFFFFF', colors.primary + '08']);
+  const cardGradient = isFocusMode
+    ? (isDarkMode 
+        ? [colors.primary + '40', colors.secondary + '30'] 
+        : [colors.primary + '15', colors.secondary + '10'])
+    : (goal.completed 
+        ? (isDarkMode ? [colors.success + '25', colors.success + '10'] : ['#FFFFFF', colors.success + '15'])
+        : (isDarkMode ? [colors.primary + '20', colors.secondary + '15'] : ['#FFFFFF', colors.primary + '08']));
 
   const footerPadding = 20 + insets.bottom;
 
@@ -608,7 +612,7 @@ const styles = StyleSheet.create({
   contentContainer: { padding: 20, flexDirection: "row", alignItems: "flex-start" },
   focusContentContainer: { padding: 30, flexDirection: 'column', alignItems: 'flex-start' },
   checkbox: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, justifyContent: "center", alignItems: "center", marginTop: 4 },
-  focusCheckbox: { width: 50, height: 50, borderRadius: 25, borderWidth: 3, marginBottom: 20 },
+  focusCheckbox: { width: 50, height: 50, borderRadius: 25, borderWidth: 3, marginBottom: 20, justifyContent: 'center', alignItems: 'center' },
   textContainer: { flex: 1, marginLeft: 16, marginRight: 8 }, 
   focusTextContainer: { alignItems: 'flex-start', width: '100%' },
   categoryHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }, 
@@ -661,7 +665,7 @@ const styles = StyleSheet.create({
   subTaskEditActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   focusSubTaskItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   subTaskCheckbox: { width: 18, height: 18, borderRadius: 6, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  focusSubTaskCheckbox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, marginRight: 15 },
+  focusSubTaskCheckbox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, marginRight: 15, justifyContent: 'center', alignItems: 'center' },
   subTaskText: { fontSize: 14, fontWeight: '500' },
   focusSubTaskText: { fontSize: 18, fontWeight: '600' },
 });

@@ -17,11 +17,12 @@ import Animated, {
   FadeInDown, 
   useDerivedValue, 
   useAnimatedStyle, 
-  withSpring,
+  withTiming,
   interpolateColor,
   SlideOutDown,
 } from "react-native-reanimated";
 import { X as XIcon, RotateCcw } from "lucide-react-native";
+import { router } from "expo-router";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useDailyReset } from "../hooks/useDailyReset";
 import { useAIStore } from "../store/aiStore";
@@ -69,22 +70,22 @@ export const HomeScreen: React.FC = () => {
     return () => { s1.remove(); s2.remove(); };
   }, [fetchGoals]);
 
+  // Navigate to timer screen when a timer is active
+  useEffect(() => {
+    if (activeTimerGoalId) {
+      router.push("/timer");
+    }
+  }, [activeTimerGoalId]);
+
   const allTodayGoals = useMemo(() => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     return goals.filter((goal) => goal.date.split("T")[0] === today);
   }, [goals]);
 
-  const visibleGoals = useMemo(() => {
-    if (activeTimerGoalId) {
-      return allTodayGoals.filter(goal => goal.id === activeTimerGoalId);
-    }
-    return allTodayGoals;
-  }, [allTodayGoals, activeTimerGoalId]);
-
   const completedCount = useMemo(() => allTodayGoals.filter(g => g.completed).length, [allTodayGoals]);
   const progressPercent = allTodayGoals.length > 0 ? (completedCount / allTodayGoals.length) * 100 : 0;
-  const progress = useDerivedValue(() => withSpring(progressPercent, { damping: 15, stiffness: 100 }));
+  const progress = useDerivedValue(() => withTiming(progressPercent, { duration: 600 }));
 
   const [isCelebrationVisible, setIsCelebrationVisible] = useState(false);
   const [isUndoVisible, setIsUndoVisible] = useState(false);
@@ -111,7 +112,7 @@ export const HomeScreen: React.FC = () => {
 
   const animatedProgressStyle = useAnimatedStyle(() => ({
     width: `${progress.value}%`,
-    backgroundColor: interpolateColor(progress.value, [0, 50, 100], ["#F59E0B", "#6366F1", "#10B981"]),
+    backgroundColor: interpolateColor(progress.value, [0, 100], ["rgba(255,255,255,0.7)", "#10B981"]),
   }));
 
   return (
@@ -129,23 +130,12 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.headerTopRow}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: "#FFFFFF" }]}>
-              {activeTimerGoalId ? t("common.focus") : t("app.name")}
+              {t("app.name")}
             </Text>
             <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>
-              {activeTimerGoalId ? t("common.focusModeDesc") : t("app.slogan")}
+              {t("app.slogan")}
             </Text>
           </View>
-          {activeTimerGoalId && (
-            <TouchableOpacity 
-              style={[styles.stopFocusButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
-              onPress={() => {
-                stopGoalTimer();
-                soundService.playTimer();
-              }}
-            >
-              <XIcon size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
         </View>
 
         {allTodayGoals.length > 0 && (
@@ -170,17 +160,17 @@ export const HomeScreen: React.FC = () => {
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContent, 
-            visibleGoals.length === 0 && styles.emptyScrollContent,
+            allTodayGoals.length === 0 && styles.emptyScrollContent,
             { paddingBottom: keyboardVisible ? 150 : 20 } 
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          {visibleGoals.length === 0 ? (
+          {allTodayGoals.length === 0 ? (
             <EmptyState />
           ) : (
-            visibleGoals.map((goal, index) => (
+            allTodayGoals.map((goal, index) => (
               <Animated.View key={goal.id} entering={FadeInDown.delay(index * 100).springify().damping(15)}>
                 <GoalCard
                   goal={goal}
@@ -196,23 +186,20 @@ export const HomeScreen: React.FC = () => {
                   onUpdateSubTask={updateSubTask}
                   isActiveTimer={activeTimerGoalId === goal.id}
                   isAIEnabled={isAIEnabled}
-                  isFocusMode={!!activeTimerGoalId}
                 />
               </Animated.View>
             ))
           )}
         </ScrollView>
 
-        {!activeTimerGoalId && (
-          <View style={[styles.footer, { borderTopWidth: 0, paddingBottom: 10, paddingTop: 0 }]}>
-            <AddGoalForm
-              onAddGoal={(text, category) => addGoal({ text, category })}
-              disabled={hasReachedMaxGoals()}
-              currentCount={allTodayGoals.length}
-              existingGoals={allTodayGoals.map(g => g.text)}
-            />
-          </View>
-        )}
+        <View style={[styles.footer, { borderTopWidth: 0, paddingBottom: 10, paddingTop: 0 }]}>
+          <AddGoalForm
+            onAddGoal={(text, category) => addGoal({ text, category })}
+            disabled={hasReachedMaxGoals()}
+            currentCount={allTodayGoals.length}
+            existingGoals={allTodayGoals.map(g => g.text)}
+          />
+        </View>
       </KeyboardAvoidingView>
 
       {isUndoVisible && (

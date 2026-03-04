@@ -108,6 +108,15 @@ function RootLayoutNav() {
             <Stack.Screen name="theme-settings" options={{ headerShown: false }} />
             <Stack.Screen name="backup-settings" options={{ headerShown: false }} />
             <Stack.Screen name="ai-settings" options={{ headerShown: false }} />
+            <Stack.Screen 
+              name="timer" 
+              options={{ 
+                presentation: "transparentModal", 
+                headerShown: false, 
+                animation: "fade",
+                contentStyle: { backgroundColor: "transparent" }
+              }} 
+            />
           </Stack>
         </ThemeProvider>
       </CustomThemeProvider>
