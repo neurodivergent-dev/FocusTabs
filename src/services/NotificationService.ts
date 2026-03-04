@@ -8,14 +8,16 @@ Notifications.setNotificationHandler({
     // Odaklanma sayacı ise saniyede bir banner/ses çıkarmasın ama panelde gözüksün
     if (notification.request.identifier === 'focus-timer') {
       return {
-        shouldShowAlert: true, // Görünür olmalı
-        shouldPlaySound: false, // Ses yok
+        shouldShowBanner: false, // Banner olarak tepeden fırlamasın (sessiz sayaç)
+        shouldShowList: true,   // Bildirim listesinde gözüksün
+        shouldPlaySound: false,
         shouldSetBadge: false,
       };
     }
     return {
-      shouldShowAlert: true,
-      shouldPlaySound: true,
+      shouldShowBanner: true, // Bildirim anında tepeden fırlasın
+      shouldShowList: true,   // Listede (kilit ekranı vb.) kalsın
+      shouldPlaySound: true,  // Ses çalsın
       shouldSetBadge: false,
     };
   },
