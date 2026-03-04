@@ -22,6 +22,7 @@ interface DailyGoalsStore extends GoalsState {
   dateGoals: Goal[];
   dateGoalsLoading: boolean;
   activeTimerGoalId: string | null;
+  timerInterval: NodeJS.Timeout | null;
 
   fetchGoals: () => Promise<void>;
   addGoal: (goalInput: GoalInput) => Promise<void>;
@@ -57,6 +58,7 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   error: null,
   lastDeletedGoal: null,
   activeTimerGoalId: null,
+  timerInterval: null,
   completionData: [],
   calendarLoading: false,
   calendarError: null,
@@ -156,19 +158,37 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   },
 
   startGoalTimer: (id: string) => {
-    set({ activeTimerGoalId: id });
+    // Clear any existing timer
+    const currentInterval = get().timerInterval;
+    if (currentInterval) {
+      clearInterval(currentInterval);
+    }
+
+    const interval = setInterval(() => {
+      get().incrementGoalTime(id);
+    }, 1000);
+
+    set({ activeTimerGoalId: id, timerInterval: interval });
   },
 
   stopGoalTimer: async (id?: string, finalTime?: number) => {
     const targetId = id || get().activeTimerGoalId;
-    // OPTIMISTIC UPDATE: Clear active ID immediately to unblock UI
-    set({ activeTimerGoalId: null });
     
-    if (targetId && finalTime !== undefined) {
+    // Clear the timer immediately
+    const currentInterval = get().timerInterval;
+    if (currentInterval) {
+      clearInterval(currentInterval);
+    }
+    
+    set({ activeTimerGoalId: null, timerInterval: null });
+    
+    if (targetId) {
+      const goal = get().goals.find(g => g.id === targetId);
+      const timeToSave = finalTime !== undefined ? finalTime : (goal?.focusTime || 0);
       try {
-        await dbUpdateGoal(targetId, { focusTime: finalTime });
+        await dbUpdateGoal(targetId, { focusTime: timeToSave });
         set((state) => ({
-          goals: state.goals.map((g) => g.id === targetId ? { ...g, focusTime: finalTime } : g)
+          goals: state.goals.map((g) => g.id === targetId ? { ...g, focusTime: timeToSave } : g)
         }));
       } catch (error) {
         console.error('Save time error:', error);

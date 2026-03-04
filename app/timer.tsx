@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, StatusBar, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useDailyGoalsStore } from '../src/store/dailyGoalsStore';
@@ -7,6 +7,8 @@ import { GoalCard } from '../src/components/GoalCard';
 import { GlassContainer } from '../src/components/GlassContainer';
 import { useTheme } from '../src/components/ThemeProvider';
 import { soundService } from '../src/services/SoundService';
+import notificationService from '../src/services/NotificationService';
+import { useTranslation } from 'react-i18next';
 import Animated, { FadeIn, FadeOut, ZoomIn, ZoomOut } from 'react-native-reanimated';
 
 export default function TimerScreen() {
@@ -25,10 +27,48 @@ export default function TimerScreen() {
   
   const { isAIEnabled } = useAIStore();
   const { colors, isDarkMode } = useTheme();
+  const { t } = useTranslation();
+  const lastUpdatedMinuteRef = useRef<number>(-1);
+  const notificationIdRef = useRef<string | null>(null);
 
   const activeGoal = useMemo(() => {
     return goals.find(g => g.id === activeTimerGoalId);
   }, [goals, activeTimerGoalId]);
+
+  const formatDuration = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return hrs > 0 
+      ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      : `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Notification management
+  const focusTime = activeGoal?.focusTime || 0;
+  const goalText = activeGoal?.text || "";
+
+  useEffect(() => {
+    if (!activeTimerGoalId || !goalText) return;
+
+    const updateNotification = async () => {
+      await notificationService.sendFocusNotification(
+        t("common.focusActive"),
+        `${goalText} • ${formatDuration(focusTime)}`,
+        true
+      );
+    };
+
+    updateNotification();
+  }, [focusTime, goalText, activeTimerGoalId]);
+
+  // Clean up notification on unmount
+  useEffect(() => {
+    return () => {
+      // Sabit ID ile siliyoruz
+      notificationService.cancelNotification('focus-timer');
+    };
+  }, []);
 
   // Navigate back if there's no active timer
   useEffect(() => {
@@ -40,7 +80,6 @@ export default function TimerScreen() {
   const handleClose = () => {
     stopGoalTimer();
     soundService.playTimer();
-    // Navigation back is handled by the useEffect
   };
 
   if (!activeGoal) return null;
@@ -59,8 +98,8 @@ export default function TimerScreen() {
             goal={activeGoal}
             onToggleComplete={toggleGoalCompletion}
             onUpdateGoal={updateGoal}
-            onDelete={() => {}} // Delete not allowed in focus mode? 
-            onStartTimer={() => {}} // Already started
+            onDelete={() => {}} 
+            onStartTimer={() => {}} 
             onStopTimer={(id, time) => {
               stopGoalTimer(id, time);
               soundService.playTimer();

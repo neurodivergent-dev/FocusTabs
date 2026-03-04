@@ -19,6 +19,7 @@ export default {
     success: 'Başarılı',
     focus: 'Odaklan',
     focusModeDesc: 'Şimdi bu göreve odaklanma vakti.',
+    focusActive: 'Odaklanma Aktif',
     categories: {
       work: 'İş',
       health: 'Sağlık',

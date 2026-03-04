@@ -28,6 +28,7 @@ import { getCategoryById, CATEGORIES } from "../constants/categories";
 import { soundService } from "../services/SoundService";
 import { aiService } from "../services/aiService";
 import { useAIStore } from "../store/aiStore";
+import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 
 import Animated, { 
   useSharedValue, 
@@ -118,28 +119,19 @@ const GoalCardComponent = ({
   const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null);
   const [editingSubTaskText, setEditingSubTaskText] = useState<string>("");
 
-  const [localFocusTime, setLocalFocusTime] = useState(goal.focusTime || 0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isActionPending, setIsActionPending] = useState(false);
 
   const { colors, isDarkMode } = useTheme();
   const { t, i18n } = useTranslation();
 
-  useEffect(() => { if (!isActiveTimer) setLocalFocusTime(goal.focusTime || 0); }, [goal.focusTime, isActiveTimer]);
-
-  useEffect(() => {
-    if (isActiveTimer) {
-      intervalRef.current = setInterval(() => { setLocalFocusTime(prev => prev + 1); }, 1000);
-    } else if (intervalRef.current) { clearInterval(intervalRef.current); }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isActiveTimer]);
+  const { incrementGoalTime } = useDailyGoalsStore();
 
   const handleTimerAction = () => {
     if (isActionPending) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     soundService.playTimer();
     setIsActionPending(true);
-    if (isActiveTimer) onStopTimer(goal.id, localFocusTime);
+    if (isActiveTimer) onStopTimer(goal.id, goal.focusTime);
     else onStartTimer(goal.id);
     setTimeout(() => setIsActionPending(false), 300);
   };
@@ -243,11 +235,11 @@ const GoalCardComponent = ({
       </TouchableOpacity>
 
       <View style={styles.focusTextContainer}>
-        {(localFocusTime > 0 || isActiveTimer) && !goal.completed && (
+        {(goal.focusTime > 0 || isActiveTimer) && !goal.completed && (
           <View style={styles.focusTimerContainer}>
             <Timer size={20} color={isActiveTimer ? colors.primary : colors.subText} />
             <Text style={[styles.focusTimerText, { color: isActiveTimer ? colors.primary : colors.subText }]}>
-              {formatDuration(localFocusTime)}
+              {formatDuration(goal.focusTime || 0)}
             </Text>
           </View>
         )}
@@ -276,7 +268,7 @@ const GoalCardComponent = ({
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.focusResetButton} onPress={() => { onResetTimer(goal.id); setLocalFocusTime(0); soundService.playUndo(); }}>
+            <TouchableOpacity style={styles.focusResetButton} onPress={() => { onResetTimer(goal.id); soundService.playUndo(); }}>
               <RotateCcw color={colors.subText} size={24} />
             </TouchableOpacity>
           </>
@@ -302,11 +294,11 @@ const GoalCardComponent = ({
         </Text>
 
         <View style={styles.badgeRow}>
-          {(localFocusTime > 0 || isActiveTimer) && !goal.completed && (
+          {(goal.focusTime > 0 || isActiveTimer) && !goal.completed && (
             <View style={[styles.statusBadge, { backgroundColor: colors.primary + '10' }]}>
               <Timer size={10} color={isActiveTimer ? colors.primary : colors.subText} />
               <Text style={[styles.statusText, { color: isActiveTimer ? colors.primary : colors.subText }]}>
-                {formatDuration(localFocusTime)}
+                {formatDuration(goal.focusTime || 0)}
               </Text>
             </View>
           )}

@@ -22,6 +22,7 @@ export default {
     success: 'Success',
     focus: 'Focus',
     focusModeDesc: 'It is time to focus on this goal.',
+    focusActive: 'Focus Active',
     categories: {
       work: 'Work',
       health: 'Health',
