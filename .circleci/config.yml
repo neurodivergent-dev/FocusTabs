@@ -1,0 +1,49 @@
+version: 2.1
+
+# Orbs provide pre-packaged chunks of configuration
+orbs:
+  node: circleci/node@5.2.0
+
+# Define the jobs to be run
+jobs:
+  build_and_test:
+    docker:
+      - image: cimg/node:19.2.0 # Projenizdeki React 19 ve Expo 55 ile uyumlu Node sürümü
+    steps:
+      - checkout
+      
+      # 1. Bağımlılıkları Yükle ve Önbelleğe Al
+      - node/install-packages:
+          pkg-manager: npm
+          override-ci-command: npm install
+
+      # 2. Tip Güvenliği Kontrolü (TypeScript)
+      - run:
+          name: TypeScript Type Check
+          command: npx tsc --noEmit
+
+      # 3. Kod Standartları Kontrolü (ESLint)
+      - run:
+          name: Lint Check
+          command: npx eslint . --ext .js,.jsx,.ts,.tsx
+
+      # 4. Jest Unit Testleri (CI modunda bir kez çalıştır)
+      - run:
+          name: Run Jest Tests
+          command: npx jest --ci --forceExit
+
+      # 5. Expo Proje Sağlık Kontrolü
+      - run:
+          name: Expo Doctor Check
+          command: npx expo doctor
+
+# Define the workflow
+workflows:
+  quality_gate:
+    jobs:
+      - build_and_test:
+          filters:
+            branches:
+              only:
+                - main
+                - develop
