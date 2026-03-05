@@ -279,11 +279,40 @@ export const StatsScreen: React.FC = () => {
     if (completionData.length > 0) {
       const sortedData = [...completionData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
+      // Seri (Streak) Hesaplama Mantığı
       let streak = 0;
-      for (const item of sortedData) {
-        if (item.totalCount > 0) {
-          if (item.percentage >= 70) streak++;
-          else break;
+      
+      const formatDateStr = (d: Date) => {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+
+      const yesterdayDate = new Date();
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterdayStr = formatDateStr(yesterdayDate);
+
+      // 1. Bugünün ve dünün başarı durumunu kontrol et
+      const todayData = completionData.find(i => i.date === today);
+      const yesterdayData = completionData.find(i => i.date === yesterdayStr);
+      
+      const isTodaySuccess = todayData && todayData.totalCount > 0 && todayData.percentage >= 70;
+      const isYesterdaySuccess = yesterdayData && yesterdayData.totalCount > 0 && yesterdayData.percentage >= 70;
+
+      if (isTodaySuccess || isYesterdaySuccess) {
+        // Eğer bugün veya dün başarılıysa, en son başarılı günden geriye doğru saymaya başla
+        let checkDate = isTodaySuccess ? new Date() : yesterdayDate;
+        
+        while (true) {
+          const checkDateStr = formatDateStr(checkDate);
+          const dayEntry = completionData.find(i => i.date === checkDateStr);
+          
+          if (dayEntry && dayEntry.totalCount > 0 && dayEntry.percentage >= 70) {
+            streak++;
+            // Bir önceki güne git
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else {
+            // Zincir kırıldı (başarısız gün veya hiç görev eklenmemiş gün)
+            break;
+          }
         }
       }
 
