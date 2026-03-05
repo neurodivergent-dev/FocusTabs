@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
@@ -28,12 +28,19 @@ import {
   jsonToData,
   importData,
 } from "../utils/backup";
+import { CustomAlert } from "../components/CustomAlert";
+import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 
 export default function BackupSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
   const { t } = useTranslation();
+
+  const [importAlertVisible, setImportAlertVisible] = useState(false);
+  const [successAlertVisible, setSuccessAlertVisible] = useState(false);
+  const [errorAlertVisible, setErrorAlertVisible] = useState(false);
+  const [pendingImportData, setPendingImportData] = useState<any>(null);
 
   // Handle back navigation
   const handleBack = () => {
@@ -99,35 +106,9 @@ export default function BackupSettingsScreen() {
         return;
       }
 
-      // Confirm import
-      Alert.alert(
-        t("backup.confirmImport"),
-        t("backup.importWarning"),
-        [
-          {
-            text: t("common.cancel"),
-            style: "cancel",
-          },
-          {
-            text: t("backup.import"),
-            style: "destructive",
-            onPress: () => {
-              const success = importData(data);
-              if (success) {
-                Alert.alert(
-                  t("backup.success"),
-                  t("backup.importSuccess")
-                );
-              } else {
-                Alert.alert(
-                  t("backup.error"),
-                  t("backup.importError")
-                );
-              }
-            },
-          },
-        ]
-      );
+      // Show Custom Alert instead of standard Alert
+      setPendingImportData(data);
+      setImportAlertVisible(true);
     } catch (error) {
       console.error("Import error:", error);
       Alert.alert(
@@ -135,6 +116,19 @@ export default function BackupSettingsScreen() {
         t("backup.importError")
       );
     }
+  };
+
+  const confirmImport = () => {
+    setImportAlertVisible(false);
+    if (!pendingImportData) return;
+
+    const success = importData(pendingImportData);
+    if (success) {
+      setSuccessAlertVisible(true);
+    } else {
+      setErrorAlertVisible(true);
+    }
+    setPendingImportData(null);
   };
 
   return (
@@ -262,6 +256,37 @@ export default function BackupSettingsScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      <CustomAlert
+        visible={importAlertVisible}
+        title={t("backup.confirmImport")}
+        message={t("backup.importWarning")}
+        type="danger"
+        confirmText={t("backup.import")}
+        cancelText={t("common.cancel")}
+        onConfirm={confirmImport}
+        onCancel={() => setImportAlertVisible(false)}
+      />
+
+      <CustomAlert
+        visible={successAlertVisible}
+        title={t("backup.success")}
+        message={t("backup.importSuccess")}
+        type="success"
+        confirmText={t("common.ok")}
+        onConfirm={() => setSuccessAlertVisible(false)}
+        onCancel={() => setSuccessAlertVisible(false)}
+      />
+
+      <CustomAlert
+        visible={errorAlertVisible}
+        title={t("backup.error")}
+        message={t("backup.importError")}
+        type="danger"
+        confirmText={t("common.ok")}
+        onConfirm={() => setErrorAlertVisible(false)}
+        onCancel={() => setErrorAlertVisible(false)}
+      />
     </>
   );
 }
