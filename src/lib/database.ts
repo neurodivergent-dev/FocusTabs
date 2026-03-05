@@ -99,13 +99,13 @@ export const addGoal = async (goalInput: GoalInput): Promise<Goal> => {
     updatedAt: new Date(),
     date: goalDate,
     category: goalInput.category,
-    focusTime: 0,
+    focusTime: goalInput.focusTime || 0,
   };
 
   await ensureInitialized();
   await db.runAsync(
     'INSERT INTO goals (id, text, completed, createdAt, updatedAt, date, category, focusTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-    [id, goalInput.text, isCompleted ? 1 : 0, now, now, goalDate, goalInput.category, 0]
+    [id, goalInput.text, isCompleted ? 1 : 0, now, now, goalDate, goalInput.category, goalInput.focusTime || 0]
   );
 
   await updateDailyCompletionStats(goalDate);

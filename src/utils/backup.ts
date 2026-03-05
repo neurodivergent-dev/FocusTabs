@@ -12,6 +12,8 @@ export interface BackupData {
     date: string;
     createdAt: string;
     updatedAt: string;
+    category: string;
+    focusTime: number;
   }>;
   theme: {
     themeId: string;
@@ -29,7 +31,7 @@ export const exportData = (): BackupData => {
   const language = useLanguageStore.getState().currentLanguage;
 
   const backupData: BackupData = {
-    version: "1.0.0",
+    version: "1.1.0",
     timestamp: new Date().toISOString(),
     goals: goals.map((goal) => ({
       id: goal.id,
@@ -38,6 +40,8 @@ export const exportData = (): BackupData => {
       date: goal.date,
       createdAt: goal.createdAt.toISOString(),
       updatedAt: goal.updatedAt.toISOString(),
+      category: goal.category,
+      focusTime: goal.focusTime,
     })),
     theme: {
       themeId: theme.themeId,
@@ -84,9 +88,10 @@ export const importData = (data: BackupData): boolean => {
     data.goals.forEach((goal) => {
       addGoal({
         text: goal.text,
-        category: (goal as unknown as { category: import('../types/goal').GoalCategory }).category || 'other',
+        category: (goal.category as any) || 'other',
         date: goal.date,
         completed: goal.completed,
+        focusTime: goal.focusTime,
       });
     });
 

@@ -23,6 +23,7 @@ export type GoalInput = {
   category: GoalCategory;
   date?: string;
   completed?: boolean;
+  focusTime?: number;
 };
 
 export interface GoalsState {
