@@ -104,3 +104,5 @@ FocusTabs respects your privacy:
 ## 👨‍💻 Author
 
 Melih Can Demir
+
+Licensed by MIT LICENSE 2026

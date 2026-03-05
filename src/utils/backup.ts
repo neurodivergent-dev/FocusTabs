@@ -86,6 +86,7 @@ export const importData = (data: BackupData): boolean => {
         text: goal.text,
         category: (goal as unknown as { category: import('../types/goal').GoalCategory }).category || 'other',
         date: goal.date,
+        completed: goal.completed,
       });
     });
 
@@ -97,6 +98,10 @@ export const importData = (data: BackupData): boolean => {
     // Import language
     const { setLanguage } = useLanguageStore.getState();
     setLanguage(data.language);
+
+    // Refresh statistics for all imported dates
+    const { resetAndRecalculateAllStats } = useDailyGoalsStore.getState();
+    resetAndRecalculateAllStats();
 
     return true;
   } catch (error) {

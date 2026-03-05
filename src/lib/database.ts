@@ -88,14 +88,16 @@ export const addGoal = async (goalInput: GoalInput): Promise<Goal> => {
   const id = `${timestamp}-${Math.floor(Math.random() * 10000)}`;
   const now = new Date().toISOString();
   const today = formatDate();
+  const goalDate = goalInput.date || today;
+  const isCompleted = goalInput.completed ?? false;
 
   const goal: Goal = {
     id,
     text: goalInput.text,
-    completed: false,
+    completed: isCompleted,
     createdAt: new Date(),
     updatedAt: new Date(),
-    date: today,
+    date: goalDate,
     category: goalInput.category,
     focusTime: 0,
   };
@@ -103,10 +105,10 @@ export const addGoal = async (goalInput: GoalInput): Promise<Goal> => {
   await ensureInitialized();
   await db.runAsync(
     'INSERT INTO goals (id, text, completed, createdAt, updatedAt, date, category, focusTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-    [id, goalInput.text, 0, now, now, today, goalInput.category, 0]
+    [id, goalInput.text, isCompleted ? 1 : 0, now, now, goalDate, goalInput.category, 0]
   );
 
-  await updateDailyCompletionStats();
+  await updateDailyCompletionStats(goalDate);
   return goal;
 };
 
@@ -160,10 +162,10 @@ export const resetDailyGoals = async (): Promise<void> => {
   await updateDailyCompletionStats();
 };
 
-export const updateDailyCompletionStats = async (): Promise<void> => {
+export const updateDailyCompletionStats = async (date?: string): Promise<void> => {
   await ensureInitialized();
-  const todayDate = formatDate();
-  const goals = await getGoalsByDate(todayDate);
+  const targetDate = date || formatDate();
+  const goals = await getGoalsByDate(targetDate);
   const totalCount = goals.length;
   const completedCount = goals.filter(goal => goal.completed).length;
   const percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
@@ -172,7 +174,7 @@ export const updateDailyCompletionStats = async (): Promise<void> => {
     await db.runAsync(
       `INSERT OR REPLACE INTO daily_completions (date, completedCount, totalCount, percentage) 
        VALUES (?, ?, ?, ?);`,
-      [todayDate, completedCount, totalCount, percentage]
+      [targetDate, completedCount, totalCount, percentage]
     );
   } catch (error) {
     console.error('[DATABASE] Stats update error:', error);
