@@ -20,13 +20,6 @@ jobs:
       - node/install-packages:
           pkg-manager: npm
           override-ci-command: npm install
-          cache-key: package-lock.json
-
-      # Cache node_modules for faster subsequent builds
-      - save_cache:
-          paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package-lock.json" }}
 
       # 2. Tip Güvenliği Kontrolü (TypeScript)
       - run:
