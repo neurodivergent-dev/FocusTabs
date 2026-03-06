@@ -42,7 +42,6 @@ jobs:
       - codecov/upload:
           file: ./coverage/lcov.info
           flags: unittests
-          fail_ci_if_error: false
 
       # 6. Expo Proje Sağlık Kontrolü
       - run:
