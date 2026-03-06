@@ -3,19 +3,30 @@ version: 2.1
 # Orbs provide pre-packaged chunks of configuration
 orbs:
   node: circleci/node@5.2.0
+  codecov: codecov/codecov@3.2.4
 
 # Define the jobs to be run
 jobs:
   build_and_test:
     docker:
       - image: cimg/node:19.2.0 # Projenizdeki React 19 ve Expo 55 ile uyumlu Node sürümü
+    
+    working_directory: ~/repo
+
     steps:
       - checkout
-      
+
       # 1. Bağımlılıkları Yükle ve Önbelleğe Al
       - node/install-packages:
           pkg-manager: npm
           override-ci-command: npm install
+          cache-key: package-lock.json
+
+      # Cache node_modules for faster subsequent builds
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
 
       # 2. Tip Güvenliği Kontrolü (TypeScript)
       - run:
@@ -25,19 +36,36 @@ jobs:
       # 3. Kod Standartları Kontrolü (ESLint)
       - run:
           name: Lint Check
-          command: npx eslint . --ext .js,.jsx,.ts,.tsx
+          command: npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0
 
-      # 4. Jest Unit Testleri (CI modunda bir kez çalıştır)
+      # 4. Jest Unit Testleri with Coverage
       - run:
-          name: Run Jest Tests
-          command: npx jest --ci --forceExit
+          name: Run Jest Tests with Coverage
+          command: |
+            mkdir -p coverage
+            npx jest --ci --forceExit --coverage --coverageReporters=text --coverageReporters=lcov --coverageReporters=html
 
-      # 5. Expo Proje Sağlık Kontrolü
+      # 5. Upload Coverage to Codecov (optional)
+      - codecov/upload:
+          file: ./coverage/lcov.info
+          flags: unittests
+          fail_ci_if_error: false
+
+      # 6. Expo Proje Sağlık Kontrolü
       - run:
           name: Expo Doctor Check
           command: npx expo doctor
 
-# Define the workflow
+      # 7. Store coverage artifacts
+      - store_artifacts:
+          path: coverage
+          destination: coverage
+
+      # 8. Store test results
+      - store_test_results:
+          path: coverage
+
+# Define workflows
 workflows:
   quality_gate:
     jobs:
@@ -47,3 +75,16 @@ workflows:
               only:
                 - main
                 - develop
+                - test-.*
+
+  # Scheduled nightly build
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"
+          filters:
+            branches:
+              only:
+                - main
+    jobs:
+      - build_and_test
