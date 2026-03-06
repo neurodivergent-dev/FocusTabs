@@ -9,7 +9,7 @@ orbs:
 jobs:
   build_and_test:
     docker:
-      - image: cimg/node:19.2.0 # Projenizdeki React 19 ve Expo 55 ile uyumlu Node sürümü
+      - image: cimg/node:20.11.0 # En güncel LTS Node sürümü
     
     working_directory: ~/repo
 
@@ -46,7 +46,7 @@ jobs:
       # 6. Expo Proje Sağlık Kontrolü
       - run:
           name: Expo Doctor Check
-          command: npx expo doctor
+          command: npx expo-doctor
 
       # 7. Store coverage artifacts
       - store_artifacts:
