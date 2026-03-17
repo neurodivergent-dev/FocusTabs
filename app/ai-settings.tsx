@@ -24,6 +24,8 @@ import {
   Sparkles,
   Save,
   CheckCircle2,
+  MessagesSquare,
+  RotateCcw,
 } from "lucide-react-native";
 import { useTheme } from "../src/components/ThemeProvider";
 import { useTranslation } from "react-i18next";
@@ -31,19 +33,35 @@ import { useAIStore } from "../src/store/aiStore";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { soundService } from "../src/services/SoundService";
+import { CustomAlert } from "../src/components/CustomAlert";
 
 export default function AISettingsScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
-  const { apiKey, setApiKey, isAIEnabled, toggleAI } = useAIStore();
+  const { 
+    apiKey, 
+    setApiKey, 
+    isAIEnabled, 
+    toggleAI, 
+    customSystemPrompt, 
+    setCustomSystemPrompt,
+    pollinationsApiKey,
+    setPollinationsApiKey
+  } = useAIStore();
   const [inputKey, setInputKey] = useState(apiKey || "");
+  const [inputPollinationsKey, setInputPollinationsKey] = useState(pollinationsApiKey || "");
+  const [inputPrompt, setInputPrompt] = useState(customSystemPrompt || "");
   const [isSaved, setIsSaved] = useState(false);
+  const [isPollinationsSaved, setIsPollinationsSaved] = useState(false);
+  const [isPromptSaved, setIsPromptSaved] = useState(false);
+  const [resetAlertVisible, setResetAlertVisible] = useState(false);
 
   useEffect(() => {
     setInputKey(apiKey || "");
-  }, [apiKey]);
+    setInputPollinationsKey(pollinationsApiKey || "");
+  }, [apiKey, pollinationsApiKey]);
 
   const handleBack = () => {
     soundService.playClick();
@@ -64,9 +82,48 @@ export default function AISettingsScreen() {
     }
   };
 
+  const handleSavePollinations = async () => {
+    try {
+      await setPollinationsApiKey(inputPollinationsKey.trim() || null);
+      setIsPollinationsSaved(true);
+      soundService.playComplete();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(() => setIsPollinationsSaved(false), 3000);
+    } catch (error) {
+      Alert.alert(t("settings.ai.error"), t("settings.ai.invalidKey"));
+    }
+  };
+
+  const handleSavePrompt = () => {
+    setCustomSystemPrompt(inputPrompt.trim() || null);
+    setIsPromptSaved(true);
+    soundService.playComplete();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setTimeout(() => setIsPromptSaved(false), 3000);
+  };
+
+  const resetPrompt = () => {
+    soundService.playClick();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    setResetAlertVisible(true);
+  };
+
+  const confirmResetPrompt = () => {
+    setResetAlertVisible(false);
+    setInputPrompt("");
+    setCustomSystemPrompt(null);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    soundService.playComplete();
+  };
+
   const openGeminiDashboard = () => {
     soundService.playClick();
     Linking.openURL("https://aistudio.google.com/app/apikey");
+  };
+
+  const openPollinationsDashboard = () => {
+    soundService.playClick();
+    Linking.openURL("https://enter.pollinations.ai");
   };
 
   return (
@@ -124,12 +181,12 @@ export default function AISettingsScreen() {
             </View>
           </View>
 
-          {/* API Key Input Section */}
+          {/* Gemini API Key */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardHeader}>
               <ShieldCheck size={20} color={colors.primary} />
               <Text style={[styles.cardTitle, { color: colors.text }]}>
-                {t("settings.ai.apiKey")}
+                Gemini API Key
               </Text>
             </View>
             
@@ -183,6 +240,137 @@ export default function AISettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Pollinations API Key */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <Sparkles size={20} color={colors.info} />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                Pollinations AI Key
+              </Text>
+            </View>
+            
+            <Text style={[styles.cardDesc, { color: colors.subText, marginBottom: 16 }]}>
+              {isDarkMode ? "Görüntü oluşturma için Pollinatios AI anahtarı kullanın." : "Use Pollinations AI key for image generation."}
+            </Text>
+
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color: colors.text,
+                  backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                  borderColor: isPollinationsSaved ? colors.success : colors.border,
+                },
+              ]}
+              placeholder="pk_..."
+              placeholderTextColor={colors.subText}
+              value={inputPollinationsKey}
+              onChangeText={setInputPollinationsKey}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <TouchableOpacity
+              style={styles.helpLink}
+              onPress={openPollinationsDashboard}
+            >
+              <Text style={[styles.helpLinkText, { color: colors.info }]}>
+                {isDarkMode ? "Anahtar Al (enter.pollinations.ai)" : "Get Key (enter.pollinations.ai)"}
+              </Text>
+              <ExternalLink size={14} color={colors.info} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.saveButton, { backgroundColor: colors.info }]} 
+              onPress={handleSavePollinations}
+            >
+              {isPollinationsSaved ? (
+                <View style={styles.saveContent}>
+                  <CheckCircle2 size={20} color="#FFFFFF" />
+                  <Text style={styles.saveButtonText}>{t("common.success")}</Text>
+                </View>
+              ) : (
+                <View style={styles.saveContent}>
+                  <Save size={20} color="#FFFFFF" />
+                  <Text style={styles.saveButtonText}>{t("settings.ai.saveKey")}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Custom Persona Section */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <MessagesSquare size={20} color={colors.secondary} />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                {t("settings.ai.customPersona")}
+              </Text>
+            </View>
+            
+            <Text style={[styles.cardDesc, { color: colors.subText, marginBottom: 16 }]}>
+              {t("settings.ai.customPersonaDesc")}
+            </Text>
+
+            <TextInput
+              style={[
+                styles.textArea,
+                {
+                  color: colors.text,
+                  backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                  borderColor: isPromptSaved ? colors.success : colors.border,
+                },
+              ]}
+              placeholder={t("settings.ai.personaPlaceholder")}
+              placeholderTextColor={colors.subText}
+              value={inputPrompt}
+              onChangeText={setInputPrompt}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity 
+              style={[styles.saveButton, { backgroundColor: colors.secondary || colors.primary }]} 
+              onPress={handleSavePrompt}
+            >
+              {isPromptSaved ? (
+                <View style={styles.saveContent}>
+                  <CheckCircle2 size={20} color="#FFFFFF" />
+                  <Text style={styles.saveButtonText}>{t("common.success")}</Text>
+                </View>
+              ) : (
+                <View style={styles.saveContent}>
+                  <Sparkles size={20} color="#FFFFFF" />
+                  <Text style={styles.saveButtonText}>{t("settings.ai.updatePersona")}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.resetActionCard, { borderColor: '#EF4444' + '30', marginTop: 12 }]}
+              onPress={resetPrompt}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#EF4444' + '15', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.resetActionGradient}
+              >
+                <RotateCcw size={20} color="#EF4444" />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.resetActionTitle, { color: "#EF4444" }]}>
+                    {t("settings.ai.resetPromptTitle")}
+                  </Text>
+                  <Text style={[styles.resetActionDesc, { color: colors.subText }]}>
+                    {t("settings.ai.resetPromptConfirm")}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
           {/* Features Information */}
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("settings.ai.whatYouGet")}</Text>
           
@@ -215,6 +403,17 @@ export default function AISettingsScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CustomAlert
+        visible={resetAlertVisible}
+        title={t("settings.ai.resetPromptTitle")}
+        message={t("settings.ai.resetPromptConfirm")}
+        type="danger"
+        confirmText={t("settings.ai.reset")}
+        cancelText={t("common.cancel")}
+        onConfirm={confirmResetPrompt}
+        onCancel={() => setResetAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -283,6 +482,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 12,
   },
+  textArea: {
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 15,
+    borderWidth: 1,
+    marginBottom: 12,
+    minHeight: 100,
+  },
+  resetIcon: {
+    padding: 4,
+    marginLeft: 'auto',
+  },
   helpLink: {
     flexDirection: "row",
     alignItems: "center",
@@ -314,4 +525,23 @@ const styles = StyleSheet.create({
   featureGradient: { padding: 20, gap: 10 },
   featureTitle: { fontSize: 16, fontWeight: "700" },
   featureDesc: { fontSize: 13, lineHeight: 18 },
+  resetActionCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  resetActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 16,
+  },
+  resetActionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  resetActionDesc: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
 });

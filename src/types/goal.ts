@@ -15,6 +15,7 @@ export interface Goal {
   date: string; // YYYY-MM-DD formatında tarih
   category: GoalCategory;
   focusTime: number; // Odaklanılan toplam saniye
+  targetTime?: number; // Hedef süre (geri sayım için)
   subTasks?: SubTask[]; // AI tarafından parçalanmış alt görevler
 }
 

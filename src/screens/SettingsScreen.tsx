@@ -275,14 +275,25 @@ export const SettingsScreen: React.FC = () => {
             </TouchableOpacity>
           ))}
 
-          <TouchableOpacity style={[styles.settingItem, { backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: "#EF4444" }]} onPress={handleResetAllData}>
-            <View style={[styles.settingIconContainer, { backgroundColor: "#EF4444" + '15' }]}>
-              <Trash2 size={20} color="#EF4444" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={[styles.settingLabel, { color: "#EF4444" }]}>{t("settings.resetAllData")}</Text>
-              <Text style={[styles.settingDescription, { color: colors.subText }]}>{t("settings.resetAllDataDescription")}</Text>
-            </View>
+          <TouchableOpacity 
+            style={[styles.resetCard, { borderColor: '#EF4444' + '30' }]}
+            onPress={handleResetAllData}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#EF4444' + '15', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.resetGradient}
+            >
+              <View style={[styles.settingIconContainer, { backgroundColor: "#EF4444" + '20' }]}>
+                <Trash2 size={20} color="#EF4444" />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={[styles.settingLabel, { color: "#EF4444", fontWeight: '700' }]}>{t("settings.resetAllData")}</Text>
+                <Text style={[styles.settingDescription, { color: colors.subText }]}>{t("settings.resetAllDataDescription")}</Text>
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -358,4 +369,15 @@ const styles = StyleSheet.create({
   logoContainer: { alignItems: "center", justifyContent: "center", paddingVertical: 24 },
   versionBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(99, 102, 241, 0.15)', marginTop: 8 },
   versionText: { fontSize: 13, fontWeight: "600" },
+  resetCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  resetGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
 });

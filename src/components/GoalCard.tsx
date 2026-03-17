@@ -191,10 +191,11 @@ const GoalCardComponent = ({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  const formatDuration = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+  const formatDuration = (seconds: number, target?: number) => {
+    const displaySeconds = target ? Math.max(0, target - seconds) : seconds;
+    const hrs = Math.floor(displaySeconds / 3600);
+    const mins = Math.floor((displaySeconds % 3600) / 60);
+    const secs = displaySeconds % 60;
     return hrs > 0 
       ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
       : `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -237,10 +238,14 @@ const GoalCardComponent = ({
       <View style={styles.focusTextContainer}>
         {(goal.focusTime > 0 || isActiveTimer) && !goal.completed && (
           <View style={styles.focusTimerContainer}>
-            <Timer size={20} color={isActiveTimer ? colors.primary : colors.subText} />
-            <Text style={[styles.focusTimerText, { color: isActiveTimer ? colors.primary : colors.subText }]}>
-              {formatDuration(goal.focusTime || 0)}
+            <Timer size={20} color={isActiveTimer ? (goal.targetTime ? colors.secondary : colors.primary) : colors.subText} />
+            <Text style={[
+              styles.focusTimerText, 
+              { color: isActiveTimer ? (goal.targetTime ? colors.secondary : colors.primary) : colors.subText }
+            ]}>
+              {formatDuration(goal.focusTime || 0, goal.targetTime)}
             </Text>
+            {goal.targetTime && <Text style={[styles.countdownLabel, { color: colors.secondary }]}>REMAINING</Text>}
           </View>
         )}
         
@@ -295,10 +300,10 @@ const GoalCardComponent = ({
 
         <View style={styles.badgeRow}>
           {(goal.focusTime > 0 || isActiveTimer) && !goal.completed && (
-            <View style={[styles.statusBadge, { backgroundColor: colors.primary + '10' }]}>
-              <Timer size={10} color={isActiveTimer ? colors.primary : colors.subText} />
-              <Text style={[styles.statusText, { color: isActiveTimer ? colors.primary : colors.subText }]}>
-                {formatDuration(goal.focusTime || 0)}
+            <View style={[styles.statusBadge, { backgroundColor: (goal.targetTime ? colors.secondary : colors.primary) + '10' }]}>
+              <Timer size={10} color={isActiveTimer ? (goal.targetTime ? colors.secondary : colors.primary) : colors.subText} />
+              <Text style={[styles.statusText, { color: isActiveTimer ? (goal.targetTime ? colors.secondary : colors.primary) : colors.subText }]}>
+                {formatDuration(goal.focusTime || 0, goal.targetTime)}
               </Text>
             </View>
           )}
@@ -645,7 +650,8 @@ const styles = StyleSheet.create({
   timerContainer: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
   focusTimerContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   timerText: { fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  focusTimerText: { fontSize: 32, fontWeight: '900' },
+  focusTimerText: { fontSize: 32, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  countdownLabel: { fontSize: 10, fontWeight: '900', marginLeft: 8, letterSpacing: 1 },
   subTasksContainer: { padding: 16, paddingTop: 0, marginTop: -8, borderTopWidth: 1 },
   focusSubTasksContainer: { width: '100%', marginTop: 10, paddingHorizontal: 20, paddingBottom: 20 },
   subTaskRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

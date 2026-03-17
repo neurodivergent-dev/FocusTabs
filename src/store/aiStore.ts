@@ -16,15 +16,20 @@ interface AIState {
   lastCelebrationMessage: string | null;
   lastCelebrationDate: string | null;
   chatMessages: ChatMessage[];
+  customSystemPrompt: string | null;
+  pollinationsApiKey: string | null;
   setApiKey: (key: string | null) => Promise<void>;
+  setPollinationsApiKey: (key: string | null) => Promise<void>;
   loadApiKey: () => Promise<void>;
   toggleAI: (enabled: boolean) => Promise<void>;
   setCelebrationCache: (message: string) => void;
   addChatMessage: (message: ChatMessage) => void;
   clearChatMessages: () => void;
+  setCustomSystemPrompt: (prompt: string | null) => void;
 }
 
 const API_KEY_STORAGE_KEY = 'gemini_api_key';
+const POLLINATIONS_API_KEY_STORAGE_KEY = 'pollinations_api_key';
 const AI_ENABLED_STORAGE_KEY = 'ai_enabled_status';
 
 export const useAIStore = create<AIState>()(
@@ -35,6 +40,8 @@ export const useAIStore = create<AIState>()(
       lastCelebrationMessage: null,
       lastCelebrationDate: null,
       chatMessages: [],
+      customSystemPrompt: null,
+      pollinationsApiKey: null,
 
       setApiKey: async (key: string | null) => {
         if (key) {
@@ -48,12 +55,23 @@ export const useAIStore = create<AIState>()(
         }
       },
 
+      setPollinationsApiKey: async (key: string | null) => {
+        if (key) {
+          await SecureStore.setItemAsync(POLLINATIONS_API_KEY_STORAGE_KEY, key);
+          set({ pollinationsApiKey: key });
+        } else {
+          await SecureStore.deleteItemAsync(POLLINATIONS_API_KEY_STORAGE_KEY);
+          set({ pollinationsApiKey: null });
+        }
+      },
+
       loadApiKey: async () => {
         try {
           const key = await SecureStore.getItemAsync(API_KEY_STORAGE_KEY);
+          const pKey = await SecureStore.getItemAsync(POLLINATIONS_API_KEY_STORAGE_KEY);
           const enabledStatus = await SecureStore.getItemAsync(AI_ENABLED_STORAGE_KEY);
           const isEnabled = key ? (enabledStatus === null ? true : enabledStatus === 'true') : false;
-          set({ apiKey: key, isAIEnabled: isEnabled });
+          set({ apiKey: key, pollinationsApiKey: pKey, isAIEnabled: isEnabled });
         } catch (e) {
           console.error('AI ayarları yüklenemedi:', e);
         }
@@ -79,6 +97,10 @@ export const useAIStore = create<AIState>()(
       clearChatMessages: () => {
         set({ chatMessages: [] });
       },
+
+      setCustomSystemPrompt: (prompt: string | null) => {
+        set({ customSystemPrompt: prompt });
+      },
     }),
     {
       name: 'ai-storage',
@@ -88,7 +110,8 @@ export const useAIStore = create<AIState>()(
         isAIEnabled: state.isAIEnabled,
         lastCelebrationMessage: state.lastCelebrationMessage,
         lastCelebrationDate: state.lastCelebrationDate,
-        chatMessages: state.chatMessages
+        chatMessages: state.chatMessages,
+        customSystemPrompt: state.customSystemPrompt
       }),
     }
   )

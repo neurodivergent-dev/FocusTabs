@@ -4,7 +4,7 @@ export default {
     name: 'FocusTabs',
     slogan: 'Your Mind in 3 Steps',
   },
-  
+
   // General
   common: {
     cancel: 'Cancel',
@@ -54,7 +54,7 @@ export default {
       description: 'Choose from multiple themes and settings to personalize your app.',
     },
   },
-  
+
   // Home page
   home: {
     completed: 'Completed',
@@ -81,7 +81,7 @@ export default {
       description: 'Set your 3 most important goals for today and focus.',
     },
   },
-  
+
   // Calendar
   calendar: {
     title: 'Calendar',
@@ -110,7 +110,7 @@ export default {
     completedCount: '{{completed}} / {{total}} goals completed',
     today: 'Today',
   },
-  
+
   // Statistics
   stats: {
     title: 'Statistics',
@@ -187,7 +187,7 @@ export default {
       tip5: 'Try to complete your tasks at the same time each day',
     },
   },
-  
+
   // Settings
   settings: {
     title: 'Settings',
@@ -265,7 +265,16 @@ export default {
         noApiKey: 'Please enter your Gemini API key in settings.',
         error: 'An error occurred. Please try again.',
         typing: 'Gemini is typing...',
+        clearHistoryTitle: 'Clear Chat History',
+        clearHistoryDescription: 'Are you sure you want to delete all chat messages? This cannot be undone.',
       },
+      customPersona: 'Custom Personality',
+      customPersonaDesc: "Define how the AI should talk to you. E.g., 'Be a stoic philosopher' or 'Act like a funny cat.'",
+      personaPlaceholder: 'Enter instructions for the AI...',
+      updatePersona: 'Update Personality',
+      resetPromptTitle: 'Reset Persona',
+      resetPromptConfirm: 'Do you want to reset to the default personality?',
+      reset: 'Reset',
     },
   },
 
@@ -302,7 +311,7 @@ export default {
     grantPermission: 'Grant Permission',
     info: 'Backup includes your goals, theme settings, and language preference.',
   },
-  
+
   // Theme Settings
   themeSettings: {
     title: 'Theme Settings',
@@ -328,7 +337,7 @@ export default {
     outlineButton: 'Outline Button',
     dangerButton: 'Danger Button',
   },
-  
+
   // Theme Names
   themeNames: {
     default: 'Cyberpunk',
@@ -346,7 +355,7 @@ export default {
     bordeaux: 'Rich Bordeaux red',
     emerald: '💎 Royal Emerald',
   },
-  
+
   // Tabs
   tabs: {
     goals: 'Goals',
@@ -377,9 +386,9 @@ export default {
     contact: "Contact",
     madeWith: "Made with",
     inTurkey: "in Turkey",
-    copyright: "© 2026 Melih Can Demir"
+    copyright: "© 2026 MetaFrame by Melih Can Demir"
   },
-  
+
   privacy: {
     back: "Settings",
     title: "Privacy Policy",
@@ -401,7 +410,7 @@ export default {
     lastUpdated: "Last Updated: March 2026",
     copyright: "© 2026 Melih Can Demir. All rights reserved."
   },
-  
+
   // Authentication
   auth: {
     login: {

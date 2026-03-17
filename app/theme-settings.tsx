@@ -22,12 +22,16 @@ export default function ThemeSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors, themeId } = useTheme();
-  const { setBackgroundEffect, backgroundEffect, setThemeId } = useThemeStore((state) => ({
+  const { setBackgroundEffect, backgroundEffect, setThemeId, customThemes } = useThemeStore((state) => ({
     setThemeId: state.setThemeId,
     setBackgroundEffect: state.setBackgroundEffect,
     backgroundEffect: state.backgroundEffect,
+    customThemes: state.customThemes,
   }));
   const { t } = useTranslation();
+
+  // Combine default and custom themes
+  const allThemes = [...THEMES, ...customThemes];
 
   // Handle back navigation
   const handleBack = () => {
@@ -112,7 +116,7 @@ export default function ThemeSettingsScreen() {
           </Text>
 
           <View style={styles.themesGrid}>
-            {THEMES.map((theme) => (
+            {allThemes.map((theme) => (
               <TouchableOpacity
                 key={theme.id}
                 style={[
@@ -248,6 +252,11 @@ export default function ThemeSettingsScreen() {
                   {theme.id === 'peacock' && (
                     <View style={[styles.specialBadge, { backgroundColor: '#0077BE', shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 16, elevation: 10 }]}>
                       <Text style={[styles.specialBadgeText, { color: '#FFD700', fontWeight: 'bold', letterSpacing: 1 }]}>ROYAL</Text>
+                    </View>
+                  )}
+                  {theme.id === 'custom-ai' && (
+                    <View style={[styles.specialBadge, { backgroundColor: colors.secondary, shadowColor: colors.secondary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 15, elevation: 8 }]}>
+                      <Text style={[styles.specialBadgeText, { color: '#FFFFFF', fontWeight: 'bold', letterSpacing: 1 }]}>AI MAGIC</Text>
                     </View>
                   )}
                   {themeId === theme.id && (

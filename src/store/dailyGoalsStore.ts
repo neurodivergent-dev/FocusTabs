@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { Goal, GoalInput, GoalsState, DailyCompletion } from '../types/goal';
-import { 
-  addGoal as dbAddGoal, 
-  getGoals as dbGetGoals, 
-  updateGoal as dbUpdateGoal, 
+import {
+  addGoal as dbAddGoal,
+  getGoals as dbGetGoals,
+  updateGoal as dbUpdateGoal,
   deleteGoal as dbDeleteGoal,
   clearGoals as dbClearGoals,
   getAllCompletions as dbGetAllCompletions,
@@ -25,14 +25,14 @@ interface DailyGoalsStore extends GoalsState {
   timerInterval: NodeJS.Timeout | null;
 
   fetchGoals: () => Promise<void>;
-  addGoal: (goalInput: GoalInput) => Promise<void>;
+  addGoal: (goalInput: GoalInput) => Promise<boolean>;
   toggleGoalCompletion: (id: string, completed: boolean) => Promise<void>;
   updateGoal: (id: string, updates: Partial<Goal>) => Promise<void>;
   updateGoalText: (id: string, text: string) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
   undoDelete: () => Promise<void>;
   clearGoals: () => Promise<void>;
-  startGoalTimer: (id: string) => void;
+  startGoalTimer: (id: string, duration?: number) => void;
   stopGoalTimer: (id?: string, finalTime?: number) => Promise<void>;
   resetGoalTimer: (id: string) => Promise<void>;
   incrementGoalTime: (id: string) => void;
@@ -64,7 +64,7 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   calendarError: null,
   dateGoals: [],
   dateGoalsLoading: false,
-  
+
   fetchGoals: async () => {
     set({ loading: true });
     try {
@@ -74,19 +74,21 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       set({ error: 'Fetch error', loading: false });
     }
   },
-  
+
   addGoal: async (goalInput: GoalInput) => {
-    if (get().hasReachedMaxGoals()) return;
+    if (get().hasReachedMaxGoals()) return false;
     set({ loading: true });
     try {
       const newGoal = await dbAddGoal(goalInput);
       set((state) => ({ goals: [newGoal, ...state.goals], loading: false }));
       get().fetchAllCompletions();
+      return true;
     } catch (error) {
       set({ loading: false });
+      return false;
     }
   },
-  
+
   toggleGoalCompletion: async (id: string, completed: boolean) => {
     try {
       await dbUpdateGoal(id, { completed });
@@ -94,7 +96,7 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
         goals: state.goals.map((g) => g.id === id ? { ...g, completed } : g)
       }));
       get().fetchAllCompletions();
-    } catch (error) {}
+    } catch (error) { }
   },
 
   updateGoal: async (id: string, updates: Partial<Goal>) => {
@@ -111,16 +113,16 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       console.error('Update goal error:', error);
     }
   },
-  
+
   updateGoalText: async (id: string, text: string) => {
     try {
       await dbUpdateGoal(id, { text });
       set((state) => ({
         goals: state.goals.map((g) => g.id === id ? { ...g, text } : g)
       }));
-    } catch (error) {}
+    } catch (error) { }
   },
-  
+
   deleteGoal: async (id: string) => {
     try {
       const goalToDelete = get().goals.find(g => g.id === id);
@@ -130,7 +132,7 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
         lastDeletedGoal: goalToDelete || null
       }));
       get().fetchAllCompletions();
-    } catch (error) {}
+    } catch (error) { }
   },
 
   undoDelete: async () => {
@@ -140,28 +142,35 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       const restored = await dbAddGoal(lastDeletedGoal);
       set((state) => ({ goals: [restored, ...state.goals], lastDeletedGoal: null }));
       get().fetchAllCompletions();
-    } catch (error) {}
+    } catch (error) { }
   },
-  
+
   clearGoals: async () => {
     try {
       await dbClearGoals();
       set({ goals: [], completionData: [] });
-    } catch (error) {}
+    } catch (error) { }
   },
-  
+
   fetchAllCompletions: async () => {
     try {
       const data = await dbGetAllCompletions();
       set({ completionData: data });
-    } catch (error) {}
+    } catch (error) { }
   },
 
-  startGoalTimer: (id: string) => {
+  startGoalTimer: (id: string, duration?: number) => {
     // Clear any existing timer
     const currentInterval = get().timerInterval;
     if (currentInterval) {
       clearInterval(currentInterval);
+    }
+
+    // Seçilen göreve hedef süreyi (eğer varsa) ekle
+    if (duration !== undefined) {
+      set((state) => ({
+        goals: state.goals.map((g) => g.id === id ? { ...g, targetTime: duration, focusTime: 0 } : g)
+      }));
     }
 
     const interval = setInterval(() => {
@@ -173,15 +182,15 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
 
   stopGoalTimer: async (id?: string, finalTime?: number) => {
     const targetId = id || get().activeTimerGoalId;
-    
+
     // Clear the timer immediately
     const currentInterval = get().timerInterval;
     if (currentInterval) {
       clearInterval(currentInterval);
     }
-    
+
     set({ activeTimerGoalId: null, timerInterval: null });
-    
+
     if (targetId) {
       const goal = get().goals.find(g => g.id === targetId);
       const timeToSave = finalTime !== undefined ? finalTime : (goal?.focusTime || 0);
@@ -208,15 +217,26 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   },
 
   incrementGoalTime: (id: string) => {
+    const goal = get().goals.find(g => g.id === id);
+    if (!goal) return;
+
+    const newFocusTime = (goal.focusTime || 0) + 1;
+    
+    // Geri sayım bitti mi kontrol et
+    if (goal.targetTime && newFocusTime >= goal.targetTime) {
+      get().stopGoalTimer(id, goal.targetTime);
+      return;
+    }
+
     set((state) => ({
-      goals: state.goals.map((g) => g.id === id ? { ...g, focusTime: (g.focusTime || 0) + 1 } : g)
+      goals: state.goals.map((g) => g.id === id ? { ...g, focusTime: newFocusTime } : g)
     }));
   },
 
   saveGoalTime: async (id: string) => {
     const goal = get().goals.find(g => g.id === id);
     if (goal) {
-      try { await dbUpdateGoal(id, { focusTime: goal.focusTime }); } catch (e) {}
+      try { await dbUpdateGoal(id, { focusTime: goal.focusTime }); } catch (e) { }
     }
   },
 
@@ -246,7 +266,7 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       set((state) => ({
         goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
       }));
-    } catch (error) {}
+    } catch (error) { }
   },
 
   deleteSubTask: async (goalId: string, subTaskId: string) => {
@@ -258,7 +278,7 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       set((state) => ({
         goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
       }));
-    } catch (error) {}
+    } catch (error) { }
   },
 
   updateSubTask: async (goalId: string, subTaskId: string, text: string) => {
@@ -270,45 +290,45 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       set((state) => ({
         goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
       }));
-    } catch (error) {}
+    } catch (error) { }
   },
-  
+
   fetchCompletionsForRange: async (s: Date, e: Date) => {
     try {
       const data = await dbGetCompletionsByDateRange(s, e);
       set({ completionData: data });
-    } catch (error) {}
+    } catch (error) { }
   },
-  
+
   updateDailyStats: async () => {
     try {
       await dbUpdateDailyCompletionStats();
       get().fetchAllCompletions();
-    } catch (error) {}
+    } catch (error) { }
   },
-  
+
   hasReachedMaxGoals: () => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     return get().goals.filter(g => g.date === today).length >= 3;
   },
-  
+
   getCompletedGoalsCount: () => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     return get().goals.filter(g => g.date === today && g.completed).length;
   },
-  
+
   getActiveGoalsCount: () => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     return get().goals.filter(g => g.date === today && !g.completed).length;
   },
-  
+
   getCompletionPercentageForDate: (date: string) => {
     return get().completionData.find(i => i.date === date)?.percentage || 0;
   },
-  
+
   fetchGoalsByDate: async (date: string) => {
     set({ dateGoalsLoading: true });
     try {
@@ -316,14 +336,14 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
       set({ dateGoals: goals, dateGoalsLoading: false });
     } catch (error) { set({ dateGoalsLoading: false }); }
   },
-  
+
   resetAndRecalculateAllStats: async () => {
     try {
       await dbResetAndRecalculateAllCompletionStats();
       get().fetchAllCompletions();
-    } catch (error) {}
+    } catch (error) { }
   },
-  
+
   cleanupDuplicateGoals: async () => {
     set({ loading: true });
     try {

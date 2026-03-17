@@ -232,11 +232,20 @@ export default {
         noApiKey: 'Lütfen ayarlardan Gemini API anahtarınızı girin.',
         error: 'Bir hata oluştu. Lütfen tekrar deneyin.',
         typing: 'Gemini yazıyor...',
+        clearHistoryTitle: 'Sohbet Geçmişini Temizle',
+        clearHistoryDescription: 'Tüm sohbet mesajlarını silmek istediğine emin misin? Bu işlem geri alınamaz.',
       },
+      customPersona: 'Özel Kişilik',
+      customPersonaDesc: "Yapay zekanın seninle nasıl konuşacağını belirle. Örn: 'Bana bir filozof gibi davran' veya 'Esprili bir kedi gibi konuş'.",
+      personaPlaceholder: 'AI için talimatları girin...',
+      updatePersona: 'Kişiliği Güncelle',
+      resetPromptTitle: 'Kişiliği Sıfırla',
+      resetPromptConfirm: 'Varsayılan kişiliğe dönmek istiyor musun?',
+      reset: 'Sıfırla',
     },
   },
   backup: {
-      title: 'Yedekle & Geri Yükle',
+    title: 'Yedekle & Geri Yükle',
     description: 'Verilerinizi yedekleyin veya başka cihaza aktarın',
     export: 'Dışa Aktar',
     exportJSON: 'JSON olarak dışa aktar',
@@ -323,7 +332,7 @@ export default {
     contact: "İletişim",
     madeWith: "ile",
     inTurkey: "Türkiye'de",
-    copyright: "© 2026 Melih Can Demir"
+    copyright: "© 2026 MetaFrame by Melih Can Demir"
   },
   privacy: {
     back: "Ayarlar",

@@ -81,7 +81,7 @@ interface TesseractLineProps {
   size: number;
 }
 
-const TesseractLine = ({ idx1, idx2, vertices, angleX, angleY, angleZ, color, size }: TesseractLineProps) => {
+const WireframeLine = ({ idx1, idx2, vertices, angleX, angleY, angleZ, color, size }: TesseractLineProps) => {
   const animatedStyle = useAnimatedStyle(() => {
     const v1 = vertices[idx1];
     const v2 = vertices[idx2];
@@ -105,13 +105,17 @@ const TesseractLine = ({ idx1, idx2, vertices, angleX, angleY, angleZ, color, si
 
     return {
       width: length,
-      height: 1.5,
+      height: 4, // Much thicker for wireframe visibility
       backgroundColor: color,
       position: 'absolute',
       left: (p1.x + p2.x) / 2 - length / 2,
-      top: (p1.y + p2.y) / 2 - 0.75,
+      top: (p1.y + p2.y) / 2 - 2,
       transform: [{ rotate: `${angle}rad` }],
-      opacity: interpolate(avgZ, [-1.5, 1.5], [0.8, 0.1]),
+      opacity: interpolate(avgZ, [-1.5, 1.5], [1, 0.4]), // Better visibility
+      shadowColor: color,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 10, // Glow effect
     };
   });
 
@@ -160,7 +164,7 @@ const Tesseract4D = () => {
   return (
     <View style={StyleSheet.absoluteFill}>
       {edges.map((edge, i) => (
-        <TesseractLine 
+        <WireframeLine 
           key={i} 
           idx1={edge[0]} 
           idx2={edge[1]} 
@@ -276,9 +280,219 @@ const AuraOrb = ({ delay = 0, initialX = 0, initialY = 0, size = 400, color = '#
   );
 };
 
+const DynamicParticle = ({ el }: { el: any }) => {
+  const tx = useSharedValue(el.x);
+  const ty = useSharedValue(el.y);
+  
+  useEffect(() => {
+    tx.value = withRepeat(withTiming(Math.random() * width, { duration: 10000 / el.speed, easing: Easing.inOut(Easing.sin) }), -1, true);
+    ty.value = withRepeat(withTiming(Math.random() * height, { duration: 10000 / el.speed, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [tx, ty, el.speed]);
+
+  return (
+    <Animated.View 
+      style={[
+        styles.particle, 
+        { backgroundColor: el.color, width: el.size, height: el.size, borderRadius: el.size / 2 },
+        useAnimatedStyle(() => ({ transform: [{ translateX: tx.value }, { translateY: ty.value }] }))
+      ]} 
+    />
+  );
+};
+
+const DynamicShape = ({ el, opacity, type }: { el: any, opacity: number, type: 'triangle' | 'square' }) => {
+  const rotation = useSharedValue(0);
+  
+  useEffect(() => {
+    rotation.value = withRepeat(withTiming(360, { duration: (type === 'square' ? 8000 : 5000) / el.speed, easing: Easing.linear }), -1, false);
+  }, [rotation, el.speed, type]);
+
+  return (
+    <Animated.View 
+      style={[
+        { position: 'absolute', left: el.x, top: el.y },
+        useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }))
+      ]}
+    >
+      <Svg width={el.size} height={el.size} viewBox="0 0 100 100">
+        {type === 'triangle' ? (
+          <Path d="M50 0 L100 100 L0 100 Z" fill={el.color} opacity={opacity} />
+        ) : (
+          <Path d="M20 20 H80 V80 H20 Z" fill={el.color} opacity={opacity} />
+        )}
+      </Svg>
+    </Animated.View>
+  );
+};
+
+const DynamicCircle = ({ el, opacity }: { el: any, opacity: number }) => {
+  const pulse = useSharedValue(1);
+  
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(1.2, { duration: 2000 / el.speed, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [pulse, el.speed]);
+
+  return (
+    <Animated.View 
+      style={[
+        { position: 'absolute', left: el.x, top: el.y },
+        useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }))
+      ]}
+    >
+      <Svg width={el.size} height={el.size} viewBox="0 0 100 100">
+        <Circle cx="50" cy="50" r="45" fill={el.color} opacity={opacity} />
+      </Svg>
+    </Animated.View>
+  );
+};
+
+const DynamicIsometricCube = ({ el, opacity }: { el: any, opacity: number }) => {
+  const progress = useSharedValue(0);
+  useEffect(() => { 
+    progress.value = withRepeat(withTiming(1, { duration: 15000 / el.speed, easing: Easing.linear }), -1, false); 
+  }, [el.speed, progress]);
+  
+  const animatedStyle = useAnimatedStyle(() => ({ 
+    transform: [
+      { translateX: el.x }, 
+      { translateY: el.y + Math.sin(progress.value * Math.PI * 2) * 20 }, 
+      { rotate: `${progress.value * 360}deg` }
+    ],
+    opacity: opacity
+  }));
+
+  return (
+    <Animated.View style={[styles.cubeWrapper, animatedStyle]}>
+      <Svg width={el.size} height={el.size} viewBox="0 0 100 100">
+        <Path d="M50 20 L80 35 L50 50 L20 35 Z" fill={el.color} opacity={0.6} />
+        <Path d="M50 50 L80 35 L80 65 L50 80 Z" fill={el.color} opacity={0.4} />
+        <Path d="M50 50 L20 35 L20 65 L50 80 Z" fill={el.color} opacity={0.2} />
+      </Svg>
+    </Animated.View>
+  );
+};
+
+const DynamicWireframeCube = ({ color, size, speed = 1 }: { color: string, size: number, speed?: number }) => {
+  const angleX = useSharedValue(0);
+  const angleY = useSharedValue(0);
+  const angleZ = useSharedValue(0);
+
+  useEffect(() => {
+    angleX.value = withRepeat(withTiming(Math.PI * 2, { duration: 15000 / speed, easing: Easing.linear }), -1, false);
+    angleY.value = withRepeat(withTiming(Math.PI * 2, { duration: 20000 / speed, easing: Easing.linear }), -1, false);
+    angleZ.value = withRepeat(withTiming(Math.PI * 2, { duration: 25000 / speed, easing: Easing.linear }), -1, false);
+  }, [angleX, angleY, angleZ, speed]);
+
+  const vertices = useMemo(() => {
+    const v = [];
+    for (let i = 0; i < 8; i++) {
+      v.push({ x: (i & 1) ? 1 : -1, y: (i & 2) ? 1 : -1, z: (i & 4) ? 1 : -1 });
+    }
+    return v;
+  }, []);
+
+  const edges = useMemo(() => [[0,1],[1,3],[3,2],[2,0],[4,5],[5,7],[7,6],[6,4],[0,4],[1,5],[3,7],[2,6]], []);
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      {edges.map((edge, i) => (
+        <WireframeLine 
+          key={i} 
+          idx1={edge[0]} 
+          idx2={edge[1]} 
+          vertices={vertices} 
+          angleX={angleX} 
+          angleY={angleY} 
+          angleZ={angleZ} 
+          color={color}
+          size={size}
+        />
+      ))}
+    </View>
+  );
+};
+
+const DynamicEffect = ({ config }: { config: any }) => {
+  const { colors } = useTheme();
+  
+  const elements = useMemo(() => {
+    const count = config.count || 10;
+    return [...Array(count)].map((_, i) => ({
+      id: i,
+      size: (config.size || 20) * (0.5 + Math.random()),
+      x: Math.random() * width,
+      y: Math.random() * height,
+      color: config.color || colors.primary,
+      speed: (config.speed || 1) * (1 + Math.random()),
+    }));
+  }, [config, colors.primary]);
+
+  if (config.type === 'particles') {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {elements.map(el => <DynamicParticle key={el.id} el={el} />)}
+      </View>
+    );
+  }
+
+  if (config.type === 'shapes' || config.type === 'squares') {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {elements.map(el => (
+          <DynamicShape 
+            key={el.id} 
+            el={el} 
+            opacity={config.opacity || (config.type === 'shapes' ? 0.6 : 0.5)} 
+            type={config.type === 'squares' ? 'square' : 'triangle'} 
+          />
+        ))}
+      </View>
+    );
+  }
+
+  if (config.type === 'circles') {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {elements.map(el => <DynamicCircle key={el.id} el={el} opacity={config.opacity || 0.5} />)}
+      </View>
+    );
+  }
+
+  if (config.type === 'cubes') {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {elements.map(el => <DynamicIsometricCube key={el.id} el={el} opacity={config.opacity || 0.8} />)}
+      </View>
+    );
+  }
+
+  if (config.type === 'waves') {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <AuraOrb color={config.color || colors.primary} size={width * 1.5} initialX={-width * 0.25} initialY={-height * 0.1} delay={0} />
+        <AuraOrb color={config.color || colors.secondary} size={width * 1.2} initialX={width * 0.1} initialY={height * 0.4} delay={2000} />
+      </View>
+    );
+  }
+
+  if (config.type === 'wireframe') {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <DynamicWireframeCube 
+          color={config.color || colors.primary} 
+          size={config.size || width * 0.15} // Balanced size, total cube width ~30-40% of screen
+          speed={config.speed || 1}
+        />
+      </View>
+    );
+  }
+
+  return null;
+};
+
 export const BackgroundEffects = () => {
   const { colors } = useTheme();
-  const { backgroundEffect } = useThemeStore();
+  const { backgroundEffect, customBackgroundConfig } = useThemeStore();
   
   interface CubeData {
     id: number;
@@ -292,6 +506,7 @@ export const BackgroundEffects = () => {
   const cubes = useMemo<CubeData[]>(() => [...Array(10)].map((_, i) => ({ id: i, size: 60 + Math.random() * 120, x: (Math.random() * width) - 50, y: (Math.random() * height) - 50, delay: i * 800, duration: 15000 + Math.random() * 10000 })), []);
 
   if (backgroundEffect === 'none') return null;
+  if (backgroundEffect === 'dynamic' && customBackgroundConfig) return <DynamicEffect config={customBackgroundConfig} />;
   if (backgroundEffect === 'particles') return <View style={StyleSheet.absoluteFill} pointerEvents="none">{[...Array(15)].map((_, i) => <FloatingParticle key={i} />)}</View>;
   if (backgroundEffect === 'waves') return <View style={StyleSheet.absoluteFill} pointerEvents="none"><AuraOrb color={colors.primary} initialX={-100} initialY={-100} size={width * 1.2} delay={0} /><AuraOrb color={colors.secondary} initialX={width * 0.2} initialY={height * 0.5} size={width} delay={2000} /></View>;
   if (backgroundEffect === 'crystals') return <View style={StyleSheet.absoluteFill} pointerEvents="none"><AtomicSystem /></View>;

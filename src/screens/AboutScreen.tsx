@@ -10,18 +10,18 @@ import {
   Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { 
-  ChevronLeft, 
-  Github, 
-  Mail, 
-  Heart, 
-  CheckCircle2, 
-  Layout, 
-  Moon, 
-  ShieldCheck, 
-  Palette, 
-  CalendarDays, 
-  Play, 
+import {
+  ChevronLeft,
+  Github,
+  Mail,
+  Heart,
+  CheckCircle2,
+  Layout,
+  Moon,
+  ShieldCheck,
+  Palette,
+  CalendarDays,
+  Play,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
@@ -29,11 +29,11 @@ import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import FocusTabsLogo from "../../components/LogoComponent";
 import Constants from "expo-constants";
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { Svg, Circle, Path } from "react-native-svg";
@@ -103,9 +103,9 @@ export const AboutScreen: React.FC = () => {
         onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
       >
         <Animated.View style={[
-          styles.featureCard, 
-          { 
-            backgroundColor: colors.card, 
+          styles.featureCard,
+          {
+            backgroundColor: colors.card,
             borderColor: colors.border,
           },
           animatedStyle
@@ -135,9 +135,9 @@ export const AboutScreen: React.FC = () => {
         <View style={styles.headerDecorationCircle1} />
         <View style={styles.headerDecorationCircle2} />
 
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ChevronLeft size={24} color="#FFFFFF" />
-          <Text 
+          <Text
             style={[styles.backText, { color: "#FFFFFF" }]}
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -146,7 +146,7 @@ export const AboutScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text 
+          <Text
             style={[styles.title, { color: "#FFFFFF" }]}
             numberOfLines={1}
             adjustsFontSizeToFit
@@ -269,11 +269,11 @@ export const AboutScreen: React.FC = () => {
 
         <View style={styles.footer}>
           <View style={[styles.footerDivider, { backgroundColor: colors.border, opacity: 0.3 }]} />
-          
+
           <Text style={[styles.copyright, { color: colors.text, opacity: 0.7 }]}>
             {t("about.copyright")}
           </Text>
-          
+
           <View style={styles.madeWithContainer}>
             {i18n.language && i18n.language.startsWith("tr") ? (
               <>
