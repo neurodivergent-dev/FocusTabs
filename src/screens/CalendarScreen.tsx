@@ -27,7 +27,12 @@ import {
   User,
   DollarSign,
   Tag,
+  RotateCcw,
 } from "lucide-react-native";
+import { GoalCard } from "../components/GoalCard";
+import { AddGoalForm } from "../components/AddGoalForm";
+import { useAIStore } from "../store/aiStore";
+import Animated, { FadeInDown, SlideOutDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
 import { GoalCategory } from "../types/goal";
@@ -111,10 +116,36 @@ export const CalendarScreen: React.FC = () => {
     calendarLoading,
     calendarError,
     fetchAllCompletions,
+    fetchGoalsByDate,
     dateGoals,
     dateGoalsLoading,
-    fetchGoalsByDate,
+    addGoal,
+    toggleGoalCompletion,
+    updateGoal,
+    deleteGoal,
+    undoDelete,
+    lastDeletedGoal,
+    activeTimerGoalId,
+    startGoalTimer,
+    stopGoalTimer,
+    resetGoalTimer,
+    decomposeGoal,
+    toggleSubTask,
+    deleteSubTask,
+    updateSubTask,
+    hasReachedMaxGoals,
   } = useDailyGoalsStore();
+
+  const { isAIEnabled } = useAIStore();
+  const [isUndoVisible, setIsUndoVisible] = useState(false);
+  const undoTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleDeleteGoal = async (id: string) => {
+    await deleteGoal(id);
+    setIsUndoVisible(true);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = setTimeout(() => setIsUndoVisible(false), 5000);
+  };
 
   // State to track theme changes
   const [themeVersion, setThemeVersion] = useState(0);
@@ -225,6 +256,12 @@ export const CalendarScreen: React.FC = () => {
   useEffect(() => {
     setThemeVersion((prev) => prev + 1);
   }, [colors, isDarkMode]);
+
+  const isPastDate = useMemo(() => {
+    if (!selectedDate) return false;
+    const today = getCurrentDate();
+    return selectedDate < today;
+  }, [selectedDate]);
 
   // Determine color based on completion percentage
   const getCompletionColor = useCallback(
@@ -555,17 +592,6 @@ export const CalendarScreen: React.FC = () => {
     }
   };
 
-  // Category Icon Mapper
-  const CategoryIcon = ({ id, size, color }: { id: GoalCategory, size: number, color: string }) => {
-    switch (id) {
-      case 'work': return <Briefcase size={size} color={color} />;
-      case 'health': return <Heart size={size} color={color} fill={id === 'health' ? color : 'transparent'} />;
-      case 'personal': return <User size={size} color={color} />;
-      case 'finance': return <DollarSign size={size} color={color} />;
-      default: return <Tag size={size} color={color} />;
-    }
-  };
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -761,57 +787,46 @@ export const CalendarScreen: React.FC = () => {
                   />
                 ) : dateGoals.length > 0 ? (
                   <View style={styles.goalsList}>
-                    {dateGoals.map((item) => {
-                      const category = getCategoryById(item.category);
-                      return (
-                        <View
-                          key={item.id}
-                          style={[
-                            styles.goalItem,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: item.completed ? colors.success + '30' : colors.border,
-                              borderWidth: 1,
-                            },
-                          ]}
-                        >
-                          <View style={styles.goalStatusIcon}>
-                            {item.completed ? (
-                              <CheckCircle size={22} color={colors.success} />
-                            ) : (
-                              <Circle size={22} color={colors.subText} opacity={0.5} />
-                            )}
-                          </View>
-                          <View style={styles.goalContent}>
-                            <Text
-                              style={[
-                                styles.goalText,
-                                {
-                                  color: item.completed ? colors.subText : colors.text,
-                                  textDecorationLine: item.completed
-                                    ? "line-through"
-                                    : "none",
-                                },
-                              ]}
-                            >
-                              {item.text}
-                            </Text>
-                            <View style={[styles.categoryBadge, { backgroundColor: category.color + '15' }]}>
-                              <CategoryIcon id={item.category} size={10} color={category.color} />
-                              <Text style={[styles.categoryText, { color: category.color }]}>
-                                {t(category.nameKey)}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                      );
-                    })}
+                    {dateGoals.map((item, index) => (
+                      <Animated.View 
+                        key={item.id} 
+                        entering={FadeInDown.delay(index * 100).springify().damping(15)}
+                      >
+                        <GoalCard
+                          goal={item}
+                          onToggleComplete={toggleGoalCompletion}
+                          onUpdateGoal={updateGoal}
+                          onDelete={handleDeleteGoal}
+                          onStartTimer={startGoalTimer}
+                          onStopTimer={stopGoalTimer}
+                          onResetTimer={resetGoalTimer}
+                          onDecompose={(id) => decomposeGoal(id, i18n.language)}
+                          onToggleSubTask={toggleSubTask}
+                          onDeleteSubTask={deleteSubTask}
+                          onUpdateSubTask={updateSubTask}
+                          isActiveTimer={activeTimerGoalId === item.id}
+                          isAIEnabled={isAIEnabled}
+                          isPastDate={isPastDate}
+                        />
+                      </Animated.View>
+                    ))}
                   </View>
                 ) : (
-                  <View style={styles.emptyGoalsContainer}>
-                    <Text style={[styles.noGoalsText, { color: colors.subText }]}>
+                  <View style={styles.noGoalsPlaceholder}>
+                    <Text style={[styles.noGoalsPlaceholderText, { color: colors.subText }]}>
                       {t("calendar.noGoalsForDate")}
                     </Text>
+                  </View>
+                )}
+
+                {!isPastDate && (
+                  <View style={styles.addGoalWrapper}>
+                    <AddGoalForm
+                      onAddGoal={(text, category) => addGoal({ text, category, date: selectedDate })}
+                      disabled={hasReachedMaxGoals(selectedDate)}
+                      currentCount={dateGoals.length}
+                      existingGoals={dateGoals.map(g => g.text)}
+                    />
                   </View>
                 )}
               </View>
@@ -853,6 +868,35 @@ export const CalendarScreen: React.FC = () => {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {isUndoVisible && (
+        <Animated.View 
+          entering={FadeInDown} 
+          exiting={SlideOutDown} 
+          style={[
+            styles.undoToast, 
+            { 
+              backgroundColor: colors.card, 
+              borderLeftColor: colors.primary,
+              bottom: 40,
+            }
+          ]}
+        >
+          <View style={styles.undoContent}>
+            <Text style={[styles.undoText, { color: colors.text }]}>{t("common.goalDeleted")}</Text>
+            <TouchableOpacity 
+              style={[styles.undoButton, { backgroundColor: colors.primary + '20' }]} 
+              onPress={async () => { 
+                await undoDelete(); 
+                setIsUndoVisible(false); 
+              }}
+            >
+              <RotateCcw size={16} color={colors.primary} style={{ marginRight: 6 }} />
+              <Text style={[styles.undoButtonText, { color: colors.primary }]}>{t("common.undo")}</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 };
@@ -1136,6 +1180,37 @@ const styles = StyleSheet.create({
   bottomPadding: {
     height: 125,
   },
+  noGoalsPlaceholder: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noGoalsPlaceholderText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  addGoalWrapper: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  undoToast: { 
+    position: 'absolute', 
+    left: 20, 
+    right: 20, 
+    paddingVertical: 12, 
+    paddingHorizontal: 16, 
+    borderRadius: 16, 
+    borderLeftWidth: 4, 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.15, 
+    shadowRadius: 10, 
+    elevation: 5 
+  },
+  undoContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  undoText: { fontSize: 14, fontWeight: '600' },
+  undoButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
+  undoButtonText: { fontSize: 14, fontWeight: '800' },
 });
 
 export default CalendarScreen;

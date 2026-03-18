@@ -6,11 +6,13 @@ import { soundService } from "../../src/services/SoundService";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import { useAIStore } from "../../src/store/aiStore";
+import { useThemeStore } from "../../src/store/themeStore";
 
 export default function TabLayout() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const { isAIEnabled, apiKey } = useAIStore();
+  const { isZenMode } = useThemeStore();
 
   const tabListeners = {
     tabPress: () => {
@@ -26,6 +28,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.subText,
         headerShown: false,
         tabBarStyle: {
+          display: isZenMode ? 'none' : 'flex',
           backgroundColor: colors.card,
           borderTopColor: colors.border,
         },

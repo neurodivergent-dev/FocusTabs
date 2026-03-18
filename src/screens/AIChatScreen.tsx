@@ -18,17 +18,19 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../components/ThemeProvider';
 import { useTranslation } from 'react-i18next';
-import { Send, Sparkles, User, Bot, AlertCircle, Trash2, ChevronDown } from 'lucide-react-native';
+import { Send, Sparkles, User, Bot, AlertCircle, Trash2, ChevronDown, CheckCircle2, Circle, X } from 'lucide-react-native';
 import { aiService } from '../services/aiService';
+import { soundService } from '../services/SoundService';
 import { useAIStore, ChatMessage } from '../store/aiStore';
 import { useDailyGoalsStore } from '../store/dailyGoalsStore';
 import { MarkdownText } from '../components/MarkdownText';
 import { CustomAlert } from '../components/CustomAlert';
+import { BackgroundEffects } from '../components/BackgroundEffects';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeStore } from '../store/themeStore';
 import { useLanguageStore } from '../store/languageStore';
+import Animated, { FadeInUp, FadeInDown, useAnimatedStyle, withTiming, useDerivedValue, FadeIn, FadeOut } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { exportData, dataToJSON } from '../utils/backup';
@@ -36,7 +38,7 @@ import { exportData, dataToJSON } from '../utils/backup';
 const AIChatScreen = () => {
   const { colors, isDarkMode } = useTheme();
   const { t, i18n } = useTranslation();
-  const { apiKey, isAIEnabled, chatMessages, addChatMessage, clearChatMessages, customSystemPrompt } = useAIStore();
+  const { apiKey, isAIEnabled, chatMessages, addChatMessage, deleteChatMessage, deleteChatMessages, clearChatMessages, customSystemPrompt, setCustomSystemPrompt, chatSoundsEnabled, chatSoundType } = useAIStore();
   const addGoal = useDailyGoalsStore(state => state.addGoal);
   const deleteGoal = useDailyGoalsStore(state => state.deleteGoal);
   const clearGoals = useDailyGoalsStore(state => state.clearGoals);
@@ -54,12 +56,18 @@ const AIChatScreen = () => {
   const setBackgroundEffect = useThemeStore(state => state.setBackgroundEffect);
   const addCustomTheme = useThemeStore(state => state.addCustomTheme);
   const setCustomBackgroundConfig = useThemeStore(state => state.setCustomBackgroundConfig);
+  const ambientSound = useThemeStore(state => state.ambientSound);
+  const setAmbientSound = useThemeStore(state => state.setAmbientSound);
+  const { isZenMode, setIsZenMode } = useThemeStore();
   const insets = useSafeAreaInsets();
 
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [clearChatAlertVisible, setClearChatAlertVisible] = useState(false);
+  const [deleteMessageAlertVisible, setDeleteMessageAlertVisible] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
   const handleScroll = (event: any) => {
@@ -77,17 +85,15 @@ const AIChatScreen = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  // Eğer geçmiş boşsa hoşgeldin mesajı ekle (ama persist etme, sadece görüntüle)
+  // Hoşgeldin mesajını her zaman en başta tut (persist edilmez, sadece görüntülenir)
   const displayMessages = useMemo(() => {
-    if (chatMessages.length === 0) {
-      return [{
-        id: 'welcome',
-        text: t('settings.ai.chat.welcome'),
-        role: 'model' as const,
-        timestamp: Date.now(),
-      }];
-    }
-    return chatMessages;
+    const welcomeMsg = {
+      id: 'welcome',
+      text: t('settings.ai.chat.welcome'),
+      role: 'model' as const,
+      timestamp: 0, // En üstte kalması için 0 veriyoruz
+    };
+    return [welcomeMsg, ...chatMessages];
   }, [chatMessages, t]);
 
   // Sohbet geçmişini Gemini formatına çevir (Sadece mesajlar değişince güncellenir)
@@ -97,6 +103,32 @@ const AIChatScreen = () => {
       parts: [{ text: msg.text }]
     }));
   }, [chatMessages]);
+
+  const zenOpacity = useDerivedValue(() => withTiming(isZenMode ? 0 : 1, { duration: 500 }));
+  const zenUIStyle = useAnimatedStyle(() => ({
+    opacity: zenOpacity.value,
+    transform: [{ translateY: withTiming(isZenMode ? 20 : 0, { duration: 500 }) }],
+  }));
+
+  const toggleZenMode = () => {
+    setIsZenMode(!isZenMode);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const playChatSound = (type: 'send' | 'receive') => {
+    if (!chatSoundsEnabled) return;
+
+    if (chatSoundType === 'pop') {
+      soundService.playClick();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else if (chatSoundType === 'digital') {
+      if (type === 'receive') soundService.playComplete();
+      else soundService.playClick();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.selectionAsync();
+    }
+  };
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -187,8 +219,8 @@ const AIChatScreen = () => {
     setInputText('');
     setIsLoading(true);
     Keyboard.dismiss();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
+    playChatSound('send');
+    
     try {
       const response = await aiService.chat(
         userMessage.text,
@@ -413,6 +445,19 @@ const AIChatScreen = () => {
           } catch (e) { console.error("Set Effect Error:", e); }
         }
 
+        // Ortam Sesi (Ambient Sound) Aksiyonu
+        const currentAmbientMatch = response.match(/\[ACTION:SET_AMBIENT:(.*?)\]/);
+        if (currentAmbientMatch) {
+          try {
+            const data = JSON.parse(currentAmbientMatch[1]);
+            if (data.soundId) {
+              setAmbientSound(data.soundId);
+              cleanResponse = cleanResponse.replace(currentAmbientMatch[0], '').trim();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+          } catch (e) { console.error("Set Ambient Error:", e); }
+        }
+
         // Özel Arka Plan (Custom Background) Aksiyonu
         const customBgMatch = response.match(/\[ACTION:SET_CUSTOM_BACKGROUND:(.*?)\]/);
         if (customBgMatch) {
@@ -510,6 +555,32 @@ const AIChatScreen = () => {
           setClearChatAlertVisible(true);
         }
 
+        // Zen Mode Aksiyonu
+        const zenMatch = response.match(/\[ACTION:SET_ZEN_MODE:(.*?)\]/);
+        if (zenMatch) {
+          try {
+            const data = JSON.parse(zenMatch[1]);
+            if (data.enabled !== undefined) {
+              setIsZenMode(data.enabled);
+              cleanResponse = cleanResponse.replace(zenMatch[0], '').trim();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+          } catch (e) { console.error("Zen Mode Action Error:", e); }
+        }
+
+        // System Prompt Aksiyonu
+        const promptMatch = response.match(/\[ACTION:SET_SYSTEM_PROMPT:(.*?)\]/);
+        if (promptMatch) {
+          try {
+            const data = JSON.parse(promptMatch[1]);
+            if (data.prompt) {
+              setCustomSystemPrompt(data.prompt);
+              cleanResponse = cleanResponse.replace(promptMatch[0], '').trim();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+          } catch (e) { console.error("System Prompt Action Error:", e); }
+        }
+
         const aiMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           text: cleanResponse,
@@ -517,7 +588,7 @@ const AIChatScreen = () => {
           timestamp: Date.now(),
         };
         addChatMessage(aiMessage);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        playChatSound('receive');
       } else {
         // Boş yanıt gelirse hata mesajı göster (throw etmeden)
         const errorMessage: ChatMessage = {
@@ -549,38 +620,103 @@ const AIChatScreen = () => {
     setClearChatAlertVisible(true);
   };
 
+  const toggleSelection = (id: string) => {
+    if (id === 'welcome') return;
+    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedIds(prev => {
+      if (prev.includes(id)) {
+        const next = prev.filter(item => item !== id);
+        if (next.length === 0) setIsSelectionMode(false);
+        return next;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const clearSelection = () => {
+    setIsSelectionMode(false);
+    setSelectedIds([]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleDeleteMessage = (id: string) => {
+    if (id === 'welcome') return;
+    
+    if (isSelectionMode) {
+      toggleSelection(id);
+      return;
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsSelectionMode(true);
+    setSelectedIds([id]);
+  };
+
+  const confirmDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setDeleteMessageAlertVisible(true);
+  };
+
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isAi = item.role === 'model';
+    const isSelected = selectedIds.includes(item.id);
 
     return (
       <Animated.View
         entering={isAi ? FadeInUp.delay(100) : FadeInDown}
         style={[
           styles.messageWrapper,
-          isAi ? styles.aiMessageWrapper : styles.userMessageWrapper
+          isAi ? styles.aiMessageWrapper : styles.userMessageWrapper,
+          isSelectionMode && { maxWidth: '100%', width: '100%' }
         ]}
       >
-        <View style={[
-          styles.avatar,
-          { backgroundColor: isAi ? colors.primary + '20' : colors.secondary + '20' }
-        ]}>
-          {isAi ? <Bot size={16} color={colors.primary} /> : <User size={16} color={colors.secondary} />}
-        </View>
-        <View style={[
-          styles.messageBubble,
-          {
-            backgroundColor: isAi
-              ? (isDarkMode ? 'rgba(255,255,255,0.05)' : '#F0F0F0')
-              : colors.primary,
-            borderBottomLeftRadius: isAi ? 4 : 20,
-            borderBottomRightRadius: isAi ? 20 : 4,
-          }
-        ]}>
-          <MarkdownText
-            content={item.text}
-            baseColor={isAi ? colors.text : '#FFFFFF'}
-            style={styles.messageText}
-          />
+        {isSelectionMode && item.id !== 'welcome' && (
+          <TouchableOpacity 
+            onPress={() => toggleSelection(item.id)}
+            style={styles.selectionCircle}
+          >
+            {isSelected ? (
+              <CheckCircle2 size={22} color={colors.primary} fill={colors.primary + '20'} />
+            ) : (
+              <Circle size={22} color={colors.subText + '40'} />
+            )}
+          </TouchableOpacity>
+        )}
+
+        <View style={!isAi && { flexDirection: 'row-reverse', flex: 1, justifyContent: 'flex-start' }}>
+          <View style={[
+            styles.avatar,
+            { backgroundColor: isAi ? colors.primary + '20' : colors.secondary + '20' }
+          ]}>
+            {isAi ? <Bot size={16} color={colors.primary} /> : <User size={16} color={colors.secondary} />}
+          </View>
+          <TouchableOpacity 
+            activeOpacity={0.9}
+            onLongPress={() => handleDeleteMessage(item.id)}
+            onPress={() => isSelectionMode ? toggleSelection(item.id) : null}
+            style={[
+              styles.messageBubble,
+              {
+                backgroundColor: isAi
+                  ? (isDarkMode ? 'rgba(255,255,255,0.05)' : '#F0F0F0')
+                  : colors.primary,
+                borderBottomLeftRadius: isAi ? 4 : 20,
+                borderBottomRightRadius: isAi ? 20 : 4,
+                borderWidth: isSelected ? 1 : 0,
+                borderColor: colors.primary + '60',
+              },
+              isSelectionMode && { maxWidth: '80%' }
+            ]}
+          >
+            <MarkdownText
+              content={item.text}
+              baseColor={isAi ? colors.text : '#FFFFFF'}
+              style={styles.messageText}
+            />
+          </TouchableOpacity>
         </View>
       </Animated.View>
     );
@@ -588,45 +724,74 @@ const AIChatScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <BackgroundEffects />
       <StatusBar
         barStyle={isDarkMode ? "light-content" : "dark-content"}
         backgroundColor="transparent"
         translucent
       />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      <Animated.View 
+        style={[styles.flex, zenUIStyle]}
+        pointerEvents={isZenMode ? 'none' : 'auto'}
       >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.flex}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
         {/* Header */}
         <LinearGradient
-          colors={[colors.primary, colors.secondary || colors.primary]}
+          colors={isSelectionMode ? [colors.card, colors.card] : [colors.primary, colors.secondary || colors.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.header, {
             paddingTop: insets.top + 16,
             paddingBottom: 24,
+            borderBottomWidth: isSelectionMode ? 1 : 0,
+            borderBottomColor: colors.border,
           }]}
         >
-          {/* Decorative background elements */}
-          <View style={styles.headerDecorationCircle1} />
-          <View style={styles.headerDecorationCircle2} />
+          {/* Decorative background elements (Only in normal mode) */}
+          {!isSelectionMode && (
+            <>
+              <View style={styles.headerDecorationCircle1} />
+              <View style={styles.headerDecorationCircle2} />
+            </>
+          )}
 
           <View style={styles.headerContent}>
-            <View style={styles.headerTitleContainer}>
-              <View style={styles.iconBadge}>
-                <Sparkles size={20} color="#FFFFFF" />
-              </View>
-              <View>
-                <Text style={styles.headerTitle}>{t('settings.ai.chat.title')}</Text>
-                <Text style={styles.headerSubtitle}>{t('app.slogan')}</Text>
-              </View>
-            </View>
-            <TouchableOpacity onPress={clearChat} style={styles.clearButton}>
-              <View style={styles.clearButtonInner}>
-                <Trash2 size={18} color="#FFFFFF" />
-              </View>
-            </TouchableOpacity>
+            {isSelectionMode ? (
+              <>
+                <View style={styles.headerTitleContainer}>
+                  <TouchableOpacity onPress={clearSelection} style={styles.clearSelectionButton}>
+                    <X size={20} color={colors.text} />
+                  </TouchableOpacity>
+                  <Text style={[styles.headerTitle, { color: colors.text }]}>
+                    {selectedIds.length} {t('common.selected') || 'Selected'}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={confirmDeleteSelected} style={styles.deleteSelectionButton}>
+                  <Trash2 size={20} color={colors.error} />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <View style={styles.headerTitleContainer}>
+                  <View style={styles.iconBadge}>
+                    <Sparkles size={20} color="#FFFFFF" />
+                  </View>
+                  <View>
+                    <Text style={styles.headerTitle}>{t('settings.ai.chat.title')}</Text>
+                    <Text style={styles.headerSubtitle}>{t('app.slogan')}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={clearChat} style={styles.clearButton}>
+                  <View style={styles.clearButtonInner}>
+                    <Trash2 size={18} color="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </LinearGradient>
 
@@ -703,7 +868,28 @@ const AIChatScreen = () => {
             </View>
           </>
         )}
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </Animated.View>
+
+      {isZenMode && (
+        <>
+          <TouchableOpacity 
+            activeOpacity={1}
+            onPress={toggleZenMode}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <Animated.View 
+            entering={FadeIn.duration(800)} 
+            exiting={FadeOut.duration(500)}
+            style={[styles.zenReturnContainer, { bottom: insets.bottom + 40 }]}
+            pointerEvents="none"
+          >
+            <Text style={[styles.zenReturnText, { color: 'rgba(255, 255, 255, 0.4)' }]}>
+              {i18n.language === 'tr' ? 'Dokun ve Geri Dön' : 'Tap to Return'}
+            </Text>
+          </Animated.View>
+        </>
+      )}
 
       <CustomAlert
         visible={clearChatAlertVisible}
@@ -718,6 +904,25 @@ const AIChatScreen = () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
         onCancel={() => setClearChatAlertVisible(false)}
+      />
+
+      <CustomAlert
+        visible={deleteMessageAlertVisible}
+        title={t('common.delete')}
+        message={selectedIds.length > 1 ? t('settings.ai.chat.deleteMultipleConfirm', { count: selectedIds.length }) : t('settings.ai.chat.deleteMessageConfirm')}
+        type="danger"
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        onConfirm={() => {
+          deleteChatMessages(selectedIds);
+          setIsSelectionMode(false);
+          setSelectedIds([]);
+          setDeleteMessageAlertVisible(false);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        onCancel={() => {
+          setDeleteMessageAlertVisible(false);
+        }}
       />
     </View>
   );
@@ -829,6 +1034,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 20,
+    maxWidth: '100%',
+  },
+  selectionCircle: {
+    paddingRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearSelectionButton: {
+    marginRight: 16,
+  },
+  deleteSelectionButton: {
+    padding: 8,
   },
   messageText: {
     fontSize: 15,
@@ -902,6 +1119,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+  },
+  zenReturnContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1001,
+  },
+  zenReturnText: {
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 });
 

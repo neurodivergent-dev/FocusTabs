@@ -52,6 +52,7 @@ interface GoalCardProps {
   isActiveTimer: boolean;
   isAIEnabled: boolean;
   isFocusMode?: boolean; 
+  isPastDate?: boolean;
 }
 
 const CategoryCard = ({ category, isSelected, onSelect, isDarkMode }: any) => {
@@ -106,6 +107,7 @@ const GoalCardComponent = ({
   isActiveTimer,
   isAIEnabled,
   isFocusMode = false,
+  isPastDate = false,
 }: GoalCardProps) => {
   const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -322,7 +324,7 @@ const GoalCardComponent = ({
       <View style={styles.actions}>
         {!goal.completed && (
           <>
-            {isAIEnabled && (!goal.subTasks || goal.subTasks.length === 0) && (
+            {isAIEnabled && !isPastDate && (!goal.subTasks || goal.subTasks.length === 0) && (
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={async () => {
@@ -336,18 +338,22 @@ const GoalCardComponent = ({
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={[styles.actionButton, isActionPending && { opacity: 0.5 }]} onPress={handleTimerAction} disabled={isActionPending}>
-              {isActiveTimer ? <Pause color={colors.primary} size={20} fill={colors.primary} /> : <Play color={colors.primary} size={20} fill={colors.primary} />}
-            </TouchableOpacity>
+            {!isPastDate && (
+              <TouchableOpacity style={[styles.actionButton, isActionPending && { opacity: 0.5 }]} onPress={handleTimerAction} disabled={isActionPending}>
+                {isActiveTimer ? <Pause color={colors.primary} size={20} fill={colors.primary} /> : <Play color={colors.primary} size={20} fill={colors.primary} />}
+              </TouchableOpacity>
+            )}
             
             <TouchableOpacity style={styles.actionButton} onPress={() => { setIsEditing(true); setEditText(goal.text); setEditCategory(goal.category); }}>
               <Edit2 color={colors.subText} size={18} />
             </TouchableOpacity>
           </>
         )}
-        <TouchableOpacity style={styles.actionButton} onPress={() => onDelete(goal.id)}>
-          <Trash2 color={goal.completed ? colors.subText : colors.error} size={18} opacity={goal.completed ? 0.5 : 0.8} />
-        </TouchableOpacity>
+        {!isPastDate && (
+          <TouchableOpacity style={styles.actionButton} onPress={() => onDelete(goal.id)}>
+            <Trash2 color={goal.completed ? colors.subText : colors.error} size={18} opacity={goal.completed ? 0.5 : 0.8} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -568,12 +574,14 @@ const GoalCardComponent = ({
                       >
                         <Edit2 size={14} color={colors.subText} opacity={0.6} />
                       </TouchableOpacity>
-                      <TouchableOpacity 
-                        onPress={() => handleDeleteSubTask(subTask.id)}
-                        style={styles.subTaskActionIcon}
-                      >
-                        <Trash2 size={14} color={colors.error} opacity={0.4} />
-                      </TouchableOpacity>
+                      {!isPastDate && (
+                        <TouchableOpacity 
+                          onPress={() => handleDeleteSubTask(subTask.id)}
+                          style={styles.subTaskActionIcon}
+                        >
+                          <Trash2 size={14} color={colors.error} opacity={0.4} />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </>
                 )}

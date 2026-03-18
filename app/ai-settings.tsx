@@ -26,6 +26,9 @@ import {
   CheckCircle2,
   MessagesSquare,
   RotateCcw,
+  Volume2,
+  VolumeX,
+  Radio,
 } from "lucide-react-native";
 import { useTheme } from "../src/components/ThemeProvider";
 import { useTranslation } from "react-i18next";
@@ -48,7 +51,11 @@ export default function AISettingsScreen() {
     customSystemPrompt, 
     setCustomSystemPrompt,
     pollinationsApiKey,
-    setPollinationsApiKey
+    setPollinationsApiKey,
+    chatSoundsEnabled,
+    setChatSoundsEnabled,
+    chatSoundType,
+    setChatSoundType,
   } = useAIStore();
   const [inputKey, setInputKey] = useState(apiKey || "");
   const [inputPollinationsKey, setInputPollinationsKey] = useState(pollinationsApiKey || "");
@@ -371,6 +378,73 @@ export default function AISettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* AI Chat Sounds Section */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <Volume2 size={20} color={colors.primary} />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                {t("settings.ai.chatSounds")}
+              </Text>
+            </View>
+
+            <View style={[styles.settingRow, { marginBottom: 20 }]}>
+              <View style={styles.settingText}>
+                <Text style={[styles.cardDesc, { color: colors.subText }]}>
+                  {t("settings.ai.chatSoundsDesc")}
+                </Text>
+              </View>
+              <Switch
+                value={chatSoundsEnabled}
+                onValueChange={(val) => {
+                  setChatSoundsEnabled(val);
+                  if (val) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }}
+                trackColor={{ false: "#767577", true: colors.primary + '80' }}
+                thumbColor={chatSoundsEnabled ? colors.primary : "#f4f3f4"}
+              />
+            </View>
+
+            {chatSoundsEnabled && (
+              <View style={styles.soundTypeContainer}>
+                <Text style={[styles.soundTypeTitle, { color: colors.text }]}>
+                  {t("settings.ai.soundType")}
+                </Text>
+                <View style={styles.soundTypeGrid}>
+                  {[
+                    { id: 'pop', label: t("settings.ai.pop"), icon: Radio },
+                    { id: 'digital', label: t("settings.ai.digital"), icon: Zap },
+                    { id: 'minimal', label: t("settings.ai.minimal"), icon: ShieldCheck },
+                  ].map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[
+                        styles.soundOption,
+                        { 
+                          backgroundColor: chatSoundType === item.id ? colors.primary + '15' : 'transparent',
+                          borderColor: chatSoundType === item.id ? colors.primary : colors.border,
+                        }
+                      ]}
+                      onPress={() => {
+                        setChatSoundType(item.id as any);
+                        if (item.id === 'pop') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        else if (item.id === 'digital') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        else Haptics.selectionAsync();
+                      }}
+                    >
+                      <item.icon size={18} color={chatSoundType === item.id ? colors.primary : colors.subText} />
+                      <Text style={[
+                        styles.soundOptionLabel, 
+                        { color: chatSoundType === item.id ? colors.text : colors.subText }
+                      ]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+
           {/* Features Information */}
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("settings.ai.whatYouGet")}</Text>
           
@@ -543,5 +617,35 @@ const styles = StyleSheet.create({
   resetActionDesc: {
     fontSize: 12,
     opacity: 0.8,
+  },
+  soundTypeContainer: {
+    marginTop: 0,
+  },
+  soundTypeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  soundTypeGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  soundOption: {
+    flex: 1,
+    minWidth: '28%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  soundOptionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });

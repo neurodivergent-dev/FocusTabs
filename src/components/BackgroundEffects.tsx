@@ -13,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTheme } from './ThemeProvider';
 import { useThemeStore } from '../store/themeStore';
-import Svg, { Path, RadialGradient, Defs, Stop, Circle } from 'react-native-svg';
+import Svg, { Path, RadialGradient, Defs, Stop, Circle, G, Line, Rect } from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
 
@@ -280,6 +280,206 @@ const AuraOrb = ({ delay = 0, initialX = 0, initialY = 0, size = 400, color = '#
   );
 };
 
+const AuroraLight = ({ color, duration = 20000 }: { color: string, duration?: number }) => {
+  const tx = useSharedValue(Math.random() * width);
+  const ty = useSharedValue(Math.random() * height);
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.15);
+  const gradId = useMemo(() => `aurora-${Math.random()}`, []);
+
+  useEffect(() => {
+    tx.value = withRepeat(withTiming(Math.random() * width, { duration: duration + Math.random() * 8000, easing: Easing.inOut(Easing.sin) }), -1, true);
+    ty.value = withRepeat(withTiming(Math.random() * height, { duration: duration + Math.random() * 8000, easing: Easing.inOut(Easing.sin) }), -1, true);
+    scale.value = withRepeat(withTiming(1.6 + Math.random() * 0.4, { duration: duration / 1.5, easing: Easing.inOut(Easing.sin) }), -1, true);
+    opacity.value = withRepeat(withTiming(0.35, { duration: duration / 2, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [tx, ty, scale, opacity, duration]);
+
+  const size = width * 1.8;
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: tx.value - size / 2 },
+      { translateY: ty.value - size / 2 },
+      { scale: scale.value }
+    ],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View style={[styles.auraOrb, { width: size, height: size }, animatedStyle]}>
+      <Svg width={size} height={size}>
+        <Defs>
+          <RadialGradient id={gradId} cx="50%" cy="50%" rx="50%" ry="50%">
+            <Stop offset="0%" stopColor={color} stopOpacity="1" />
+            <Stop offset="100%" stopColor={color} stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={size / 2} cy={size / 2} r={size / 2} fill={`url(#${gradId})`} />
+      </Svg>
+    </Animated.View>
+  );
+};
+
+const AuroraEffect = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <AuroraLight color={colors.primary} />
+      <AuroraLight color={colors.secondary || colors.primary} />
+      <AuroraLight color={colors.info || colors.primary} />
+      <AuroraLight color={colors.primary} />
+    </View>
+  );
+};
+
+// --- MATRIX RAIN ---
+const MatrixColumn = ({ x, delay, color }: { x: number, delay: number, color: string }) => {
+  const ty = useSharedValue(-height * 0.5);
+  useEffect(() => {
+    ty.value = withDelay(delay, withRepeat(withTiming(height, { duration: 4000 + Math.random() * 3000, easing: Easing.linear }), -1, false));
+  }, [delay]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: x }, { translateY: ty.value }],
+    opacity: interpolate(ty.value, [-height * 0.5, height * 0.8], [0, 1, 0], 'clamp'),
+  }));
+
+  return (
+    <Animated.View style={[styles.matrixColumn, animatedStyle]}>
+      {[...Array(12)].map((_, i) => (
+        <View 
+          key={i} 
+          style={[
+            styles.matrixBit, 
+            { 
+              backgroundColor: color, 
+              opacity: (i + 1) / 12,
+              height: 15 + Math.random() * 10 
+            }
+          ]} 
+        />
+      ))}
+    </Animated.View>
+  );
+};
+
+const MatrixRain = () => {
+  const { colors } = useTheme();
+  const columns = useMemo(() => {
+    const count = 15;
+    return [...Array(count)].map((_, i) => ({
+      id: i,
+      x: (width / count) * i + (Math.random() * 10),
+      delay: Math.random() * 4000
+    }));
+  }, []);
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      {columns.map(col => <MatrixColumn key={col.id} x={col.x} delay={col.delay} color={colors.primary} />)}
+    </View>
+  );
+};
+
+// --- VORTEX SYSTEM ---
+const VortexRing = ({ radius, color, speed, index }: { radius: number, color: string, speed: number, index: number }) => {
+  const rotation = useSharedValue(0);
+  useEffect(() => {
+    rotation.value = withRepeat(withTiming(360, { duration: speed, easing: Easing.linear }), -1, false);
+  }, [speed]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+    opacity: 0.1 + (Math.sin(rotation.value * (Math.PI / 180)) * 0.1),
+  }));
+
+  const strokeDash = useMemo(() => `${radius * (0.2 + Math.random() * 0.5)} ${radius * 2}`, [radius]);
+
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }, animatedStyle]}>
+      <Svg width={radius * 2.2} height={radius * 2.2} viewBox={`0 0 ${radius * 2.2} ${radius * 2.2}`}>
+        <Circle 
+          cx={radius * 1.1} 
+          cy={radius * 1.1} 
+          r={radius} 
+          stroke={color} 
+          strokeWidth={2 + index} 
+          fill="none" 
+          strokeDasharray={strokeDash}
+          strokeLinecap="round"
+        />
+      </Svg>
+    </Animated.View>
+  );
+};
+
+const VortexSystem = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.vortexContainer}>
+      {[...Array(8)].map((_, i) => (
+        <VortexRing 
+          key={i} 
+          index={i}
+          radius={50 + (i * 35)} 
+          color={i % 2 === 0 ? colors.primary : colors.secondary || colors.primary} 
+          speed={8000 + (i * 3000)} 
+        />
+      ))}
+    </View>
+  );
+};
+
+// --- CYBER GRID ---
+const CyberGrid = () => {
+  const { colors } = useTheme();
+  const move = useSharedValue(0);
+  
+  useEffect(() => {
+    move.value = withRepeat(withTiming(60, { duration: 3000, easing: Easing.linear }), -1, false);
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1000 }, { rotateX: '70deg' }, { translateY: move.value }],
+    opacity: 0.3,
+  }));
+
+  return (
+    <View style={styles.gridContainer}>
+      <Animated.View style={[styles.gridInner, animatedStyle]}>
+        <Svg width={width * 2} height={height * 1.5} viewBox={`0 0 ${width * 2} ${height * 1.5}`}>
+          {/* Horizontal Lines */}
+          {[...Array(25)].map((_, i) => (
+            <Line 
+              key={`h-${i}`} 
+              x1="0" 
+              y1={i * 60} 
+              x2={width * 2} 
+              y2={i * 60} 
+              stroke={colors.primary} 
+              strokeWidth="1.5" 
+              opacity={0.4}
+            />
+          ))}
+          {/* Vertical Lines */}
+          {[...Array(16)].map((_, i) => (
+            <Line 
+              key={`v-${i}`} 
+              x1={i * (width * 2 / 15)} 
+              y1="0" 
+              x2={i * (width * 2 / 15)} 
+              y2={height * 1.5} 
+              stroke={colors.primary} 
+              strokeWidth="1.5" 
+              opacity={0.4}
+            />
+          ))}
+        </Svg>
+      </Animated.View>
+    </View>
+  );
+};
+
 const DynamicParticle = ({ el }: { el: any }) => {
   const tx = useSharedValue(el.x);
   const ty = useSharedValue(el.y);
@@ -429,7 +629,7 @@ const DynamicEffect = ({ config }: { config: any }) => {
 
   if (config.type === 'particles') {
     return (
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={styles.backgroundContainer} pointerEvents="none">
         {elements.map(el => <DynamicParticle key={el.id} el={el} />)}
       </View>
     );
@@ -437,7 +637,7 @@ const DynamicEffect = ({ config }: { config: any }) => {
 
   if (config.type === 'shapes' || config.type === 'squares') {
     return (
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={styles.backgroundContainer} pointerEvents="none">
         {elements.map(el => (
           <DynamicShape 
             key={el.id} 
@@ -452,7 +652,7 @@ const DynamicEffect = ({ config }: { config: any }) => {
 
   if (config.type === 'circles') {
     return (
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={styles.backgroundContainer} pointerEvents="none">
         {elements.map(el => <DynamicCircle key={el.id} el={el} opacity={config.opacity || 0.5} />)}
       </View>
     );
@@ -460,7 +660,7 @@ const DynamicEffect = ({ config }: { config: any }) => {
 
   if (config.type === 'cubes') {
     return (
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={styles.backgroundContainer} pointerEvents="none">
         {elements.map(el => <DynamicIsometricCube key={el.id} el={el} opacity={config.opacity || 0.8} />)}
       </View>
     );
@@ -468,7 +668,7 @@ const DynamicEffect = ({ config }: { config: any }) => {
 
   if (config.type === 'waves') {
     return (
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={styles.backgroundContainer} pointerEvents="none">
         <AuraOrb color={config.color || colors.primary} size={width * 1.5} initialX={-width * 0.25} initialY={-height * 0.1} delay={0} />
         <AuraOrb color={config.color || colors.secondary} size={width * 1.2} initialX={width * 0.1} initialY={height * 0.4} delay={2000} />
       </View>
@@ -477,10 +677,10 @@ const DynamicEffect = ({ config }: { config: any }) => {
 
   if (config.type === 'wireframe') {
     return (
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={styles.backgroundContainer} pointerEvents="none">
         <DynamicWireframeCube 
           color={config.color || colors.primary} 
-          size={config.size || width * 0.15} // Balanced size, total cube width ~30-40% of screen
+          size={config.size || width * 0.15} 
           speed={config.speed || 1}
         />
       </View>
@@ -507,12 +707,16 @@ export const BackgroundEffects = () => {
 
   if (backgroundEffect === 'none') return null;
   if (backgroundEffect === 'dynamic' && customBackgroundConfig) return <DynamicEffect config={customBackgroundConfig} />;
-  if (backgroundEffect === 'particles') return <View style={StyleSheet.absoluteFill} pointerEvents="none">{[...Array(15)].map((_, i) => <FloatingParticle key={i} />)}</View>;
-  if (backgroundEffect === 'waves') return <View style={StyleSheet.absoluteFill} pointerEvents="none"><AuraOrb color={colors.primary} initialX={-100} initialY={-100} size={width * 1.2} delay={0} /><AuraOrb color={colors.secondary} initialX={width * 0.2} initialY={height * 0.5} size={width} delay={2000} /></View>;
-  if (backgroundEffect === 'crystals') return <View style={StyleSheet.absoluteFill} pointerEvents="none"><AtomicSystem /></View>;
-  if (backgroundEffect === 'tesseract') return <View style={StyleSheet.absoluteFill} pointerEvents="none"><Tesseract4D /></View>;
+  if (backgroundEffect === 'particles') return <View style={styles.backgroundContainer} pointerEvents="none">{[...Array(15)].map((_, i) => <FloatingParticle key={i} />)}</View>;
+  if (backgroundEffect === 'waves') return <View style={styles.backgroundContainer} pointerEvents="none"><AuraOrb color={colors.primary} initialX={-100} initialY={-100} size={width * 1.2} delay={0} /><AuraOrb color={colors.secondary} initialX={width * 0.2} initialY={height * 0.5} size={width} delay={2000} /></View>;
+  if (backgroundEffect === 'crystals') return <View style={styles.backgroundContainer} pointerEvents="none"><AtomicSystem /></View>;
+  if (backgroundEffect === 'tesseract') return <View style={styles.backgroundContainer} pointerEvents="none"><Tesseract4D /></View>;
+  if (backgroundEffect === 'aurora') return <View style={styles.backgroundContainer} pointerEvents="none"><AuroraEffect /></View>;
+  if (backgroundEffect === 'matrix') return <View style={styles.backgroundContainer} pointerEvents="none"><MatrixRain /></View>;
+  if (backgroundEffect === 'vortex') return <View style={styles.backgroundContainer} pointerEvents="none"><VortexSystem /></View>;
+  if (backgroundEffect === 'grid') return <View style={styles.backgroundContainer} pointerEvents="none"><CyberGrid /></View>;
 
-  return <View style={StyleSheet.absoluteFill} pointerEvents="none">{cubes.map(cube => <IsometricCube key={cube.id} size={cube.size} initialX={cube.x} initialY={cube.y} delay={cube.delay} duration={cube.duration} />)}</View>;
+  return <View style={styles.backgroundContainer} pointerEvents="none">{cubes.map(cube => <IsometricCube key={cube.id} size={cube.size} initialX={cube.x} initialY={cube.y} delay={cube.delay} duration={cube.duration} />)}</View>;
 };
 
 const styles = StyleSheet.create({
@@ -523,4 +727,12 @@ const styles = StyleSheet.create({
   saturnGroup: { width: width, alignItems: 'center', justifyContent: 'center', position: 'absolute' },
   ringsOverlay: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   planetCore: { zIndex: 10 },
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  matrixColumn: { position: 'absolute', width: 6, alignItems: 'center' },
+  matrixBit: { width: 4, marginBottom: 2, borderRadius: 2 },
+  vortexContainer: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  gridContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
+  gridInner: { width: width * 2, height: height * 1.5 },
 });

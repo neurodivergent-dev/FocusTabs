@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeOption, getThemeById, getThemeByIdAndMode } from '../constants/themes';
 
 type ThemeMode = 'light' | 'dark' | 'system';
-export type BackgroundEffectType = 'none' | 'shapes' | 'particles' | 'waves' | 'crystals' | 'tesseract' | 'dynamic';
+export type BackgroundEffectType = 'none' | 'shapes' | 'particles' | 'waves' | 'crystals' | 'tesseract' | 'aurora' | 'matrix' | 'vortex' | 'grid' | 'dynamic';
 
 interface ThemeState {
   // Tema ayarları
@@ -13,6 +13,7 @@ interface ThemeState {
   themeId: string; // Tema renk kimliği
   colors: ThemeOption['colors']; // Aktif tema renkleri
   soundsEnabled: boolean;
+  ambientSound: 'none' | 'river' | 'forest' | 'lofi' | 'rain' | 'zen';
   backgroundEffect: BackgroundEffectType;
   customBackgroundConfig: any | null; // AI-generated background config
   customThemes: ThemeOption[]; // AI veya kullanıcı tarafından eklenen temalar
@@ -24,11 +25,14 @@ interface ThemeState {
   setThemeId: (id: string) => void; // Yeni tema rengi seçme
   addCustomTheme: (theme: ThemeOption) => void; // Yeni tema ekleme
   setSoundsEnabled: (enabled: boolean) => void;
+  setAmbientSound: (sound: 'none' | 'river' | 'forest' | 'lofi' | 'rain' | 'zen') => void;
   setBackgroundEffect: (effect: BackgroundEffectType) => void;
   setCustomBackgroundConfig: (config: any) => void; // Dynamically set background config
   triggerSound: (type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare' | 'timer') => void;
   soundTrigger: { type: 'complete' | 'delete' | 'undo' | 'click' | 'fanfare' | 'timer', timestamp: number } | null;
   getActiveTheme: () => ThemeOption; // Aktif temayı alma
+  isZenMode: boolean;
+  setIsZenMode: (isZen: boolean) => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -39,10 +43,14 @@ export const useThemeStore = create<ThemeState>()(
       themeId: 'default',
       colors: getThemeById('default').colors,
       soundsEnabled: true,
+      ambientSound: 'none',
       soundTrigger: null,
       backgroundEffect: 'shapes',
       customBackgroundConfig: null,
       customThemes: [],
+      isZenMode: false,
+      
+      setIsZenMode: (isZen: boolean) => set({ isZenMode: isZen }),
       
       setThemeMode: (mode: ThemeMode) => set({ 
         themeMode: mode 
@@ -95,6 +103,10 @@ export const useThemeStore = create<ThemeState>()(
 
       setSoundsEnabled: (enabled: boolean) => set({ 
         soundsEnabled: enabled 
+      }),
+      
+      setAmbientSound: (sound: 'none' | 'river' | 'forest' | 'lofi' | 'rain' | 'zen') => set({ 
+        ambientSound: sound 
       }),
 
       setBackgroundEffect: (effect: BackgroundEffectType) => set({ 

@@ -38,6 +38,7 @@ interface DailyGoalsStore extends GoalsState {
   incrementGoalTime: (id: string) => void;
   saveGoalTime: (id: string) => Promise<void>;
   decomposeGoal: (id: string, language: string) => Promise<boolean>;
+  toggleSubTask: (goalId: string, subTaskId: string) => Promise<void>;
   deleteSubTask: (goalId: string, subTaskId: string) => Promise<void>;
   updateSubTask: (goalId: string, subTaskId: string, text: string) => Promise<void>;
   fetchAllCompletions: () => Promise<void>;
@@ -45,9 +46,9 @@ interface DailyGoalsStore extends GoalsState {
   updateDailyStats: () => Promise<void>;
   fetchGoalsByDate: (date: string) => Promise<void>;
   resetAndRecalculateAllStats: () => Promise<void>;
-  hasReachedMaxGoals: () => boolean;
-  getCompletedGoalsCount: () => number;
-  getActiveGoalsCount: () => number;
+  hasReachedMaxGoals: (date?: string) => boolean;
+  getCompletedGoalsCount: (date?: string) => number;
+  getActiveGoalsCount: (date?: string) => number;
   getCompletionPercentageForDate: (date: string) => number;
   cleanupDuplicateGoals: () => Promise<void>;
 }
@@ -93,7 +94,8 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
     try {
       await dbUpdateGoal(id, { completed });
       set((state) => ({
-        goals: state.goals.map((g) => g.id === id ? { ...g, completed } : g)
+        goals: state.goals.map((g) => g.id === id ? { ...g, completed } : g),
+        dateGoals: state.dateGoals.map((g) => g.id === id ? { ...g, completed } : g)
       }));
       get().fetchAllCompletions();
     } catch (error) { }
@@ -103,7 +105,8 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
     try {
       await dbUpdateGoal(id, updates);
       set((state) => ({
-        goals: state.goals.map((g) => g.id === id ? { ...g, ...updates } : g)
+        goals: state.goals.map((g) => g.id === id ? { ...g, ...updates } : g),
+        dateGoals: state.dateGoals.map((g) => g.id === id ? { ...g, ...updates } : g)
       }));
       // If completed was updated, refresh stats
       if (updates.completed !== undefined) {
@@ -118,17 +121,19 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
     try {
       await dbUpdateGoal(id, { text });
       set((state) => ({
-        goals: state.goals.map((g) => g.id === id ? { ...g, text } : g)
+        goals: state.goals.map((g) => g.id === id ? { ...g, text } : g),
+        dateGoals: state.dateGoals.map((g) => g.id === id ? { ...g, text } : g)
       }));
     } catch (error) { }
   },
 
   deleteGoal: async (id: string) => {
     try {
-      const goalToDelete = get().goals.find(g => g.id === id);
+      const goalToDelete = get().goals.find(g => g.id === id) || get().dateGoals.find(g => g.id === id);
       await dbDeleteGoal(id);
       set((state) => ({
         goals: state.goals.filter((g) => g.id !== id),
+        dateGoals: state.dateGoals.filter((g) => g.id !== id),
         lastDeletedGoal: goalToDelete || null
       }));
       get().fetchAllCompletions();
@@ -258,37 +263,40 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   },
 
   toggleSubTask: async (goalId: string, subTaskId: string) => {
-    const goal = get().goals.find(g => g.id === goalId);
+    const goal = get().goals.find(g => g.id === goalId) || get().dateGoals.find(g => g.id === goalId);
     if (!goal?.subTasks) return;
     const newSubTasks = goal.subTasks.map(st => st.id === subTaskId ? { ...st, completed: !st.completed } : st);
     try {
       await dbUpdateGoal(goalId, { subTasks: newSubTasks });
       set((state) => ({
-        goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
+        goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g),
+        dateGoals: state.dateGoals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
       }));
     } catch (error) { }
   },
 
   deleteSubTask: async (goalId: string, subTaskId: string) => {
-    const goal = get().goals.find(g => g.id === goalId);
+    const goal = get().goals.find(g => g.id === goalId) || get().dateGoals.find(g => g.id === goalId);
     if (!goal?.subTasks) return;
     const newSubTasks = goal.subTasks.filter(st => st.id !== subTaskId);
     try {
       await dbUpdateGoal(goalId, { subTasks: newSubTasks });
       set((state) => ({
-        goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
+        goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g),
+        dateGoals: state.dateGoals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
       }));
     } catch (error) { }
   },
 
   updateSubTask: async (goalId: string, subTaskId: string, text: string) => {
-    const goal = get().goals.find(g => g.id === goalId);
+    const goal = get().goals.find(g => g.id === goalId) || get().dateGoals.find(g => g.id === goalId);
     if (!goal?.subTasks) return;
     const newSubTasks = goal.subTasks.map(st => st.id === subTaskId ? { ...st, text } : st);
     try {
       await dbUpdateGoal(goalId, { subTasks: newSubTasks });
       set((state) => ({
-        goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
+        goals: state.goals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g),
+        dateGoals: state.dateGoals.map(g => g.id === goalId ? { ...g, subTasks: newSubTasks } : g)
       }));
     } catch (error) { }
   },
@@ -307,22 +315,42 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
     } catch (error) { }
   },
 
-  hasReachedMaxGoals: () => {
+  hasReachedMaxGoals: (date?: string) => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    return get().goals.filter(g => g.date === today).length >= 3;
+    const targetDate = date || today;
+    
+    // If it's today, check current goals list
+    if (targetDate === today) {
+      return get().goals.filter(g => g.date === today).length >= 3;
+    }
+    
+    // If it's the selected date on calendar, check dateGoals
+    if (get().dateGoals.length > 0 && get().dateGoals[0].date === targetDate) {
+      return get().dateGoals.length >= 3;
+    }
+
+    return false; // Default
   },
 
-  getCompletedGoalsCount: () => {
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    return get().goals.filter(g => g.date === today && g.completed).length;
+  getCompletedGoalsCount: (date?: string) => {
+    const targetDate = date || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+    
+    if (get().dateGoals.length > 0 && get().dateGoals[0].date === targetDate) {
+      return get().dateGoals.filter(g => g.completed).length;
+    }
+    
+    return get().goals.filter(g => g.date === targetDate && g.completed).length;
   },
 
-  getActiveGoalsCount: () => {
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    return get().goals.filter(g => g.date === today && !g.completed).length;
+  getActiveGoalsCount: (date?: string) => {
+    const targetDate = date || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+    
+    if (get().dateGoals.length > 0 && get().dateGoals[0].date === targetDate) {
+      return get().dateGoals.filter(g => !g.completed).length;
+    }
+
+    return get().goals.filter(g => g.date === targetDate && !g.completed).length;
   },
 
   getCompletionPercentageForDate: (date: string) => {

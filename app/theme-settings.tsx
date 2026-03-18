@@ -14,19 +14,22 @@ import { useThemeStore } from "../src/store/themeStore";
 import { THEMES } from "../src/constants/themes";
 import { useTheme } from "../src/components/ThemeProvider";
 import ThemedButton from "../src/components/ThemedButton";
-import { ChevronLeft, Palette, Box, Sparkles, Waves, CircleOff, Atom, Hexagon } from "lucide-react-native";
+import { ChevronLeft, Palette, Box, Sparkles, Waves, CircleOff, Atom, Hexagon, Star, ChevronDown, Activity, Wind, Grid3X3, Music, Volume2, Trees, CloudRain, Moon, Bell } from "lucide-react-native";
+import Animated, { FadeIn, FadeOut, Layout, FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { BackgroundEffectType } from "../src/store/themeStore";
 
 export default function ThemeSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { colors, themeId } = useTheme();
-  const { setBackgroundEffect, backgroundEffect, setThemeId, customThemes } = useThemeStore((state) => ({
+  const { colors, isDarkMode, themeId } = useTheme(); // Added isDarkMode, kept themeId
+  const { setBackgroundEffect, backgroundEffect, setThemeId, customThemes, ambientSound, setAmbientSound } = useThemeStore((state) => ({ // Kept original structure for useThemeStore
     setThemeId: state.setThemeId,
     setBackgroundEffect: state.setBackgroundEffect,
     backgroundEffect: state.backgroundEffect,
     customThemes: state.customThemes,
+    ambientSound: state.ambientSound,
+    setAmbientSound: state.setAmbientSound,
   }));
   const { t } = useTranslation();
 
@@ -42,6 +45,63 @@ export default function ThemeSettingsScreen() {
   const handleThemeSelect = (id: string) => {
     setThemeId(id);
   };
+
+  const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({
+    themes: true,
+    effects: false,
+    sounds: false,
+    preview: false
+  });
+
+  const toggleSection = (id: string) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const CollapsibleSection = ({ 
+    id, 
+    title, 
+    icon: Icon, 
+    children, 
+    isOpen 
+  }: { 
+    id: string, 
+    title: string, 
+    icon: any, 
+    children: React.ReactNode, 
+    isOpen: boolean 
+  }) => (
+    <View style={[styles.sectionWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <TouchableOpacity 
+        style={styles.sectionHeader} 
+        onPress={() => toggleSection(id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.sectionHeaderLeft}>
+          <View style={[styles.sectionIconContainer, { backgroundColor: colors.primary + '15' }]}>
+            <Icon size={20} color={colors.primary} />
+          </View>
+          <Text style={[styles.sectionTitleText, { color: colors.text }]}>{title}</Text>
+        </View>
+        <Animated.View style={{ transform: [{ rotate: isOpen ? '180deg' : '0deg' }] }}>
+          <ChevronDown size={20} color={colors.subText} />
+        </Animated.View>
+      </TouchableOpacity>
+
+      {isOpen && (
+        <Animated.View 
+          entering={FadeInDown.duration(300)} 
+          exiting={FadeOut.duration(200)}
+          layout={Layout.springify()}
+          style={styles.sectionContent}
+        >
+          {children}
+        </Animated.View>
+      )}
+    </View>
+  );
 
   return (
     <>
@@ -109,233 +169,169 @@ export default function ThemeSettingsScreen() {
             </Text>
           </View>
 
-          <Text
-            style={[styles.sectionTitle, { color: colors.text }]}
+          <CollapsibleSection 
+            id="themes" 
+            title={t("themeSettings.themes", "Temalar")} 
+            icon={Palette} 
+            isOpen={openSections.themes}
           >
-            {t("themeSettings.themes", "Temalar")}
-          </Text>
-
-          <View style={styles.themesGrid}>
-            {allThemes.map((theme) => (
-              <TouchableOpacity
-                key={theme.id}
-                style={[
-                  styles.themeCard,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: themeId === theme.id ? theme.colors.primary : colors.border,
-                    borderWidth: themeId === theme.id ? 2 : 1,
-                  },
-                ]}
-                onPress={() => handleThemeSelect(theme.id)}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={[theme.colors.primary + '20', theme.colors.secondary + '20']}
-                  style={styles.themeCardGradient}
+            <View style={styles.themesGrid}>
+              {allThemes.map((theme) => (
+                <TouchableOpacity
+                  key={theme.id}
+                  style={[
+                    styles.themeCard,
+                    {
+                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                      borderColor: themeId === theme.id ? theme.colors.primary : 'transparent',
+                      borderWidth: themeId === theme.id ? 2 : 1,
+                    },
+                  ]}
+                  onPress={() => handleThemeSelect(theme.id)}
+                  activeOpacity={0.7}
                 >
-                  <View style={styles.themeColorRing}>
-                    <View
+                  <LinearGradient
+                    colors={[theme.colors.primary + '10', theme.colors.secondary + '10']}
+                    style={styles.themeCardGradient}
+                  >
+                    <View style={styles.themeColorRing}>
+                      <View
+                        style={[
+                          styles.themePreview,
+                          { 
+                            backgroundColor: theme.colors.primary,
+                            shadowColor: theme.colors.primary,
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.4,
+                            shadowRadius: 8,
+                            elevation: 6,
+                          },
+                        ]}
+                      />
+                    </View>
+                    {/* Badge Handling */}
+                    <Text
                       style={[
-                        styles.themePreview,
-                        { 
-                          backgroundColor: theme.colors.primary,
-                          shadowColor: theme.colors.primary,
-                          shadowOffset: { width: 0, height: 4 },
-                          shadowOpacity: 0.4,
-                          shadowRadius: 8,
-                          elevation: 6,
+                        styles.themeCardTitle,
+                        { color: colors.text },
+                        themeId === theme.id && { 
+                          fontWeight: "700",
+                          color: theme.colors.primary,
                         },
                       ]}
-                    />
-                  </View>
-                  {theme.id === 'nova' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#38BDF8' }]}>
-                      <Text style={styles.specialBadgeText}>RARE</Text>
+                      numberOfLines={1}
+                    >
+                      {t(`themeNames.${theme.id}`, theme.name)}
+                    </Text>
+                    <View style={styles.colorDotsContainer}>
+                      <View style={[styles.colorDot, { backgroundColor: theme.colors.primary }]} />
+                      <View style={[styles.colorDot, { backgroundColor: theme.colors.secondary }]} />
                     </View>
-                  )}
-                  {theme.id === 'zenith' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#00F5D4' }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#000' }]}>BEST</Text>
-                    </View>
-                  )}
-                  {theme.id === 'cosmos' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#7B2CBF' }]}>
-                      <Text style={styles.specialBadgeText}>COSMIC</Text>
-                    </View>
-                  )}
-                  {theme.id === 'nebula' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#9D4EDD' }]}>
-                      <Text style={styles.specialBadgeText}>DEEP</Text>
-                    </View>
-                  )}
-                  {theme.id === 'supernova' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#FF2E00' }]}>
-                      <Text style={[styles.specialBadgeText]}>HOT</Text>
-                    </View>
-                  )}
-                  {theme.id === 'galaxy' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#9B5DE5' }]}>
-                      <Text style={styles.specialBadgeText}>STAR</Text>
-                    </View>
-                  )}
-                  {theme.id === 'void' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#6B6B80' }]}>
-                      <Text style={styles.specialBadgeText}>DARK</Text>
-                    </View>
-                  )}
-                  {theme.id === 'universe' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#00E5FF', shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 10, elevation: 5 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#0B0014', fontWeight: 'bold' }]}>ULTIMATE</Text>
-                    </View>
-                  )}
-                  {theme.id === 'dimension-x' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#00F0FF' }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#000' }]}>X-MAN</Text>
-                    </View>
-                  )}
-                  {theme.id === 'atlantis' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#00B4D8' }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#000' }]}>DEEP</Text>
-                    </View>
-                  )}
-                  {theme.id === 'sakura' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#FFB7C5' }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#000' }]}>ZEN</Text>
-                    </View>
-                  )}
-                  {theme.id === 'vaporwave' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#FF71CE' }]}>
-                      <Text style={styles.specialBadgeText}>RETRO</Text>
-                    </View>
-                  )}
-                  {theme.id === 'enchanted' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#2D5A3D' }]}>
-                      <Text style={styles.specialBadgeText}>MAGIC</Text>
-                    </View>
-                  )}
-                  {theme.id === 'ottoman' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#D4AF37', shadowColor: '#D4AF37', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 8, elevation: 4 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#0B1426', fontWeight: 'bold' }]}>SULTAN</Text>
-                    </View>
-                  )}
-                  {theme.id === 'vampire' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#8B0000', shadowColor: '#DC143C', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 10, elevation: 5 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#F5E6E0', fontWeight: 'bold' }]}>IMMORTAL</Text>
-                    </View>
-                  )}
-                  {theme.id === 'midnight' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#FF006E', shadowColor: '#FF006E', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 12, elevation: 8 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#FFE5EC', fontWeight: 'bold', letterSpacing: 1 }]}>HOT</Text>
-                    </View>
-                  )}
-                  {theme.id === 'dragon' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#FF2400', shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 14, elevation: 8 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#FFD700', fontWeight: 'bold', letterSpacing: 1 }]}>LEGENDARY</Text>
-                    </View>
-                  )}
-                  {theme.id === 'ice' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#A5F2F3', shadowColor: '#A5F2F3', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 15, elevation: 8 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#000810', fontWeight: 'bold', letterSpacing: 1 }]}>FROZEN</Text>
-                    </View>
-                  )}
-                  {theme.id === 'dna' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#00CED1', shadowColor: '#00CED1', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 12, elevation: 7 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#000C10', fontWeight: 'bold', letterSpacing: 1 }]}>SCIENCE</Text>
-                    </View>
-                  )}
-                  {theme.id === 'amber' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#FFBF00', shadowColor: '#FFBF00', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 14, elevation: 8 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#0C0804', fontWeight: 'bold', letterSpacing: 1 }]}>FOSSIL</Text>
-                    </View>
-                  )}
-                  {theme.id === 'peacock' && (
-                    <View style={[styles.specialBadge, { backgroundColor: '#0077BE', shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 16, elevation: 10 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#FFD700', fontWeight: 'bold', letterSpacing: 1 }]}>ROYAL</Text>
-                    </View>
-                  )}
-                  {theme.id === 'custom-ai' && (
-                    <View style={[styles.specialBadge, { backgroundColor: colors.secondary, shadowColor: colors.secondary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 15, elevation: 8 }]}>
-                      <Text style={[styles.specialBadgeText, { color: '#FFFFFF', fontWeight: 'bold', letterSpacing: 1 }]}>AI MAGIC</Text>
-                    </View>
-                  )}
-                  {themeId === theme.id && (
-                    <View style={[styles.checkmarkContainer, { backgroundColor: theme.colors.primary }]}>
-                      <Text style={styles.checkmark}>✓</Text>
-                    </View>
-                  )}
-                  <Text
-                    style={[
-                      styles.themeCardTitle,
-                      { color: colors.text },
-                      themeId === theme.id && { 
-                        fontWeight: "700",
-                        color: theme.colors.primary,
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {t(`themeNames.${theme.id}`, theme.name)}
-                  </Text>
-                  <View style={styles.colorDotsContainer}>
-                    <View style={[styles.colorDot, { backgroundColor: theme.colors.primary }]} />
-                    <View style={[styles.colorDot, { backgroundColor: theme.colors.secondary }]} />
-                    <View style={[styles.colorDot, { backgroundColor: theme.colors.success }]} />
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </CollapsibleSection>
 
-          <Text
-            style={[styles.sectionTitle, { color: colors.text }]}
+          <CollapsibleSection 
+            id="effects" 
+            title={t("themeSettings.backgroundEffects", "Efektler")} 
+            icon={Box} 
+            isOpen={openSections.effects}
           >
-            {t("themeSettings.backgroundEffects", "Arka Plan Efektleri")}
-          </Text>
+            <View style={styles.effectsContainer}>
+              {[
+                { id: 'shapes', name: t("themeSettings.effectShapes", "3D Şekiller"), icon: Box },
+                { id: 'particles', name: t("themeSettings.effectParticles", "Parçacıklar"), icon: Sparkles },
+                { id: 'waves', name: t("themeSettings.effectWaves", "Aura"), icon: Waves },
+                { id: 'crystals', name: t("themeSettings.effectCrystals", "Atom Modeli"), icon: Atom },
+                { id: 'tesseract', name: t("themeSettings.effectTesseract", "Tesseract"), icon: Hexagon },
+                { id: 'aurora', name: t("themeSettings.effectAurora", "Aurora Işıkları"), icon: Star },
+                { id: 'matrix', name: t("themeSettings.effectMatrix", "Matrix Akışı"), icon: Activity },
+                { id: 'vortex', name: t("themeSettings.effectVortex", "Girdap Enerjisi"), icon: Wind },
+                { id: 'grid', name: t("themeSettings.effectGrid", "Siber Izgara"), icon: Grid3X3 },
+                { id: 'none', name: t("themeSettings.effectNone", "Yok"), icon: CircleOff },
+              ].map((effect) => (
+                <TouchableOpacity
+                  key={effect.id}
+                  style={[
+                    styles.effectCard,
+                    { 
+                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                      borderColor: backgroundEffect === effect.id ? colors.primary : 'transparent',
+                      borderWidth: backgroundEffect === effect.id ? 2 : 1,
+                    }
+                  ]}
+                  onPress={() => setBackgroundEffect(effect.id as BackgroundEffectType)}
+                >
+                  <View style={[
+                    styles.effectIconContainer, 
+                    { backgroundColor: backgroundEffect === effect.id ? colors.primary + '20' : colors.subText + '10' }
+                  ]}>
+                    <effect.icon size={20} color={backgroundEffect === effect.id ? colors.primary : colors.subText} />
+                  </View>
+                  <Text style={[
+                    styles.effectName, 
+                    { color: backgroundEffect === effect.id ? colors.text : colors.subText }
+                  ]}>
+                    {effect.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </CollapsibleSection>
 
-          <View style={styles.effectsContainer}>
-            {[
-              { id: 'shapes', name: t("themeSettings.effectShapes", "3D Şekiller"), icon: Box },
-              { id: 'particles', name: t("themeSettings.effectParticles", "Parçacıklar"), icon: Sparkles },
-              { id: 'waves', name: t("themeSettings.effectWaves", "Aura"), icon: Waves },
-              { id: 'crystals', name: t("themeSettings.effectCrystals", "Atom Modeli"), icon: Atom },
-              { id: 'tesseract', name: t("themeSettings.effectTesseract", "Tesseract"), icon: Hexagon },
-              { id: 'none', name: t("themeSettings.effectNone", "Yok"), icon: CircleOff },
-            ].map((effect) => (
-              <TouchableOpacity
-                key={effect.id}
-                style={[
-                  styles.effectCard,
-                  { 
-                    backgroundColor: colors.card,
-                    borderColor: backgroundEffect === effect.id ? colors.primary : colors.border,
-                    borderWidth: backgroundEffect === effect.id ? 2 : 1,
-                  }
-                ]}
-                onPress={() => setBackgroundEffect(effect.id as BackgroundEffectType)}
-              >
-                <View style={[
-                  styles.effectIconContainer, 
-                  { backgroundColor: backgroundEffect === effect.id ? colors.primary + '20' : colors.subText + '10' }
-                ]}>
-                  <effect.icon size={20} color={backgroundEffect === effect.id ? colors.primary : colors.subText} />
-                </View>
-                <Text style={[
-                  styles.effectName, 
-                  { color: backgroundEffect === effect.id ? colors.text : colors.subText }
-                ]}>
-                  {effect.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <CollapsibleSection 
+            id="sounds" 
+            title={t("themeSettings.ambientSounds", "Atmosfer Sesleri")} 
+            icon={Music} 
+            isOpen={openSections.sounds}
+          >
+            <View style={styles.effectsContainer}>
+              {[
+                { id: 'river', name: t("themeSettings.soundRiver", "Akarsu"), icon: Waves },
+                { id: 'forest', name: t("themeSettings.soundForest", "Derin Orman"), icon: Trees },
+                { id: 'lofi', name: t("themeSettings.soundLofi", "Lo-Fi Beats"), icon: Music },
+                { id: 'rain', name: t("themeSettings.soundRain", "Yağmurlu Gece"), icon: CloudRain },
+                { id: 'zen', name: t("themeSettings.soundZen", "Tibetan Zen"), icon: Bell },
+                { id: 'none', name: t("themeSettings.soundNone", "Sessiz"), icon: CircleOff },
+              ].map((sound) => (
+                <TouchableOpacity
+                  key={sound.id}
+                  style={[
+                    styles.effectCard,
+                    { 
+                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                      borderColor: ambientSound === sound.id ? colors.primary : 'transparent',
+                      borderWidth: ambientSound === sound.id ? 2 : 1,
+                    }
+                  ]}
+                  onPress={() => setAmbientSound(sound.id as any)}
+                >
+                  <View style={[
+                    styles.effectIconContainer, 
+                    { backgroundColor: ambientSound === sound.id ? colors.primary + '20' : colors.subText + '10' }
+                  ]}>
+                    <sound.icon size={20} color={ambientSound === sound.id ? colors.primary : colors.subText} />
+                  </View>
+                  <Text style={[
+                    styles.effectName, 
+                    { color: ambientSound === sound.id ? colors.text : colors.subText }
+                  ]}>
+                    {sound.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </CollapsibleSection>
 
-          <View style={styles.previewSection}>
-            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 20 }]}>
-              {t("themeSettings.preview", "Önizleme")}
-            </Text>
-
-            <View style={[styles.previewCardContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+          <CollapsibleSection 
+            id="preview" 
+            title={t("themeSettings.preview", "Önizleme")} 
+            icon={Sparkles} 
+            isOpen={openSections.preview}
+          >
+            <View style={[styles.previewCardContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }]}>
               <LinearGradient
                 colors={[colors.primary + '10', colors.secondary + '10']}
                 style={styles.previewCardGradient}
@@ -378,7 +374,7 @@ export default function ThemeSettingsScreen() {
                 </View>
               </LinearGradient>
             </View>
-          </View>
+          </CollapsibleSection>
         </ScrollView>
       </SafeAreaView>
     </>
@@ -628,5 +624,42 @@ const styles = StyleSheet.create({
   },
   previewButton: {
     marginBottom: 0,
+  },
+  sectionWrapper: {
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  sectionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitleText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  sectionContent: {
+    padding: 16,
+    paddingTop: 0,
   },
 });

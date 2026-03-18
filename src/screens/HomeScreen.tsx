@@ -11,6 +11,7 @@ import {
   Keyboard,
   TouchableOpacity,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { 
@@ -20,12 +21,15 @@ import Animated, {
   withTiming,
   interpolateColor,
   SlideOutDown,
+  FadeIn,
+  FadeOut,
 } from "react-native-reanimated";
-import { X as XIcon, RotateCcw } from "lucide-react-native";
+import { X as XIcon, RotateCcw, Eye, EyeOff } from "lucide-react-native";
 import { router } from "expo-router";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useDailyReset } from "../hooks/useDailyReset";
 import { useAIStore } from "../store/aiStore";
+import { useThemeStore } from "../store/themeStore";
 import { GoalCard } from "../components/GoalCard";
 import { AddGoalForm } from "../components/AddGoalForm";
 import { EmptyState } from "../components/EmptyState";
@@ -41,6 +45,7 @@ export const HomeScreen: React.FC = () => {
   const { colors, isDarkMode } = useTheme();
   const { t, i18n } = useTranslation();
   const { isAIEnabled } = useAIStore();
+  const { isZenMode, setIsZenMode } = useThemeStore();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const {
@@ -77,6 +82,8 @@ export const HomeScreen: React.FC = () => {
     }
   }, [activeTimerGoalId]);
 
+  // Handle Tab Bar visibility in Zen Mode - MOVED TO _LAYOUT.TSX
+  
   const allTodayGoals = useMemo(() => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -115,92 +122,125 @@ export const HomeScreen: React.FC = () => {
     backgroundColor: interpolateColor(progress.value, [0, 100], ["rgba(255,255,255,0.7)", "#10B981"]),
   }));
 
+  const zenOpacity = useDerivedValue(() => withTiming(isZenMode ? 0 : 1, { duration: 500 }));
+  const zenUIStyle = useAnimatedStyle(() => ({
+    opacity: zenOpacity.value,
+    transform: [{ translateY: withTiming(isZenMode ? 20 : 0, { duration: 500 }) }],
+  }));
+
+  const toggleZenMode = () => {
+    setIsZenMode(!isZenMode);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <BackgroundEffects />
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      <LinearGradient
-        colors={[colors.primary, colors.secondary || colors.primary]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 20 }]}
-      >
-        <View style={styles.headerDecorationCircle1} />
-        <View style={styles.headerDecorationCircle2} />
-
-        <View style={styles.headerTopRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: "#FFFFFF" }]}>
-              {t("app.name")}
-            </Text>
-            <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>
-              {t("app.slogan")}
-            </Text>
-          </View>
-        </View>
-
-        {allTodayGoals.length > 0 && (
-          <View style={[styles.progressCard, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.15)' }]}>
-            <View style={styles.progressHeader}>
-              <Text style={[styles.progressLabel, { color: '#FFFFFF' }]}>{t("home.dailyProgress")}</Text>
-              <Text style={[styles.progressCount, { color: '#FFFFFF' }]}>{completedCount}/{allTodayGoals.length}</Text>
-            </View>
-            <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Animated.View style={[styles.progressFill, animatedProgressStyle]} />
-            </View>
-          </View>
-        )}
-      </LinearGradient>
-
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-      >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent, 
-            allTodayGoals.length === 0 && styles.emptyScrollContent,
-            { paddingBottom: keyboardVisible ? 150 : 20 } 
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+      <Animated.View style={[styles.headerContainer, { height: insets.top + (isZenMode ? 0 : 160) }, zenUIStyle]}>
+        <LinearGradient
+          colors={[colors.primary, colors.secondary || colors.primary]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 20 }]}
         >
-          {allTodayGoals.length === 0 ? (
-            <EmptyState />
-          ) : (
-            allTodayGoals.map((goal, index) => (
-              <Animated.View key={goal.id} entering={FadeInDown.delay(index * 100).springify().damping(15)}>
-                <GoalCard
-                  goal={goal}
-                  onToggleComplete={toggleGoalCompletion}
-                  onUpdateGoal={updateGoal}
-                  onDelete={handleDeleteGoal}
-                  onStartTimer={startGoalTimer}
-                  onStopTimer={stopGoalTimer}
-                  onResetTimer={resetGoalTimer}
-                  onDecompose={(id) => decomposeGoal(id, i18n.language)}
-                  onToggleSubTask={toggleSubTask}
-                  onDeleteSubTask={deleteSubTask}
-                  onUpdateSubTask={updateSubTask}
-                  isActiveTimer={activeTimerGoalId === goal.id}
-                  isAIEnabled={isAIEnabled}
-                />
-              </Animated.View>
-            ))
-          )}
-        </ScrollView>
+          <View style={styles.headerDecorationCircle1} />
+          <View style={styles.headerDecorationCircle2} />
 
-        <View style={[styles.footer, { borderTopWidth: 0, paddingBottom: 10, paddingTop: 0 }]}>
-          <AddGoalForm
-            onAddGoal={(text, category) => addGoal({ text, category })}
-            disabled={hasReachedMaxGoals()}
-            currentCount={allTodayGoals.length}
-            existingGoals={allTodayGoals.map(g => g.text)}
-          />
-        </View>
-      </KeyboardAvoidingView>
+          <View style={styles.headerTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.title, { color: "#FFFFFF" }]}>
+                {t("app.name")}
+              </Text>
+              <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>
+                {t("app.slogan")}
+              </Text>
+            </View>
+          </View>
+
+          {allTodayGoals.length > 0 && (
+            <View style={[styles.progressCard, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.15)' }]}>
+              <View style={styles.progressHeader}>
+                <Text style={[styles.progressLabel, { color: '#FFFFFF' }]}>{t("home.dailyProgress")}</Text>
+                <Text style={[styles.progressCount, { color: '#FFFFFF' }]}>{completedCount}/{allTodayGoals.length}</Text>
+              </View>
+              <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <Animated.View style={[styles.progressFill, animatedProgressStyle]} />
+              </View>
+            </View>
+          )}
+        </LinearGradient>
+      </Animated.View>
+
+      <TouchableOpacity 
+        onPress={toggleZenMode} 
+        style={[
+          styles.zenToggleFloating, 
+          { 
+            top: insets.top + 10,
+            backgroundColor: isZenMode ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)' 
+          }
+        ]}
+        activeOpacity={0.7}
+      >
+        {isZenMode ? <EyeOff size={22} color="#FFFFFF" /> : <Eye size={22} color="#FFFFFF" />}
+      </TouchableOpacity>
+
+      <Animated.View 
+        style={[styles.keyboardView, zenUIStyle]}
+        pointerEvents={isZenMode ? 'none' : 'auto'}
+      >
+        <KeyboardAvoidingView
+          style={styles.keyboardView}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        >
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent, 
+              allTodayGoals.length === 0 && styles.emptyScrollContent,
+              { paddingBottom: keyboardVisible ? 150 : 20 } 
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+            {allTodayGoals.length === 0 ? (
+              <EmptyState />
+            ) : (
+              allTodayGoals.map((goal, index) => (
+                <Animated.View key={goal.id} entering={FadeInDown.delay(index * 100).springify().damping(15)}>
+                  <GoalCard
+                    goal={goal}
+                    onToggleComplete={toggleGoalCompletion}
+                    onUpdateGoal={updateGoal}
+                    onDelete={handleDeleteGoal}
+                    onStartTimer={startGoalTimer}
+                    onStopTimer={stopGoalTimer}
+                    onResetTimer={resetGoalTimer}
+                    onDecompose={(id) => decomposeGoal(id, i18n.language)}
+                    onToggleSubTask={toggleSubTask}
+                    onDeleteSubTask={deleteSubTask}
+                    onUpdateSubTask={updateSubTask}
+                    isActiveTimer={activeTimerGoalId === goal.id}
+                    isAIEnabled={isAIEnabled}
+                  />
+                </Animated.View>
+              ))
+            )}
+          </ScrollView>
+
+          <View style={[styles.footer, { borderTopWidth: 0, paddingBottom: 10, paddingTop: 0 }]}>
+            <AddGoalForm
+              onAddGoal={(text, category) => addGoal({ text, category })}
+              disabled={hasReachedMaxGoals()}
+              currentCount={allTodayGoals.length}
+              existingGoals={allTodayGoals.map(g => g.text)}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Animated.View>
 
       {isUndoVisible && (
         <Animated.View entering={FadeInDown} exiting={SlideOutDown} style={[styles.undoToast, { backgroundColor: colors.card, borderLeftColor: colors.primary }]}>
@@ -214,8 +254,27 @@ export const HomeScreen: React.FC = () => {
         </Animated.View>
       )}
 
+      {isZenMode && (
+        <>
+          <TouchableOpacity 
+            activeOpacity={1}
+            onPress={toggleZenMode}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <Animated.View 
+            entering={FadeIn.duration(800)} 
+            exiting={FadeOut.duration(500)}
+            style={[styles.zenReturnContainer, { bottom: insets.bottom + 40 }]}
+            pointerEvents="none"
+          >
+            <Text style={[styles.zenReturnText, { color: 'rgba(255, 255, 255, 0.4)' }]}>
+              {i18n.language === 'tr' ? 'Dokun ve Geri Dön' : 'Tap to Return'}
+            </Text>
+          </Animated.View>
+        </>
+      )}
+
       <Celebration visible={isCelebrationVisible} goals={allTodayGoals.map(g => g.text)} />
-      <BackgroundEffects />
     </View>
   );
 };
@@ -245,4 +304,44 @@ const styles = StyleSheet.create({
   undoButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
   undoButtonText: { fontSize: 14, fontWeight: '800' },
   stopFocusButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  zenToggle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  zenToggleFloating: {
+    position: 'absolute',
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  headerContainer: {
+    width: '100%',
+    overflow: 'hidden',
+  },
+  zenReturnContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1001,
+  },
+  zenReturnButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+  },
+  zenReturnText: {
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
 });

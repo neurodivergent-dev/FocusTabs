@@ -18,6 +18,8 @@ interface AIState {
   chatMessages: ChatMessage[];
   customSystemPrompt: string | null;
   pollinationsApiKey: string | null;
+  chatSoundsEnabled: boolean;
+  chatSoundType: 'pop' | 'digital' | 'minimal';
   setApiKey: (key: string | null) => Promise<void>;
   setPollinationsApiKey: (key: string | null) => Promise<void>;
   loadApiKey: () => Promise<void>;
@@ -25,7 +27,11 @@ interface AIState {
   setCelebrationCache: (message: string) => void;
   addChatMessage: (message: ChatMessage) => void;
   clearChatMessages: () => void;
+  deleteChatMessage: (id: string) => void;
+  deleteChatMessages: (ids: string[]) => void;
   setCustomSystemPrompt: (prompt: string | null) => void;
+  setChatSoundsEnabled: (enabled: boolean) => void;
+  setChatSoundType: (type: 'pop' | 'digital' | 'minimal') => void;
 }
 
 const API_KEY_STORAGE_KEY = 'gemini_api_key';
@@ -42,6 +48,8 @@ export const useAIStore = create<AIState>()(
       chatMessages: [],
       customSystemPrompt: null,
       pollinationsApiKey: null,
+      chatSoundsEnabled: true,
+      chatSoundType: 'pop',
 
       setApiKey: async (key: string | null) => {
         if (key) {
@@ -98,9 +106,23 @@ export const useAIStore = create<AIState>()(
         set({ chatMessages: [] });
       },
 
+      deleteChatMessage: (id: string) => {
+        set((state) => ({
+          chatMessages: state.chatMessages.filter((msg) => msg.id !== id),
+        }));
+      },
+
+      deleteChatMessages: (ids: string[]) => {
+        set((state) => ({
+          chatMessages: state.chatMessages.filter((msg) => !ids.includes(msg.id)),
+        }));
+      },
+
       setCustomSystemPrompt: (prompt: string | null) => {
         set({ customSystemPrompt: prompt });
       },
+      setChatSoundsEnabled: (enabled: boolean) => set({ chatSoundsEnabled: enabled }),
+      setChatSoundType: (type: 'pop' | 'digital' | 'minimal') => set({ chatSoundType: type }),
     }),
     {
       name: 'ai-storage',
@@ -111,7 +133,9 @@ export const useAIStore = create<AIState>()(
         lastCelebrationMessage: state.lastCelebrationMessage,
         lastCelebrationDate: state.lastCelebrationDate,
         chatMessages: state.chatMessages,
-        customSystemPrompt: state.customSystemPrompt
+        customSystemPrompt: state.customSystemPrompt,
+        chatSoundsEnabled: state.chatSoundsEnabled,
+        chatSoundType: state.chatSoundType,
       }),
     }
   )

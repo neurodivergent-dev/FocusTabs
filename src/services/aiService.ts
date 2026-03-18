@@ -253,7 +253,7 @@ class AIService {
             - Format: [ACTION:RESET_ALL_DATA]
 
         13. SET BACKGROUND EFFECT: Append this to change background visual effect.
-            - Format: [ACTION:SET_BACKGROUND_EFFECT:{"effect": "none|shapes|particles|waves|crystals|tesseract"}]
+            - Format: [ACTION:SET_BACKGROUND_EFFECT:{"effect": "none|shapes|particles|waves|crystals|tesseract|aurora"}]
 
         14. EXPORT DATA: Append this if the user wants to export or backup their data as JSON.
             - Format: [ACTION:EXPORT_DATA]
@@ -284,6 +284,18 @@ class AIService {
         21. GENERATE_IMAGE: Use this to show a visual representation.
             - Format: [IMAGE:detailed_prompt_here]
             - Use this when the user asks for a picture, a visual, or when you want to inspire them with a cyberpunk/productivity themed artwork. Use Pollinations AI (Flux model).
+
+        22. SET_ZEN_MODE: Append this to enter or exit Zen Mode (Minimalist Focus Mode).
+            - Format: [ACTION:SET_ZEN_MODE:{"enabled": true|false}]
+            - This hides all UI elements except the background effects for a distraction-free experience.
+
+        23. SET_SYSTEM_PROMPT: Use this to update your own system prompt or instructions.
+            - Format: [ACTION:SET_SYSTEM_PROMPT:{"prompt": "Detailed New System Instructions"}]
+            - USE THIS when the user asks you to change your personality, tone, language, or logic.
+
+        24. SET_AMBIENT: Append this to change the background atmosphere/ambient sound.
+            - Format: [ACTION:SET_AMBIENT:{"soundId": "river|forest|lofi|rain|zen|none"}]
+            - Available IDs: river, forest, lofi, rain, zen, none. Use "none" to mute.
 
         APP INFO & PRIVACY:
         - App Name: FocusTabs. Version: v1.0.0.
