@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeOption, getThemeById, getThemeByIdAndMode } from '../constants/themes';
 
 type ThemeMode = 'light' | 'dark' | 'system';
-export type BackgroundEffectType = 'none' | 'shapes' | 'particles' | 'waves' | 'crystals' | 'tesseract' | 'aurora' | 'matrix' | 'vortex' | 'grid' | 'dynamic';
+export type BackgroundEffectType = 'none' | 'bokeh' | 'quantum' | 'waves' | 'crystals' | 'tesseract' | 'aurora' | 'matrix' | 'vortex' | 'grid' | 'silk' | 'prism' | 'dynamic';
 
 interface ThemeState {
   // Tema ayarları
@@ -45,7 +45,7 @@ export const useThemeStore = create<ThemeState>()(
       soundsEnabled: true,
       ambientSound: 'none',
       soundTrigger: null,
-      backgroundEffect: 'shapes',
+      backgroundEffect: 'bokeh',
       customBackgroundConfig: null,
       customThemes: [],
       isZenMode: false,
@@ -62,12 +62,22 @@ export const useThemeStore = create<ThemeState>()(
         const theme = allThemes.find(t => t.id === state.themeId) || allThemes[0];
         
         let colors = theme.colors;
-        if (!isDark && theme.id !== 'custom-ai') { // Sadece varsayılan temalar için otomatik light mode
+        
+        // Priority 1: Check if specific mode colors exist (AI or Custom Themes)
+        if (isDark && theme.darkColors) {
+          colors = theme.darkColors;
+        } else if (!isDark && theme.lightColors) {
+          colors = theme.lightColors;
+        } 
+        // Priority 2: Fallback logic for legacy/default themes
+        else if (!isDark) {
            colors = {
              ...ThemeConstants.lightBase,
              primary: theme.colors.primary,
              secondary: theme.colors.secondary,
            } as any;
+        } else {
+           colors = theme.colors; // Default to colors property (which is usually dark)
         }
 
         set({ 
@@ -87,9 +97,26 @@ export const useThemeStore = create<ThemeState>()(
         const allThemes = [...ThemeConstants.THEMES, ...state.customThemes];
         const theme = allThemes.find(t => t.id === id) || allThemes[0];
         
+        // Pick colors based on current mode
+        let colors = theme.colors;
+        if (state.isDarkMode && theme.darkColors) {
+          colors = theme.darkColors;
+        } else if (!state.isDarkMode) {
+          if (theme.lightColors) {
+            colors = theme.lightColors;
+          } else {
+            // Fallback for themes without lightColors property
+            colors = {
+              ...ThemeConstants.lightBase,
+              primary: theme.colors.primary,
+              secondary: theme.colors.secondary,
+            } as any;
+          }
+        }
+        
         set({ 
           themeId: id,
-          colors: theme.colors
+          colors: colors
         });
       },
 

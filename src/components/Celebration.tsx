@@ -74,7 +74,7 @@ export const Celebration: React.FC<CelebrationProps> = ({ visible, goals = [] })
           setAiMessage(lastCelebrationMessage);
           closeTimer = setTimeout(() => hide(), 6000);
         } else {
-          setAiMessage(t("common.loading", "Gemini senin için bir mesaj hazırlıyor..."));
+          setAiMessage(t("common.loading", "AI Koçu senin için bir mesaj hazırlıyor..."));
           
           aiService.getCelebrationMessage(goals, i18n.language).then(msg => {
             if (msg) {

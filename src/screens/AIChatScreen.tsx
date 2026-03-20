@@ -18,7 +18,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../components/ThemeProvider';
 import { useTranslation } from 'react-i18next';
-import { Send, Sparkles, User, Bot, AlertCircle, Trash2, ChevronDown, CheckCircle2, Circle, X } from 'lucide-react-native';
+import { Send, Sparkles, User, Bot, AlertCircle, Trash2, ChevronDown, CheckCircle2, Circle, X, Copy, CheckCheck } from 'lucide-react-native';
 import { aiService } from '../services/aiService';
 import { soundService } from '../services/SoundService';
 import { useAIStore, ChatMessage } from '../store/aiStore';
@@ -30,15 +30,72 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeStore } from '../store/themeStore';
 import { useLanguageStore } from '../store/languageStore';
-import Animated, { FadeInUp, FadeInDown, useAnimatedStyle, withTiming, useDerivedValue, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeInDown, useAnimatedStyle, withTiming, useDerivedValue, useSharedValue, withRepeat, withDelay, FadeIn, FadeOut } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { exportData, dataToJSON } from '../utils/backup';
+import * as Clipboard from 'expo-clipboard';
+import { useSettingsStore } from '../store/settingsStore';
+
+const TypingIndicator = ({ colors, isDarkMode }: { colors: any, isDarkMode: boolean }) => {
+  const { t } = useTranslation();
+  
+  const Dot = ({ delay }: { delay: number }) => {
+    const scale = useSharedValue(1);
+
+    React.useEffect(() => {
+      scale.value = withRepeat(
+        withDelay(
+          delay,
+          withTiming(1.5, { duration: 600 })
+        ),
+        -1,
+        true
+      );
+    }, []);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+      opacity: withTiming(scale.value > 1.2 ? 1 : 0.5, { duration: 300 }),
+    }));
+
+    return (
+      <Animated.View 
+        style={[
+          styles.typingDot, 
+          { backgroundColor: colors.primary },
+          animatedStyle
+        ]} 
+      />
+    );
+  };
+
+  return (
+    <Animated.View 
+      entering={FadeIn.duration(300)}
+      exiting={FadeOut.duration(300)}
+      style={[
+        styles.premiumTypingContainer, 
+        { 
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+          borderColor: colors.primary + '30'
+        }
+      ]}
+    >
+      <View style={styles.typingDotsRow}>
+        <Dot delay={0} />
+        <Dot delay={200} />
+        <Dot delay={400} />
+      </View>
+      <Text style={[styles.premiumTypingText, { color: colors.text }]}>{t('settings.ai.chat.typing')}</Text>
+    </Animated.View>
+  );
+};
 
 const AIChatScreen = () => {
   const { colors, isDarkMode } = useTheme();
   const { t, i18n } = useTranslation();
-  const { apiKey, isAIEnabled, chatMessages, addChatMessage, deleteChatMessage, deleteChatMessages, clearChatMessages, customSystemPrompt, setCustomSystemPrompt, chatSoundsEnabled, chatSoundType } = useAIStore();
+  const { apiKey, groqApiKey, isAIEnabled, chatMessages, addChatMessage, deleteChatMessage, deleteChatMessages, clearChatMessages, customSystemPrompt, setCustomSystemPrompt, chatSoundsEnabled, chatSoundType } = useAIStore();
   const addGoal = useDailyGoalsStore(state => state.addGoal);
   const deleteGoal = useDailyGoalsStore(state => state.deleteGoal);
   const clearGoals = useDailyGoalsStore(state => state.clearGoals);
@@ -58,6 +115,7 @@ const AIChatScreen = () => {
   const setCustomBackgroundConfig = useThemeStore(state => state.setCustomBackgroundConfig);
   const ambientSound = useThemeStore(state => state.ambientSound);
   const setAmbientSound = useThemeStore(state => state.setAmbientSound);
+  const setUnlimitedGoalsEnabled = useSettingsStore(state => state.setUnlimitedGoalsEnabled);
   const { isZenMode, setIsZenMode } = useThemeStore();
   const insets = useSafeAreaInsets();
 
@@ -132,7 +190,7 @@ const AIChatScreen = () => {
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
-    if (!apiKey || !isAIEnabled) {
+    if (!(apiKey || groqApiKey) || !isAIEnabled) {
       alert(t('settings.ai.chat.noApiKey'));
       return;
     }
@@ -250,33 +308,66 @@ const AIChatScreen = () => {
         // 5. UPDATE GOAL: Append this if the user wants to EDIT or CHANGE an existing goal.
         //    - Format: [ACTION:UPDATE_GOAL:{"goalId": "EXACT_ID", "text": "New Text", "category": "category"}]
         // 
+        // Debug: Raw Response Log (Llama formatını anlamak için)
+        console.log("[AI RAW RESPONSE]:", response);
+
         // - Refine user input into professional text for goals.
         // - You can ONLY perform ONE action per response.
 
+        // Action Finder - basit ve kesin calisan versiyon
+        const findAction = (type: string) => {
+          const pattern = new RegExp('\\[ACTION\\s*:\\s*' + type + '\\s*(?::\\s*([\\s\\S]*?))?\\]', 'i');
+          const match = response.match(pattern);
+          if (match) {
+            console.log('[AI ACTION MATCHED]:', type, 'Full:', match[0]);
+            return {
+              fullMatch: match[0],
+              data: match[1] || null,
+              regex: pattern
+            };
+          }
+          return null;
+        };
+
+        // Helper to parse action JSON robustly (handles markdown artifacts and array wraps from smaller models)
+        const parseActionData = (jsonStr: string | null) => {
+          if (!jsonStr) return null;
+          try {
+            const clean = jsonStr.replace(/```json|```|`|[\n\r]/g, '').trim();
+            const parsed = JSON.parse(clean);
+            return Array.isArray(parsed) ? parsed[0] : parsed;
+          } catch (e) {
+            console.error("[AI CHAT] Parse Error:", e, "Raw:", jsonStr);
+            return null;
+          }
+        };
+
         // Görev Oluşturma Aksiyonu
-        const goalMatch = response.match(/\[ACTION:CREATE_GOAL:(.*?)\]/);
+        const goalMatch = findAction('CREATE_GOAL');
         if (goalMatch) {
           try {
-            const data = JSON.parse(goalMatch[1]);
-            const success = await addGoal({
-              text: data.text,
-              category: data.category || 'other',
-              date: data.date || todayStr,
-            });
-            if (success) {
-              cleanResponse = cleanResponse.replace(goalMatch[0], '').trim();
+            const data = parseActionData(goalMatch.data);
+            if (data && data.text) {
+              const success = await addGoal({
+                text: data.text,
+                category: data.category || 'other',
+                date: data.date || todayStr,
+              });
+              if (success) {
+                cleanResponse = cleanResponse.replace(goalMatch.regex, '').trim();
+              }
             }
           } catch (e) { console.error("Goal Action Error:", e); }
         }
 
         // Zamanlayıcı (Odaklanma) Aksiyonu
-        const timerMatch = response.match(/\[ACTION:START_TIMER:(.*?)\]/);
+        const timerMatch = findAction('START_TIMER');
         if (timerMatch) {
           try {
-            const data = JSON.parse(timerMatch[1]);
-            if (data.goalId) {
+            const data = parseActionData(timerMatch.data);
+            if (data && data.goalId) {
               startGoalTimer(data.goalId, data.duration);
-              cleanResponse = cleanResponse.replace(timerMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(timerMatch.regex, '').trim();
               // Hemen Timer ekranına yönlendir
               setTimeout(() => {
                 router.push('/timer');
@@ -286,122 +377,122 @@ const AIChatScreen = () => {
         }
 
         // Dilimleme (Decompose) Aksiyonu
-        const decomposeMatch = response.match(/\[ACTION:DECOMPOSE_GOAL:(.*?)\]/);
+        const decomposeMatch = findAction('DECOMPOSE_GOAL');
         if (decomposeMatch) {
           try {
-            const data = JSON.parse(decomposeMatch[1]);
-            if (data.goalId) {
+            const data = parseActionData(decomposeMatch.data);
+            if (data && data.goalId) {
               await decomposeGoal(data.goalId, i18n.language);
-              cleanResponse = cleanResponse.replace(decomposeMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(decomposeMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Decompose Action Error:", e); }
         }
 
         // Silme (Delete) Aksiyonu
-        const deleteMatch = response.match(/\[ACTION:DELETE_GOAL:(.*?)\]/);
+        const deleteMatch = findAction('DELETE_GOAL');
         if (deleteMatch) {
           try {
-            const data = JSON.parse(deleteMatch[1]);
-            if (data.goalId) {
+            const data = parseActionData(deleteMatch.data);
+            if (data && data.goalId) {
               await deleteGoal(data.goalId);
-              cleanResponse = cleanResponse.replace(deleteMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(deleteMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             }
           } catch (e) { console.error("Delete Action Error:", e); }
         }
 
         // Güncelleme (Update) Aksiyonu
-        const updateMatch = response.match(/\[ACTION:UPDATE_GOAL:(.*?)\]/);
+        const updateMatch = findAction('UPDATE_GOAL');
         if (updateMatch) {
           try {
-            const data = JSON.parse(updateMatch[1]);
-            if (data.goalId) {
+            const data = parseActionData(updateMatch.data);
+            if (data && data.goalId) {
               const updates: any = {};
               if (data.text) updates.text = data.text;
               if (data.category) updates.category = data.category;
               if (data.date) updates.date = data.date;
               
               await updateGoal(data.goalId, updates);
-              cleanResponse = cleanResponse.replace(updateMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(updateMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Update Action Error:", e); }
         }
 
         // Alt Görev Güncelleme (Update Subtask) Aksiyonu
-        const updateSubMatch = response.match(/\[ACTION:UPDATE_SUBTASK:(.*?)\]/);
+        const updateSubMatch = findAction('UPDATE_SUBTASK');
         if (updateSubMatch) {
           try {
-            const data = JSON.parse(updateSubMatch[1]);
-            if (data.goalId && data.subTaskId && data.text) {
+            const data = parseActionData(updateSubMatch.data);
+            if (data && data.goalId && data.subTaskId && data.text) {
               await updateSubTask(data.goalId, data.subTaskId, data.text);
-              cleanResponse = cleanResponse.replace(updateSubMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(updateSubMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Update Subtask Error:", e); }
         }
 
         // Alt Görev Silme (Delete Subtask) Aksiyonu
-        const deleteSubMatch = response.match(/\[ACTION:DELETE_SUBTASK:(.*?)\]/);
+        const deleteSubMatch = findAction('DELETE_SUBTASK');
         if (deleteSubMatch) {
           try {
-            const data = JSON.parse(deleteSubMatch[1]);
-            if (data.goalId && data.subTaskId) {
+            const data = parseActionData(deleteSubMatch.data);
+            if (data && data.goalId && data.subTaskId) {
               await deleteSubTask(data.goalId, data.subTaskId);
-              cleanResponse = cleanResponse.replace(deleteSubMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(deleteSubMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             }
           } catch (e) { console.error("Delete Subtask Error:", e); }
         }
 
         // Karanlık Mod (Dark Mode) Aksiyonu
-        const darkMatch = response.match(/\[ACTION:SET_DARK_MODE:(.*?)\]/);
+        const darkMatch = findAction('SET_DARK_MODE');
         if (darkMatch) {
           try {
-            const data = JSON.parse(darkMatch[1]);
-            if (data.isDark !== undefined) {
+            const data = parseActionData(darkMatch.data);
+            if (data && data.isDark !== undefined) {
               setIsDarkMode(data.isDark);
-              cleanResponse = cleanResponse.replace(darkMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(darkMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Set Dark Mode Error:", e); }
         }
 
         // Tema (Theme) Aksiyonu
-        const themeMatch = response.match(/\[ACTION:SET_APP_THEME:(.*?)\]/);
+        const themeMatch = findAction('SET_APP_THEME');
         if (themeMatch) {
           try {
-            const data = JSON.parse(themeMatch[1]);
-            if (data.themeId) {
+            const data = parseActionData(themeMatch.data);
+            if (data && data.themeId) {
               setThemeId(data.themeId);
-              cleanResponse = cleanResponse.replace(themeMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(themeMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Set Theme Error:", e); }
         }
 
         // Dil (Language) Aksiyonu
-        const langMatch = response.match(/\[ACTION:SET_LANGUAGE:(.*?)\]/);
+        const langMatch = findAction('SET_LANGUAGE');
         if (langMatch) {
           try {
-            const data = JSON.parse(langMatch[1]);
-            if (data.lang) {
+            const data = parseActionData(langMatch.data);
+            if (data && data.lang) {
               setLanguage(data.lang);
-              cleanResponse = cleanResponse.replace(langMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(langMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Set Language Error:", e); }
         }
 
         // Ses (Sounds) Aksiyonu
-        const soundsMatch = response.match(/\[ACTION:SET_SOUNDS:(.*?)\]/);
+        const soundsMatch = findAction('SET_SOUNDS');
         if (soundsMatch) {
           try {
-            const data = JSON.parse(soundsMatch[1]);
-            if (data.enabled !== undefined) {
+            const data = parseActionData(soundsMatch.data);
+            if (data && data.enabled !== undefined) {
               setSoundsEnabled(data.enabled);
-              cleanResponse = cleanResponse.replace(soundsMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(soundsMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Set Sounds Error:", e); }
@@ -433,40 +524,42 @@ const AIChatScreen = () => {
         }
 
         // Arka Plan Efekti (Background Effect) Aksiyonu
-        const effectMatch = response.match(/\[ACTION:SET_BACKGROUND_EFFECT:(.*?)\]/);
+        const effectMatch = findAction('SET_BACKGROUND_EFFECT');
         if (effectMatch) {
           try {
-            const data = JSON.parse(effectMatch[1]);
-            if (data.effect) {
+            const data = parseActionData(effectMatch.data);
+            if (data && data.effect) {
               setBackgroundEffect(data.effect);
-              cleanResponse = cleanResponse.replace(effectMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(effectMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Set Effect Error:", e); }
         }
 
         // Ortam Sesi (Ambient Sound) Aksiyonu
-        const currentAmbientMatch = response.match(/\[ACTION:SET_AMBIENT:(.*?)\]/);
+        const currentAmbientMatch = findAction('SET_AMBIENT');
         if (currentAmbientMatch) {
           try {
-            const data = JSON.parse(currentAmbientMatch[1]);
-            if (data.soundId) {
+            const data = parseActionData(currentAmbientMatch.data);
+            if (data && data.soundId) {
               setAmbientSound(data.soundId);
-              cleanResponse = cleanResponse.replace(currentAmbientMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(currentAmbientMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Set Ambient Error:", e); }
         }
 
         // Özel Arka Plan (Custom Background) Aksiyonu
-        const customBgMatch = response.match(/\[ACTION:SET_CUSTOM_BACKGROUND:(.*?)\]/);
+        const customBgMatch = findAction('SET_CUSTOM_BACKGROUND');
         if (customBgMatch) {
           try {
-            const data = JSON.parse(customBgMatch[1]);
-            console.log("[AI ACTION] Setting Custom Background:", data);
-            setCustomBackgroundConfig(data);
-            cleanResponse = cleanResponse.replace(customBgMatch[0], '').trim();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            const data = parseActionData(customBgMatch.data);
+            if (data) {
+              console.log("[AI ACTION] Setting Custom Background:", data);
+              setCustomBackgroundConfig(data);
+              cleanResponse = cleanResponse.replace(customBgMatch.regex, '').trim();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
           } catch (e) { console.error("Set Custom Background Error:", e); }
         }
 
@@ -496,12 +589,12 @@ const AIChatScreen = () => {
         }
 
         // Genel Yönlendirme (Navigate) Aksiyonu
-        const navigateMatch = response.match(/\[ACTION:NAVIGATE:(.*?)\]/);
+        const navigateMatch = findAction('NAVIGATE');
         if (navigateMatch) {
           try {
-            const data = JSON.parse(navigateMatch[1]);
-            if (data.route) {
-              cleanResponse = cleanResponse.replace(navigateMatch[0], '').trim();
+            const data = parseActionData(navigateMatch.data);
+            if (data && data.route) {
+              cleanResponse = cleanResponse.replace(navigateMatch.regex, '').trim();
               setTimeout(() => {
                 router.push(data.route as any);
               }, 5000);
@@ -510,32 +603,23 @@ const AIChatScreen = () => {
         }
 
         // Tema Oluşturma (Create Theme) Aksiyonu
-        const createThemeMatch = response.match(/\[ACTION:CREATE_THEME:(.*?)\]/);
+        const createThemeMatch = findAction('CREATE_THEME');
         if (createThemeMatch) {
           try {
-            const data = JSON.parse(createThemeMatch[1]);
-            const newTheme = {
-              id: 'custom-ai',
-              name: data.name || 'AI Magic',
-              colors: {
-                primary: data.colors.primary,
-                secondary: data.colors.secondary,
-                background: data.colors.background || '#09090B',
-                card: data.colors.card || 'rgba(30, 30, 35, 0.6)',
-                cardBackground: data.colors.card || 'rgba(30, 30, 35, 0.6)',
-                cardBorder: 'rgba(255, 255, 255, 0.1)',
-                text: data.colors.text || '#FFFFFF',
-                subText: data.colors.subText || '#8E8E93',
-                border: data.colors.border || 'rgba(255, 255, 255, 0.1)',
-                success: data.colors.success || '#32D74B',
-                warning: data.colors.warning || '#FFD60A',
-                error: data.colors.error || '#FF453A',
-                info: data.colors.info || '#0A84FF',
-              }
-            };
-            addCustomTheme(newTheme as any);
-            cleanResponse = cleanResponse.replace(createThemeMatch[0], '').trim();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            const data = parseActionData(createThemeMatch.data);
+            if (data && (data.lightColors || data.darkColors || data.colors)) {
+              const baseColors = data.colors || data.darkColors || data.lightColors;
+              const newTheme = {
+                id: 'custom-ai',
+                name: data.name || 'AI Magic',
+                colors: baseColors,
+                lightColors: data.lightColors || undefined,
+                darkColors: data.darkColors || undefined
+              };
+              addCustomTheme(newTheme as any);
+              cleanResponse = cleanResponse.replace(createThemeMatch.regex, '').trim();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
           } catch (e) { console.error("Create Theme Error:", e); }
         }
 
@@ -550,45 +634,63 @@ const AIChatScreen = () => {
         }
 
         // Chat Geçmişini Sil (Clear Chat) Aksiyonu
-        if (response.includes('[ACTION:CLEAR_CHAT]')) {
-          cleanResponse = cleanResponse.replace('[ACTION:CLEAR_CHAT]', '').trim();
+        let clearChatActionTriggered = false;
+        const clearChatMatch = findAction('CLEAR_CHAT');
+        if (clearChatMatch) {
+          cleanResponse = cleanResponse.replace(clearChatMatch.regex, '').trim();
           setClearChatAlertVisible(true);
+          clearChatActionTriggered = true;
         }
 
         // Zen Mode Aksiyonu
-        const zenMatch = response.match(/\[ACTION:SET_ZEN_MODE:(.*?)\]/);
+        const zenMatch = findAction('SET_ZEN_MODE');
         if (zenMatch) {
           try {
-            const data = JSON.parse(zenMatch[1]);
-            if (data.enabled !== undefined) {
+            const data = parseActionData(zenMatch.data);
+            if (data && data.enabled !== undefined) {
               setIsZenMode(data.enabled);
-              cleanResponse = cleanResponse.replace(zenMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(zenMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("Zen Mode Action Error:", e); }
         }
 
         // System Prompt Aksiyonu
-        const promptMatch = response.match(/\[ACTION:SET_SYSTEM_PROMPT:(.*?)\]/);
+        const promptMatch = findAction('SET_SYSTEM_PROMPT');
         if (promptMatch) {
           try {
-            const data = JSON.parse(promptMatch[1]);
-            if (data.prompt) {
+            const data = parseActionData(promptMatch.data);
+            if (data && data.prompt) {
               setCustomSystemPrompt(data.prompt);
-              cleanResponse = cleanResponse.replace(promptMatch[0], '').trim();
+              cleanResponse = cleanResponse.replace(promptMatch.regex, '').trim();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             }
           } catch (e) { console.error("System Prompt Action Error:", e); }
         }
+        
+        // Power Mode Aksiyonu
+        const powerModeMatch = findAction('SET_POWER_MODE');
+        if (powerModeMatch) {
+          try {
+            const data = parseActionData(powerModeMatch.data);
+            if (data && data.enabled !== undefined) {
+              setUnlimitedGoalsEnabled(data.enabled);
+              cleanResponse = cleanResponse.replace(powerModeMatch.regex, '').trim();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+          } catch (e) { console.error("Power Mode Action Error:", e); }
+        }
 
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          text: cleanResponse,
-          role: 'model',
-          timestamp: Date.now(),
-        };
-        addChatMessage(aiMessage);
-        playChatSound('receive');
+        if (!clearChatActionTriggered) {
+          const aiMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            text: cleanResponse,
+            role: 'model',
+            timestamp: Date.now(),
+          };
+          addChatMessage(aiMessage);
+          playChatSound('receive');
+        }
       } else {
         // Boş yanıt gelirse hata mesajı göster (throw etmeden)
         const errorMessage: ChatMessage = {
@@ -658,6 +760,40 @@ const AIChatScreen = () => {
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setDeleteMessageAlertVisible(true);
+  };
+
+  const handleCopySelected = async () => {
+    if (selectedIds.length === 0) return;
+    
+    // Filtreleme yapıp sıralayarak metni birleştir (welcome mesajını hariç tut)
+    const selectedMessages = displayMessages
+      .filter(m => selectedIds.includes(m.id) && m.id !== 'welcome')
+      .sort((a, b) => a.timestamp - b.timestamp);
+    
+    const combinedText = selectedMessages
+      .map(m => `${m.role === 'user' ? '👤 ME' : '🤖 AI'}: ${m.text}`)
+      .join('\n\n---\n\n');
+    
+    await Clipboard.setStringAsync(combinedText);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Seçimi temizle
+    setIsSelectionMode(false);
+    setSelectedIds([]);
+  };
+
+  const handleSelectAll = () => {
+    const allIds = displayMessages
+      .filter(m => m.id !== 'welcome')
+      .map(m => m.id);
+    
+    if (selectedIds.length === allIds.length) {
+      setSelectedIds([]);
+      setIsSelectionMode(false);
+    } else {
+      setSelectedIds(allIds);
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
@@ -770,9 +906,17 @@ const AIChatScreen = () => {
                     {selectedIds.length} {t('common.selected') || 'Selected'}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={confirmDeleteSelected} style={styles.deleteSelectionButton}>
-                  <Trash2 size={20} color={colors.error} />
-                </TouchableOpacity>
+                <View style={styles.headerSelectionActions}>
+                  <TouchableOpacity onPress={handleSelectAll} style={styles.selectionActionButton}>
+                    <CheckCheck size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleCopySelected} style={styles.selectionActionButton}>
+                    <Copy size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={confirmDeleteSelected} style={styles.selectionActionButton}>
+                    <Trash2 size={20} color={colors.error} />
+                  </TouchableOpacity>
+                </View>
               </>
             ) : (
               <>
@@ -795,7 +939,7 @@ const AIChatScreen = () => {
           </View>
         </LinearGradient>
 
-        {!apiKey || !isAIEnabled ? (
+        {!(apiKey || groqApiKey) || !isAIEnabled ? (
           <View style={styles.emptyState}>
             <AlertCircle size={48} color={colors.warning} opacity={0.5} />
             <Text style={[styles.emptyStateText, { color: colors.subText }]}>
@@ -837,10 +981,7 @@ const AIChatScreen = () => {
             )}
 
             {isLoading && (
-              <View style={styles.typingIndicator}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.typingText, { color: colors.subText }]}>{t('settings.ai.chat.typing')}</Text>
-              </View>
+              <TypingIndicator colors={colors} isDarkMode={isDarkMode} />
             )}
 
             <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
@@ -1044,6 +1185,16 @@ const styles = StyleSheet.create({
   clearSelectionButton: {
     marginRight: 16,
   },
+  headerSelectionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  selectionActionButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
   deleteSelectionButton: {
     padding: 8,
   },
@@ -1079,16 +1230,33 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginBottom: 2,
   },
-  typingIndicator: {
+  premiumTypingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    gap: 8,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginLeft: 20,
+    marginBottom: 15,
+    borderWidth: 1,
+    gap: 12,
   },
-  typingText: {
+  typingDotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  premiumTypingText: {
     fontSize: 12,
-    fontStyle: 'italic',
+    fontWeight: '600',
+    opacity: 0.8,
+    letterSpacing: 0.5,
   },
   emptyState: {
     flex: 1,

@@ -13,7 +13,7 @@ import {
   Sun,
   Moon,
   CheckCircle,
-  Circle,
+  Circle as LucideCircle,
   Briefcase,
   Heart,
   User,
@@ -22,6 +22,11 @@ import {
   BrainCircuit,
   RefreshCw,
   Timer,
+  Target,
+  Scissors,
+  Zap,
+  Coffee,
+  Repeat,
 } from "lucide-react-native";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
@@ -32,6 +37,10 @@ import { useAIStore } from "../store/aiStore";
 import { MarkdownText } from "../components/MarkdownText";
 import { soundService } from "../services/SoundService";
 import * as Haptics from "expo-haptics";
+import Animated from "react-native-reanimated";
+import Svg, { Circle as SvgCircle, Defs, LinearGradient as SvgGradient, Stop } from "react-native-svg";
+
+const AnimatedCircle = Animated.createAnimatedComponent(SvgCircle);
 
 interface PerformanceData {
   weeklyCompletionRate: number;
@@ -119,29 +128,6 @@ export const StatsScreen: React.FC = () => {
     }
   };
 
-  // Gemini gelmezse diye gerçek verilere dayalı "Statik ama Dinamik" rozetler
-  const fallbackAchievements = useMemo(() => [
-    {
-      title: performanceData.streak >= 3 
-        ? t("stats.achievements.fallback.streakKral") 
-        : t("stats.achievements.fallback.yolunBasinda"),
-      desc: performanceData.streak > 0 
-        ? t("stats.achievements.fallback.streakKralDesc", { count: performanceData.streak }) 
-        : t("stats.achievements.fallback.yolunBasindaDesc"),
-      type: 'streak'
-    },
-    {
-      title: t("stats.achievements.fallback.efficiency"),
-      desc: t("stats.achievements.fallback.efficiencyDesc", { count: Math.round(performanceData.weeklyCompletionRate) }),
-      type: 'consistency'
-    },
-    {
-      title: t("stats.achievements.fallback.goalHunter"),
-      desc: t("stats.achievements.fallback.goalHunterDesc", { count: performanceData.totalCompletedTasks }),
-      type: 'focus'
-    }
-  ], [performanceData, t]);
-
   // Calculate insights
   const insights = useMemo<InsightData>(() => {
     const completedGoals = goals.filter(g => g.completed);
@@ -164,20 +150,14 @@ export const StatsScreen: React.FC = () => {
     });
     const topCatId = Object.entries(categoryCounts).reduce((a, b) => a[1] > b[1] ? a : b)[0];
 
-    // 2. Productive Day (Based on completion rate per day of week)
+    // 2. Productive Day
     const dayStats: Record<number, { completed: number, total: number }> = {
-      0: { completed: 0, total: 0 }, // Sun
-      1: { completed: 0, total: 0 }, // Mon
-      2: { completed: 0, total: 0 }, // Tue
-      3: { completed: 0, total: 0 }, // Wed
-      4: { completed: 0, total: 0 }, // Thu
-      5: { completed: 0, total: 0 }, // Fri
-      6: { completed: 0, total: 0 }, // Sat
+      0: { completed: 0, total: 0 }, 1: { completed: 0, total: 0 }, 2: { completed: 0, total: 0 },
+      3: { completed: 0, total: 0 }, 4: { completed: 0, total: 0 }, 5: { completed: 0, total: 0 },
+      6: { completed: 0, total: 0 },
     };
 
-    // Use all goals to find the day with highest completion ratio
     goals.forEach(g => {
-      // goal.date is YYYY-MM-DD, parse safely
       const dateParts = g.date.split('-');
       const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
       const dayIndex = d.getDay();
@@ -187,7 +167,6 @@ export const StatsScreen: React.FC = () => {
 
     let bestDayIndex = 0;
     let maxRatio = -1;
-
     Object.entries(dayStats).forEach(([day, stats]) => {
       if (stats.total > 0) {
         const ratio = stats.completed / stats.total;
@@ -198,18 +177,16 @@ export const StatsScreen: React.FC = () => {
       }
     });
 
-    // Correct day name mapping
     const dayNames = {
       tr: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
       en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     };
     const lang = (i18n.language && i18n.language.startsWith('tr')) ? 'tr' : 'en';
-    const topDayName = dayNames[lang][bestDayIndex];
+    const topDayName = dayNames[lang as 'tr'|'en'][bestDayIndex];
 
-    // 3. Work Style
     const morningCount = completedGoals.filter(g => {
       const hour = new Date(g.updatedAt).getHours();
-      return hour >= 5 && hour < 13;
+      return hour >= 5 && hour < 14;
     }).length;
     const nightCount = completedGoals.filter(g => {
       const hour = new Date(g.updatedAt).getHours();
@@ -229,6 +206,45 @@ export const StatsScreen: React.FC = () => {
       hasEnoughData: true
     };
   }, [goals, t, i18n.language]);
+
+  const achievements = useMemo(() => [
+    {
+      title: t("stats.achievements.fallback.streakKral"),
+      desc: t("stats.achievements.fallback.streakKralDesc", { count: performanceData.streak }),
+      type: 'streak',
+      isUnlocked: performanceData.streak >= 3
+    },
+    {
+      title: t("stats.achievements.fallback.efficiency"),
+      desc: t("stats.achievements.fallback.efficiencyDesc", { count: Math.round(performanceData.weeklyCompletionRate) }),
+      type: 'consistency',
+      isUnlocked: performanceData.weeklyCompletionRate >= 70
+    },
+    {
+      title: t("stats.achievements.fallback.goalHunter"),
+      desc: t("stats.achievements.fallback.goalHunterDesc", { count: performanceData.totalCompletedTasks }),
+      type: 'focus',
+      isUnlocked: performanceData.totalCompletedTasks >= 10
+    },
+    {
+      title: insights.workStyle === 'morning' ? t("stats.insights.morningPerson") : "Erken Kalkan",
+      desc: t("stats.insights.morningPersonDesc"),
+      type: 'variety',
+      isUnlocked: insights.workStyle === 'morning'
+    },
+    {
+       title: "Odak Ustası",
+       desc: "10 saatten fazla odaklanma.",
+       type: 'speed',
+       isUnlocked: performanceData.totalFocusTime >= 36000
+    },
+    {
+       title: "Kararlı",
+       desc: "Haftalık %90+ başarı.",
+       type: 'streak',
+       isUnlocked: performanceData.weeklyCompletionRate >= 90
+    }
+  ], [performanceData, t, insights.workStyle]);
 
   // Top focus tasks (all time)
   const topFocusGoals = useMemo(() => {
@@ -476,33 +492,76 @@ export const StatsScreen: React.FC = () => {
               </View>
             </View>
 
-            <View style={[styles.progressBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)' }]}>
-              <View style={styles.progressLabelRow}>
-                <Text style={[styles.progressLabel, { color: colors.text }]}>{t("stats.dailyProgress")}</Text>
-                <Text style={[styles.progressPercent, { color: colors.primary }]}>{Math.round(completionRate)}%</Text>
+            <View style={styles.circularProgressBox}>
+              <View style={styles.chartWrapper}>
+                <Svg width={160} height={160} viewBox="0 0 160 160">
+                  <Defs>
+                    <SvgGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <Stop offset="0%" stopColor={colors.primary} />
+                      <Stop offset="100%" stopColor={colors.secondary || colors.primary} />
+                    </SvgGradient>
+                  </Defs>
+                  {/* Background Track */}
+                  <SvgCircle
+                    cx="80"
+                    cy="80"
+                    r="70"
+                    stroke={isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
+                    strokeWidth="12"
+                    fill="none"
+                  />
+                  {/* Glowing Progress Circle */}
+                  <AnimatedCircle
+                    cx="80"
+                    cy="80"
+                    r="70"
+                    stroke="url(#grad)"
+                    strokeWidth="12"
+                    strokeDasharray={`${2 * Math.PI * 70}`}
+                    strokeDashoffset={2 * Math.PI * 70 * (1 - Math.max(completionRate, 2) / 100)}
+                    strokeLinecap="round"
+                    fill="none"
+                    transform="rotate(-90 80 80)"
+                  />
+                </Svg>
+                <View style={styles.chartCenterContent}>
+                  <Text style={[styles.chartPercent, { color: colors.text }]}>{Math.round(completionRate)}%</Text>
+                  <Text style={[styles.chartLabel, { color: colors.subText }]}>{t("stats.completed")}</Text>
+                </View>
               </View>
-              <View style={styles.progressTrack}>
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary || colors.primary]}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  style={[styles.progressFill, { width: `${Math.max(completionRate, 5)}%` }]}
-                />
+
+              <View style={styles.chartLegend}>
+                <View style={styles.legendEntry}>
+                   <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
+                   <View>
+                      <Text style={[styles.legendMainText, { color: colors.text }]}>{completedCount} {t("stats.tasks")}</Text>
+                      <Text style={[styles.legendSubText, { color: colors.subText }]}>{t("stats.completed")}</Text>
+                   </View>
+                </View>
+                <View style={styles.legendEntry}>
+                   <View style={[styles.legendDot, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
+                   <View>
+                      <Text style={[styles.legendMainText, { color: colors.text }]}>{activeCount} {t("stats.tasks")}</Text>
+                      <Text style={[styles.legendSubText, { color: colors.subText }]}>{t("stats.remaining")}</Text>
+                   </View>
+                </View>
               </View>
-              <Text 
-                style={[styles.progressAdvice, { color: colors.subText }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.5}
-              >
-                {totalGoals === 0 
-                  ? t("stats.progressNotes.noGoals") 
-                  : completionRate === 100 
-                    ? t("stats.progressNotes.allCompleted") 
-                    : completionRate === 0
-                      ? t("stats.progressNotes.startCompleting")
-                      : t("stats.progressNotes.keepGoing")}
-              </Text>
             </View>
+
+            <Text 
+              style={[styles.progressAdvice, { color: colors.subText, textAlign: 'center', marginTop: 16 }]}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              {totalGoals === 0 
+                ? t("stats.progressNotes.noGoals") 
+                : completionRate === 100 
+                  ? t("stats.progressNotes.allCompleted") 
+                  : completionRate === 0
+                    ? t("stats.progressNotes.startCompleting")
+                    : t("stats.progressNotes.keepGoing")}
+            </Text>
           </LinearGradient>
         </View>
 
@@ -539,7 +598,7 @@ export const StatsScreen: React.FC = () => {
                         {item.completed ? (
                           <CheckCircle size={20} color={colors.success} />
                         ) : (
-                          <Circle size={20} color={colors.subText} opacity={0.5} />
+                          <LucideCircle size={20} color={colors.subText} opacity={0.5} />
                         )}
                       </View>
                       <View style={styles.goalContent}>
@@ -585,55 +644,92 @@ export const StatsScreen: React.FC = () => {
         {/* General Performance */}
         <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12 }]}>
           <LinearGradient
-            colors={[isDarkMode ? colors.secondary + '20' : colors.secondary + '10', isDarkMode ? colors.info + '20' : colors.info + '10']}
+            colors={[isDarkMode ? colors.primary + '15' : colors.primary + '08', isDarkMode ? colors.secondary + '15' : colors.secondary + '08']}
             style={styles.cardGradient}
           >
-            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 24 }]}>{t("stats.generalPerformance")}</Text>
-            
-            <View style={styles.verticalStack}>
-              <View style={[styles.stackCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)' }]}>
-                <View style={[styles.stackIcon, { backgroundColor: colors.primary + '20' }]}>
-                  <Calendar size={20} color={colors.primary} />
-                </View>
-                <Text style={[styles.stackLabel, { color: colors.subText }]}>{t("stats.weekly")}</Text>
-                <Text style={[styles.stackValue, { color: colors.text }]}>{Math.round(performanceData.weeklyCompletionRate)}%</Text>
-              </View>
-
-              <View style={[styles.stackCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)' }]}>
-                <View style={[styles.stackIcon, { backgroundColor: colors.info + '20' }]}>
-                  <BarChart4 size={20} color={colors.info} />
-                </View>
-                <Text style={[styles.stackLabel, { color: colors.subText }]}>{t("stats.monthly")}</Text>
-                <Text style={[styles.stackValue, { color: colors.text }]}>{Math.round(performanceData.monthlyCompletionRate)}%</Text>
-              </View>
-
-              <View style={[styles.stackCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)' }]}>
-                <View style={[styles.stackIcon, { backgroundColor: colors.warning + '20' }]}>
-                  <TrendingUp size={20} color={colors.warning} />
-                </View>
-                <Text style={[styles.stackLabel, { color: colors.subText }]}>{t("stats.streak")}</Text>
-                <Text style={[styles.stackValue, { color: colors.text }]}>{performanceData.streak}d</Text>
-              </View>
+            <View style={styles.cardHeader}>
+               <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                  <BarChart4 size={24} color={colors.primary} />
+               </View>
+               <Text style={[styles.sectionTitle, { color: colors.text, flex: 1, marginLeft: 12 }]}>{t("stats.generalPerformance")}</Text>
             </View>
 
-            <View style={styles.divider} />
+            {/* Performance Stats Grid - Mini Circles Row */}
+            <View style={styles.performanceRow}>
+               {/* Weekly */}
+               <View style={styles.performanceStatItem}>
+                  <View style={styles.miniChartContainer}>
+                     <Svg width={60} height={60} viewBox="0 0 60 60">
+                        <SvgCircle cx="30" cy="30" r="26" stroke={isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} strokeWidth="5" fill="none" />
+                        <AnimatedCircle 
+                          cx="30" cy="30" r="26" stroke={colors.primary} strokeWidth="5" 
+                          strokeDasharray={`${2 * Math.PI * 26}`} 
+                          strokeDashoffset={2 * Math.PI * 26 * (1 - Math.max(performanceData.weeklyCompletionRate, 5) / 100)}
+                          strokeLinecap="round" fill="none" transform="rotate(-90 30 30)" 
+                        />
+                     </Svg>
+                     <View style={styles.miniChartContent}>
+                        <Text style={[styles.miniChartValue, { color: colors.text }]}>{Math.round(performanceData.weeklyCompletionRate)}%</Text>
+                     </View>
+                  </View>
+                  <Text style={[styles.miniChartLabel, { color: colors.subText }]}>{t("stats.weekly")}</Text>
+               </View>
 
-            <View style={styles.summaryRow}>
-              <View style={[styles.summaryItem, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)' }]}>
-                <Text style={[styles.sumLabel, { color: colors.subText }]}>{t("stats.bestDay")}</Text>
-                <Text style={[styles.sumValue, { color: colors.text }]}>{performanceData.bestDay}</Text>
-              </View>
-              <View style={[styles.summaryItem, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)' }]}>
-                <Text style={[styles.sumLabel, { color: colors.subText }]}>{t("stats.totalCompleted")}</Text>
-                <Text style={[styles.sumValue, { color: colors.text }]}>{performanceData.totalCompletedTasks} {t("stats.tasks")}</Text>
-              </View>
+               {/* Monthly */}
+               <View style={styles.performanceStatItem}>
+                  <View style={styles.miniChartContainer}>
+                     <Svg width={60} height={60} viewBox="0 0 60 60">
+                        <SvgCircle cx="30" cy="30" r="26" stroke={isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} strokeWidth="5" fill="none" />
+                        <AnimatedCircle 
+                          cx="30" cy="30" r="26" stroke={colors.info} strokeWidth="5" 
+                          strokeDasharray={`${2 * Math.PI * 26}`} 
+                          strokeDashoffset={2 * Math.PI * 26 * (1 - Math.max(performanceData.monthlyCompletionRate, 5) / 100)}
+                          strokeLinecap="round" fill="none" transform="rotate(-90 30 30)" 
+                        />
+                     </Svg>
+                     <View style={styles.miniChartContent}>
+                        <Text style={[styles.miniChartValue, { color: colors.text }]}>{Math.round(performanceData.monthlyCompletionRate)}%</Text>
+                     </View>
+                  </View>
+                  <Text style={[styles.miniChartLabel, { color: colors.subText }]}>{t("stats.monthly")}</Text>
+               </View>
+
+               {/* Streak - Fire Style */}
+               <View style={styles.performanceStatItem}>
+                  <View style={[styles.streakFireBox, { backgroundColor: '#FF6B0015', borderColor: '#FF6B0030', borderWidth: 1 }]}>
+                     <TrendingUp size={24} color="#FF6B00" strokeWidth={3} />
+                     <Text style={[styles.streakValueHighlight, { color: "#FF6B00" }]}>{performanceData.streak}d</Text>
+                  </View>
+                  <Text style={[styles.miniChartLabel, { color: colors.subText }]}>{t("stats.streak")}</Text>
+               </View>
             </View>
 
-            <View style={[styles.levelBadge, { backgroundColor: getPerformanceLevelColor(todayPerformanceRate) + '15', borderColor: getPerformanceLevelColor(todayPerformanceRate) + '30' }]}>
-              <Award size={16} color={getPerformanceLevelColor(todayPerformanceRate)} />
-              <Text style={[styles.levelText, { color: getPerformanceLevelColor(todayPerformanceRate) }]}>
-                {t("stats.performanceLevel")}: {getPerformanceLevel(todayPerformanceRate, hasTodayTasks)}
-              </Text>
+            <View style={styles.statsSummaryGrid}>
+               <View style={[styles.summaryBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.7)', borderColor: colors.border + '20', borderWidth: 1 }]}>
+                  <Text style={[styles.sumLabelSmall, { color: colors.subText }]}>{t("stats.bestDay")}</Text>
+                  <Text style={[styles.sumValueBold, { color: colors.text }]}>{performanceData.bestDay}</Text>
+               </View>
+               <View style={[styles.summaryBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.7)', borderColor: colors.border + '20', borderWidth: 1 }]}>
+                  <Text style={[styles.sumLabelSmall, { color: colors.subText }]}>{t("stats.totalCompleted")}</Text>
+                  <Text style={[styles.sumValueBold, { color: colors.text }]}>{performanceData.totalCompletedTasks} {t("stats.tasks")}</Text>
+               </View>
+            </View>
+
+            {/* Rank Banner Redesign */}
+            <View style={[styles.premiumRankBanner, { 
+                backgroundColor: getPerformanceLevelColor(todayPerformanceRate) + '15',
+                borderColor: getPerformanceLevelColor(todayPerformanceRate) + '40',
+                borderWidth: 1 
+              }]}>
+              <View style={[styles.rankIconBox, { backgroundColor: getPerformanceLevelColor(todayPerformanceRate) + '25' }]}>
+                <Award size={20} color={getPerformanceLevelColor(todayPerformanceRate)} strokeWidth={2.5} />
+              </View>
+              <View style={styles.rankTextContent}>
+                <Text style={[styles.rankSubText, { color: colors.subText }]}>{t("stats.performanceLevel")}</Text>
+                <Text style={[styles.rankMainText, { color: getPerformanceLevelColor(todayPerformanceRate) }]}>
+                  {getPerformanceLevel(todayPerformanceRate, hasTodayTasks)}
+                </Text>
+              </View>
             </View>
           </LinearGradient>
         </View>
@@ -655,122 +751,156 @@ export const StatsScreen: React.FC = () => {
             </View>
 
             {isAIEnabled && apiKey && (isAiLoading || aiInsight) && (
-              <View style={[styles.aiInsightCard, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '20' }]}>
+              <View style={[styles.aiInsightCard, { backgroundColor: isDarkMode ? 'rgba(99, 102, 241, 0.08)' : 'rgba(99, 102, 241, 0.05)', borderColor: colors.primary + '30' }]}>
+                {/* Scanning Animation Effect Overlay */}
+                <View style={[styles.scanLine, { backgroundColor: colors.primary + '20' }]} />
+                
                 {isAiLoading ? (
-                  <>
+                  <View style={styles.aiLoadingContent}>
                     <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={[styles.aiInsightText, { color: colors.subText }]}>Gemini verilerini analiz ediyor...</Text>
-                  </>
+                    <Text style={[styles.aiInsightText, { color: colors.subText, marginLeft: 12 }]}>
+                      Zeka katmanı verileri analiz ediyor...
+                    </Text>
+                  </View>
                 ) : (
-                  <>
-                    <BrainCircuit size={18} color={colors.primary} />
+                  <View style={styles.aiContentRow}>
+                    <View style={[styles.aiIconCircle, { backgroundColor: colors.primary + '20' }]}>
+                       <BrainCircuit size={18} color={colors.primary} />
+                    </View>
                     <MarkdownText 
                       content={aiInsight || ""} 
                       style={styles.aiInsightText} 
                       baseColor={colors.text} 
                     />
-                  </>
+                  </View>
                 )}
               </View>
             )}
 
-            {isAIEnabled && apiKey && dynamicAIInsights.length > 0 ? (
-              <View style={styles.insightsList}>
-                {dynamicAIInsights.map((insight, idx) => (
-                  <View key={idx} style={styles.insightItem}>
-                    <View style={[styles.insightIcon, { backgroundColor: getInsightBgColor(insight.type) }]}>
+            <View style={styles.technicalAnalysisContainer}>
+              {isAIEnabled && apiKey && dynamicAIInsights.length > 0 ? (
+                dynamicAIInsights.map((insight, idx) => (
+                  <View key={idx} style={[styles.technicalItem, { borderColor: colors.border + '20', borderBottomWidth: idx === dynamicAIInsights.length - 1 ? 0 : 1 }]}>
+                    <View style={[styles.techIconBox, { backgroundColor: getInsightBgColor(insight.type) }]}>
                       {getInsightIcon(insight.type)}
                     </View>
-                    <View style={styles.insightTextContent}>
-                      <Text style={[styles.insightLabel, { color: colors.text }]}>{insight.title}</Text>
-                      <Text style={[styles.insightDesc, { color: colors.subText }]}>
-                        {insight.desc}
+                    <View style={styles.techTextContent}>
+                      <Text style={[styles.techLabel, { color: colors.subText }]}>{insight.title}</Text>
+                      <Text style={[styles.techValue, { color: colors.text }]}>{insight.desc}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : insights.hasEnoughData ? (
+                <>
+                  <View style={[styles.technicalItem, { borderColor: colors.border + '20' }]}>
+                    <View style={[styles.techIconBox, { backgroundColor: colors.primary + '15' }]}>
+                      <TrendingUp size={18} color={colors.primary} />
+                    </View>
+                    <View style={styles.techTextContent}>
+                      <Text style={[styles.techLabel, { color: colors.subText }]}>{t("stats.insights.topCategory")}</Text>
+                      <Text style={[styles.techValue, { color: colors.text }]}>
+                        {t("stats.insights.topCategoryDesc", { category: insights.topCategoryName })}
                       </Text>
                     </View>
                   </View>
-                ))}
-              </View>
-            ) : insights.hasEnoughData ? (
-              <View style={styles.insightsList}>
-                <View style={styles.insightItem}>
-                  <View style={[styles.insightIcon, { backgroundColor: colors.primary + '20' }]}>
-                    <TrendingUp size={20} color={colors.primary} />
-                  </View>
-                  <View style={styles.insightTextContent}>
-                    <Text style={[styles.insightLabel, { color: colors.text }]}>{t("stats.insights.topCategory")}</Text>
-                    <Text style={[styles.insightDesc, { color: colors.subText }]}>
-                      {t("stats.insights.topCategoryDesc", { category: insights.topCategoryName })}
-                    </Text>
-                  </View>
-                </View>
 
-                <View style={styles.insightItem}>
-                  <View style={[styles.insightIcon, { backgroundColor: colors.success + '20' }]}>
-                    <Calendar size={20} color={colors.success} />
+                  <View style={[styles.technicalItem, { borderColor: colors.border + '20' }]}>
+                    <View style={[styles.techIconBox, { backgroundColor: colors.success + '15' }]}>
+                      <Calendar size={18} color={colors.success} />
+                    </View>
+                    <View style={styles.techTextContent}>
+                      <Text style={[styles.techLabel, { color: colors.subText }]}>{t("stats.insights.productiveDay")}</Text>
+                      <Text style={[styles.techValue, { color: colors.text }]}>
+                        {t("stats.insights.productiveDayDesc", { day: insights.productiveDayName })}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.insightTextContent}>
-                    <Text style={[styles.insightLabel, { color: colors.text }]}>{t("stats.insights.productiveDay")}</Text>
-                    <Text style={[styles.insightDesc, { color: colors.subText }]}>
-                      {t("stats.insights.productiveDayDesc", { day: insights.productiveDayName })}
-                    </Text>
-                  </View>
-                </View>
 
-                <View style={styles.insightItem}>
-                  <View style={[styles.insightIcon, { backgroundColor: colors.warning + '20' }]}>
-                    {insights.workStyle === 'morning' ? <Sun size={20} color={colors.warning} /> : <Moon size={20} color={colors.warning} />}
+                  <View style={[styles.technicalItem, { borderColor: colors.border + '20', borderBottomWidth: 0 }]}>
+                    <View style={[styles.techIconBox, { backgroundColor: colors.warning + '15' }]}>
+                      {insights.workStyle === 'morning' ? <Sun size={18} color={colors.warning} /> : <Moon size={18} color={colors.warning} />}
+                    </View>
+                    <View style={styles.techTextContent}>
+                      <Text style={[styles.techLabel, { color: colors.subText }]}>
+                        {insights.workStyle === 'morning' ? t("stats.insights.morningPerson") : insights.workStyle === 'night' ? t("stats.insights.nightOwl") : t("stats.performanceLevel")}
+                      </Text>
+                      <Text style={[styles.techValue, { color: colors.text }]}>
+                        {insights.workStyle === 'morning' ? t("stats.insights.morningPersonDesc") : insights.workStyle === 'night' ? t("stats.insights.nightOwlDesc") : t("stats.achievements.default")}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.insightTextContent}>
-                    <Text style={[styles.insightLabel, { color: colors.text }]}>
-                      {insights.workStyle === 'morning' ? t("stats.insights.morningPerson") : insights.workStyle === 'night' ? t("stats.insights.nightOwl") : t("stats.performanceLevel")}
-                    </Text>
-                    <Text style={[styles.insightDesc, { color: colors.subText }]}>
-                      {insights.workStyle === 'morning' ? t("stats.insights.morningPersonDesc") : insights.workStyle === 'night' ? t("stats.insights.nightOwlDesc") : t("stats.achievements.default")}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ) : (
-              <Text style={[styles.noDataInfo, { color: colors.subText }]}>
-                {t("stats.insights.noData")}
-              </Text>
-            )}
+                </>
+              ) : (
+                <Text style={[styles.noDataInfo, { color: colors.subText }]}>
+                  {t("stats.insights.noData")}
+                </Text>
+              )}
+            </View>
           </LinearGradient>
         </View>
 
-        {/* Top Focus Tasks */}
+        {/* Top Focus Tasks - Leaderboard Redesign */}
         {topFocusGoals.length > 0 && (
           <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12 }]}>
             <LinearGradient
-              colors={[isDarkMode ? colors.info + '15' : colors.info + '05', isDarkMode ? colors.primary + '15' : colors.primary + '05']}
+              colors={[isDarkMode ? colors.info + '15' : colors.info + '08', isDarkMode ? colors.primary + '15' : colors.primary + '08']}
               style={styles.cardGradient}
             >
               <View style={styles.cardHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("stats.topFocusTasks")}</Text>
-                <View style={[styles.badge, { backgroundColor: colors.info + '15' }]}>
-                  <Timer size={14} color={colors.info} />
-                  <Text style={[styles.badgeText, { color: colors.info }]}>{t("stats.focusTime")}</Text>
+                <View style={[styles.iconBox, { backgroundColor: colors.info + '15' }]}>
+                   <Timer size={24} color={colors.info} />
                 </View>
+                <Text style={[styles.sectionTitle, { color: colors.text, flex: 1, marginLeft: 12 }]}>{t("stats.topFocusTasks")}</Text>
               </View>
 
-              <View style={styles.topTasksList}>
+              <View style={styles.leaderboardContainer}>
                 {topFocusGoals.map((item, index) => {
                   const category = getCategoryById(item.category);
+                  const isTop3 = index < 3;
+                  const rankColors = [colors.warning, '#C0C0C0', '#CD7F32'];
+                  
                   return (
-                    <View key={item.id} style={[styles.topTaskItem, { borderBottomColor: index === topFocusGoals.length - 1 ? 'transparent' : colors.border + '40' }]}>
-                      <View style={[styles.rankBadge, { backgroundColor: index === 0 ? colors.primary : (index < 3 ? colors.primary + 'B0' : colors.border + '40') }]}>
-                        <Text style={[styles.rankText, { color: index < 3 ? '#FFFFFF' : colors.subText }]}>{index + 1}</Text>
+                    <View key={item.id} style={[
+                      styles.leaderboardItem, 
+                      { 
+                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.85)', 
+                        borderColor: isTop3 ? rankColors[index] : colors.border + '30',
+                        borderWidth: isTop3 ? 1.5 : 1,
+                      }
+                    ]}>
+                      <View style={[styles.leaderboardRank, { backgroundColor: isTop3 ? rankColors[index] + '25' : (isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)') }]}>
+                        <Text style={[styles.leaderboardRankText, { color: isTop3 ? rankColors[index] : colors.subText }]}>
+                           {index + 1}
+                        </Text>
                       </View>
-                      <View style={styles.topTaskContent}>
-                        <Text style={[styles.topTaskText, { color: colors.text }]} numberOfLines={1}>{item.text}</Text>
-                        <View style={styles.topTaskMeta}>
-                          <Text style={[styles.categoryTextSmall, { color: category.color }]}>{t(category.nameKey)}</Text>
-                          <Text style={[styles.dateTextSmall, { color: colors.subText }]}>{item.date}</Text>
+                      
+                      <View style={styles.leaderboardContent}>
+                        <View style={styles.leaderboardMainRow}>
+                           <Text style={[styles.leaderboardTaskText, { color: colors.text }]} numberOfLines={1}>
+                             {item.text}
+                           </Text>
+                           <View style={[styles.miniCategoryTag, { backgroundColor: category.color + '15' }]}>
+                              <CategoryIcon id={item.category} size={8} color={category.color} />
+                              <Text style={[styles.miniCategoryText, { color: category.color }]}>{t(category.nameKey)}</Text>
+                           </View>
+                        </View>
+                        
+                        <View style={styles.leaderboardMetaRow}>
+                           <View style={styles.leaderboardTimeInfo}>
+                              <Clock size={12} color={colors.primary} />
+                              <Text style={[styles.leaderboardTimeText, { color: colors.primary }]}>
+                                {formatTotalTime(item.focusTime || 0)}
+                              </Text>
+                           </View>
+                           <Text style={[styles.leaderboardDate, { color: colors.subText }]}>{item.date}</Text>
                         </View>
                       </View>
-                      <View style={styles.topTaskTimeContainer}>
-                        <Text style={[styles.timeText, { color: colors.primary }]}>{formatTotalTime(item.focusTime || 0)}</Text>
-                      </View>
+                      
+                      {isTop3 && (
+                        <View style={styles.medalIcon}>
+                          <Award size={18} color={rankColors[index]} strokeWidth={2.5} />
+                        </View>
+                      )}
                     </View>
                   );
                 })}
@@ -790,41 +920,77 @@ export const StatsScreen: React.FC = () => {
               <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0, marginLeft: 12 }]}>{t("stats.achievements.title")}</Text>
             </View>
             
-            <View style={styles.achievementsList}>
-              {(isAIEnabled && apiKey && dynamicAIInsights.length > 0 ? dynamicAIInsights : fallbackAchievements).map((achievement, idx) => (
-                <View key={idx} style={[styles.achievementListItem, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)' }]}>
-                  <View style={[styles.badgeIconBox, { backgroundColor: getInsightBgColor(achievement.type) }]}>
+            <View style={styles.badgeShowcaseGrid}>
+              {achievements.map((achievement, idx) => (
+                <View 
+                  key={idx} 
+                  style={[
+                    styles.badgeGridItem, 
+                    { 
+                      opacity: achievement.isUnlocked ? 1 : 0.4,
+                      backgroundColor: achievement.isUnlocked ? (isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.8)') : 'transparent',
+                      borderColor: achievement.isUnlocked ? (getInsightBgColor(achievement.type).replace('20', '40')) : colors.border + '20',
+                      borderWidth: 1,
+                    }
+                  ]}
+                >
+                  <View style={[styles.badgeCircle, { backgroundColor: getInsightBgColor(achievement.type) }]}>
                     {getInsightIcon(achievement.type)}
                   </View>
-                  <View style={styles.badgeContent}>
-                    <Text style={[styles.badgeTitle, { color: colors.text }]} numberOfLines={1}>
-                      {achievement.title}
-                    </Text>
-                    <Text style={[styles.badgeDesc, { color: colors.subText }]} numberOfLines={2}>
-                      {achievement.desc}
-                    </Text>
-                  </View>
+                  <Text style={[styles.badgeGridTitle, { color: colors.text }]} numberOfLines={1}>
+                    {achievement.title}
+                  </Text>
+                  {!achievement.isUnlocked && (
+                    <View style={styles.lockIconBox}>
+                       <Clock size={10} color={colors.subText} />
+                    </View>
+                  )}
                 </View>
               ))}
             </View>
           </LinearGradient>
         </View>
 
-        {/* Tips */}
+        {/* Focus Tips Section - Premium Redesign */}
         <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12, marginBottom: 40 }]}>
           <LinearGradient
-            colors={[isDarkMode ? colors.primary + '20' : colors.primary + '10', isDarkMode ? colors.secondary + '20' : colors.secondary + '10']}
+            colors={[isDarkMode ? colors.primary + '10' : colors.primary + '05', isDarkMode ? colors.secondary + '10' : colors.secondary + '05']}
             style={styles.cardGradient}
           >
             <View style={styles.cardHeader}>
-              <View style={[styles.iconBox, { backgroundColor: colors.primary + '25' }]}><Lightbulb size={24} color={colors.primary} /></View>
-              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0, marginLeft: 12 }]}>{t("stats.tips.title")}</Text>
+              <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                <Lightbulb size={24} color={colors.primary} />
+              </View>
+              <Text style={[styles.sectionTitle, { color: colors.text, flex: 1, marginLeft: 12 }]}>
+                {t("stats.tips.title")}
+              </Text>
             </View>
-            <View style={styles.tipsList}>
-              {[1, 2, 3, 4, 5].map((num) => (
-                <View key={num} style={styles.tipItem}>
-                  <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-                  <Text style={[styles.tipText, { color: colors.text }]}>{t(`stats.tips.tip${num}`)}</Text>
+
+            <View style={styles.tipsGrid}>
+              {[
+                { icon: Target, color: colors.primary, key: 'tip1' },
+                { icon: Scissors, color: colors.info, key: 'tip2' },
+                { icon: Zap, color: colors.warning, key: 'tip3' },
+                { icon: Coffee, color: colors.success, key: 'tip4' },
+                { icon: Repeat, color: colors.secondary, key: 'tip5' },
+              ].map((tip, index) => (
+                <View 
+                  key={index} 
+                  style={[
+                    styles.tipSubCard, 
+                    { 
+                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.7)',
+                      borderColor: colors.border + '30',
+                      borderWidth: 1
+                    }
+                  ]}
+                >
+                  <View style={[styles.tipIconWrapper, { backgroundColor: tip.color + '15' }]}>
+                    <tip.icon size={18} color={tip.color} strokeWidth={2.5} />
+                  </View>
+                  <Text style={[styles.tipContentText, { color: colors.text }]}>
+                    {t(`stats.tips.${tip.key}`)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -999,6 +1165,226 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  performanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  performanceStatItem: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  miniChartContainer: {
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  miniChartContent: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  miniChartValue: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  miniChartLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  streakFireBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 2,
+  },
+  streakValueHighlight: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  statsSummaryGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  summaryBox: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 16,
+  },
+  sumLabelSmall: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sumValueBold: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  premiumRankBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 20,
+    gap: 16,
+  },
+  rankIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rankTextContent: {
+    flex: 1,
+  },
+  rankSubText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  rankMainText: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  aiLoadingContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  aiContentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  aiIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  scanLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 2,
+    top: '20%', // This should be animated for a real scan effect, but static works for a subtle look
+    opacity: 0.5,
+  },
+  technicalAnalysisContainer: {
+    gap: 12,
+  },
+  technicalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    gap: 16,
+  },
+  techIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  techTextContent: {
+    flex: 1,
+  },
+  techLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  techValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  leaderboardContainer: {
+    gap: 10,
+  },
+  leaderboardItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 16,
+    gap: 12,
+    overflow: 'hidden',
+  },
+  leaderboardRank: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  leaderboardRankText: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  leaderboardContent: {
+    flex: 1,
+  },
+  leaderboardMainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  leaderboardTaskText: {
+    fontSize: 14,
+    fontWeight: '700',
+    flex: 1,
+    marginRight: 8,
+  },
+  miniCategoryTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 4,
+  },
+  miniCategoryText: {
+    fontSize: 8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  leaderboardMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  leaderboardTimeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  leaderboardTimeText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  leaderboardDate: {
+    fontSize: 10,
+    fontWeight: '600',
+    opacity: 0.7,
+  },
+  medalIcon: {
+    marginLeft: 4,
+  },
   verticalStack: { gap: 12 },
   stackCard: { width: '100%', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   stackIcon: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
@@ -1110,7 +1496,114 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 20,
   },
-  tipsList: { gap: 12 },
-  tipItem: { flexDirection: 'row', alignItems: 'center' },
-  tipText: { flex: 1, fontSize: 14, lineHeight: 20, marginLeft: 12 },
+  circularProgressBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    gap: 20,
+  },
+  chartWrapper: {
+    position: 'relative',
+    width: 160,
+    height: 160,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chartCenterContent: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chartPercent: {
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  chartLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: -2,
+  },
+  chartLegend: {
+    flex: 1,
+    gap: 16,
+  },
+  legendEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendMainText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  legendSubText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  badgeShowcaseGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  badgeGridItem: {
+    width: '30%',
+    aspectRatio: 0.85,
+    borderRadius: 20,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  badgeCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  badgeGridTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  lockIconBox: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    opacity: 0.6,
+  },
+  tipsGrid: {
+    gap: 12,
+  },
+  tipSubCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 20,
+    gap: 16,
+  },
+  tipIconWrapper: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tipContentText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
+    letterSpacing: -0.2,
+  },
 });

@@ -9,6 +9,8 @@ import {
   useColorScheme,
   Linking,
   Switch,
+  TextInput,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,11 +29,16 @@ import {
   Volume2,
   VolumeX,
   BrainCircuit,
+  Zap,
+  User,
+  Camera,
+  LogOut,
 } from "lucide-react-native";
 import { useThemeStore } from "../store/themeStore";
 import { useDailyGoalsStore } from "../store/dailyGoalsStore";
 import { useLanguageStore } from "../store/languageStore";
 import { useOnboardingStore } from "../store/onboardingStore";
+import { useSettingsStore } from "../store/settingsStore";
 import { soundService } from "../services/SoundService";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
@@ -40,6 +47,7 @@ import LanguageModal from "../components/LanguageModal";
 import { CustomAlert } from "../components/CustomAlert";
 import Constants from "expo-constants";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from 'expo-image-picker';
 
 // Logo komponentini içe aktarıyoruz
 import FocusTabsLogo from "../../components/LogoComponent";
@@ -54,6 +62,32 @@ export const SettingsScreen: React.FC = () => {
 
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [resetAlertVisible, setResetAlertVisible] = useState(false);
+  const [powerModeAlertVisible, setPowerModeAlertVisible] = useState(false);
+
+  const { isUnlimitedGoalsEnabled, setUnlimitedGoalsEnabled, userName, setUserName, userImage, setUserImage } = useSettingsStore();
+
+  const handlePickImage = async () => {
+    soundService.playClick();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Galeri erişim izni gerekiyor.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setUserImage(result.assets[0].uri);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
 
   // Easter Egg State
   const [tapCount, setTapCount] = useState(0);
@@ -107,6 +141,23 @@ export const SettingsScreen: React.FC = () => {
     soundService.playClick();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/ai-settings");
+  };
+
+  const handleTogglePowerMode = (value: boolean) => {
+    soundService.playClick();
+    if (value) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setPowerModeAlertVisible(true);
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setUnlimitedGoalsEnabled(false);
+    }
+  };
+
+  const confirmPowerMode = () => {
+    setUnlimitedGoalsEnabled(true);
+    setPowerModeAlertVisible(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const handleThemeChange = (mode: "light" | "dark" | "system") => {
@@ -184,6 +235,45 @@ export const SettingsScreen: React.FC = () => {
       </LinearGradient>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 125 }]}>
+        {/* Profile Section - Premium At the Top */}
+        <View style={styles.profileSection}>
+          <TouchableOpacity 
+            style={[styles.profileAvatarContainer, { borderColor: colors.primary + '30' }]} 
+            onPress={handlePickImage}
+            activeOpacity={0.8}
+          >
+            {userImage ? (
+              <Image source={{ uri: userImage }} style={styles.profileAvatar} />
+            ) : (
+              <View style={[styles.profileAvatarPlaceholder, { backgroundColor: colors.primary + '10' }]}>
+                {userName ? (
+                   <Text style={[styles.avatarText, { color: colors.primary }]}>{userName.charAt(0).toUpperCase()}</Text>
+                ) : (
+                   <User size={36} color={colors.primary} />
+                )}
+                <View style={[styles.cameraIconBox, { backgroundColor: colors.primary }]}>
+                   <Camera size={14} color="#FFFFFF" />
+                </View>
+              </View>
+            )}
+          </TouchableOpacity>
+          
+          <View style={styles.profileInfo}>
+            <TextInput
+              style={[styles.profileNameInput, { color: colors.text }]}
+              value={userName}
+              onChangeText={setUserName}
+              placeholder={t("settings.userNamePlaceholder")}
+              placeholderTextColor={colors.subText + '60'}
+              maxLength={20}
+              onFocus={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+            />
+            <Text style={[styles.profileSubtext, { color: colors.subText }]}>
+              {t("settings.userNameDescription")}
+            </Text>
+          </View>
+        </View>
+
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("settings.preferences")}</Text>
 
@@ -239,7 +329,7 @@ export const SettingsScreen: React.FC = () => {
               />
             </View>
           </View>
-
+          
           <TouchableOpacity 
             style={[styles.settingItem, { backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: colors.primary }]} 
             onPress={handleNavigateToAISettings}
@@ -253,6 +343,36 @@ export const SettingsScreen: React.FC = () => {
             </View>
             <ChevronRight size={20} color={colors.subText} opacity={0.5} />
           </TouchableOpacity>
+
+          {/* Power Mode Setting */}
+          <View style={[styles.settingItem, { 
+            backgroundColor: colors.card, 
+            borderLeftWidth: 4, 
+            borderLeftColor: isUnlimitedGoalsEnabled ? colors.warning : colors.subText + '40',
+            opacity: isUnlimitedGoalsEnabled ? 1 : 0.8
+          }]}>
+            <View style={[styles.settingIconContainer, { backgroundColor: (isUnlimitedGoalsEnabled ? colors.warning : colors.subText) + '15' }]}>
+              <Zap size={20} color={isUnlimitedGoalsEnabled ? colors.warning : colors.subText} fill={isUnlimitedGoalsEnabled ? colors.warning : 'transparent'} />
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={[styles.settingLabel, { color: colors.text, fontWeight: '700' }]}>{t("settings.powerMode.title")}</Text>
+              <Text style={[styles.settingDescription, { color: colors.subText }]}>{t("settings.powerMode.description")}</Text>
+            </View>
+            <Switch
+              value={isUnlimitedGoalsEnabled}
+              onValueChange={handleTogglePowerMode}
+              trackColor={{ false: "#767577", true: colors.warning + '80' }}
+              thumbColor={isUnlimitedGoalsEnabled ? colors.warning : "#f4f3f4"}
+            />
+          </View>
+
+          {isUnlimitedGoalsEnabled && (
+            <View style={[styles.warningBanner, { backgroundColor: colors.warning + '10', borderColor: colors.warning + '30' }]}>
+              <Text style={[styles.warningText, { color: colors.warning }]}>
+                {t("settings.powerMode.warning")}
+              </Text>
+            </View>
+          )}
 
           {[
             { label: "settings.theme", desc: "settings.customizeYourExperience", icon: Paintbrush, color: "#A855F7", onPress: handleNavigateToThemeSettings },
@@ -340,6 +460,17 @@ export const SettingsScreen: React.FC = () => {
         onConfirm={confirmResetAllData}
         onCancel={() => setResetAlertVisible(false)}
       />
+
+      <CustomAlert
+        visible={powerModeAlertVisible}
+        title={t("settings.powerMode.confirmTitle")}
+        message={t("settings.powerMode.confirmMessage")}
+        type="warning"
+        confirmText={t("common.confirm")}
+        cancelText={t("common.cancel")}
+        onConfirm={confirmPowerMode}
+        onCancel={() => setPowerModeAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -379,5 +510,87 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
+  },
+  warningBanner: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    marginHorizontal: 4,
+  },
+  warningText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  nameInput: {
+    fontSize: 16,
+    fontWeight: '700',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    marginBottom: 4,
+    marginTop: 4,
+  },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 12,
+    gap: 20,
+  },
+  profileAvatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
+  profileAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+  },
+  profileAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '900',
+  },
+  cameraIconBox: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileNameInput: {
+    fontSize: 22,
+    fontWeight: '800',
+    padding: 0,
+    marginBottom: 4,
+  },
+  profileSubtext: {
+    fontSize: 12,
+    fontWeight: '500',
+    opacity: 0.7,
   },
 });

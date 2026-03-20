@@ -11,7 +11,7 @@ import { useThemeStore } from "../../src/store/themeStore";
 export default function TabLayout() {
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const { isAIEnabled, apiKey } = useAIStore();
+  const { isAIEnabled, apiKey, groqApiKey } = useAIStore();
   const { isZenMode } = useThemeStore();
 
   const tabListeners = {
@@ -64,7 +64,7 @@ export default function TabLayout() {
         options={{
           title: t("tabs.ai"),
           tabBarIcon: ({ color }) => <Sparkles size={24} color={color} />,
-          href: isAIEnabled && apiKey ? "/ai-chat" : null,
+          href: isAIEnabled && (apiKey || groqApiKey) ? "/ai-chat" : null,
         }}
       />
       <Tabs.Screen

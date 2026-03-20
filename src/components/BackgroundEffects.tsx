@@ -1,21 +1,41 @@
 import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View, Dimensions } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
   useAnimatedProps,
-  withRepeat, 
-  withTiming, 
+  withRepeat,
+  withTiming,
   withDelay,
+  withSequence,
   Easing,
   interpolate,
   SharedValue
 } from 'react-native-reanimated';
 import { useTheme } from './ThemeProvider';
 import { useThemeStore } from '../store/themeStore';
-import Svg, { Path, RadialGradient, Defs, Stop, Circle, G, Line, Rect } from 'react-native-svg';
+import Svg, { Path, RadialGradient, Defs, Stop, Circle, G, Line, Rect, LinearGradient, Ellipse } from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
+
+const styles = StyleSheet.create({
+  cubeWrapper: { position: 'absolute' },
+  particle: { position: 'absolute', width: 4, height: 4, borderRadius: 2 },
+  auraOrb: { position: 'absolute' },
+  saturnContainer: { ...StyleSheet.absoluteFillObject },
+  saturnGroup: { width: width, alignItems: 'center', justifyContent: 'center', position: 'absolute' },
+  ringsOverlay: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  planetCore: { zIndex: 10 },
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  matrixColumn: { position: 'absolute', width: 6, alignItems: 'center' },
+  matrixBit: { width: 4, marginBottom: 2, borderRadius: 2 },
+  vortexContainer: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  gridContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
+  gridInner: { width: width * 2, height: height * 1.5 },
+  rainDrop: { position: 'absolute', width: 2, height: 40, borderRadius: 1 },
+});
 
 interface Point3D {
   x: number;
@@ -152,7 +172,7 @@ const Tesseract4D = () => {
   const edges = useMemo(() => {
     const e = [];
     // Outer Cube Edges
-    const cubeEdges = [[0,1],[1,3],[3,2],[2,0],[4,5],[5,7],[7,6],[6,4],[0,4],[1,5],[3,7],[2,6]];
+    const cubeEdges = [[0, 1], [1, 3], [3, 2], [2, 0], [4, 5], [5, 7], [7, 6], [6, 4], [0, 4], [1, 5], [3, 7], [2, 6]];
     cubeEdges.forEach(([i1, i2]) => e.push([i1, i2]));
     // Inner Cube Edges (offset by 8)
     cubeEdges.forEach(([i1, i2]) => e.push([i1 + 8, i2 + 8]));
@@ -164,14 +184,14 @@ const Tesseract4D = () => {
   return (
     <View style={StyleSheet.absoluteFill}>
       {edges.map((edge, i) => (
-        <WireframeLine 
-          key={i} 
-          idx1={edge[0]} 
-          idx2={edge[1]} 
-          vertices={vertices} 
-          angleX={angleX} 
-          angleY={angleY} 
-          angleZ={angleZ} 
+        <WireframeLine
+          key={i}
+          idx1={edge[0]}
+          idx2={edge[1]}
+          vertices={vertices}
+          angleX={angleX}
+          angleY={angleY}
+          angleZ={angleZ}
           color={colors.primary}
           size={75}
         />
@@ -238,31 +258,108 @@ const AtomicSystem = () => {
   );
 };
 
-const IsometricCube = ({ size = 100, initialX = 0, initialY = 0, delay = 0, duration = 15000 }) => {
-  const { colors } = useTheme();
-  const progress = useSharedValue(0);
-  useEffect(() => { progress.value = withDelay(delay, withRepeat(withTiming(1, { duration, easing: Easing.linear }), -1, false)); }, [delay, duration, progress]);
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: initialX }, { translateY: initialY + Math.sin(progress.value * Math.PI * 2) * 30 }, { rotate: `${progress.value * 360}deg` }] }));
+// --- DREAMSCAPE BOKEH (SOFT ORBS) SYSTEM ---
+const BokehOrb = ({ color, size, delay }: { color: string, size: number, delay: number }) => {
+  const tx = useSharedValue(Math.random() * width);
+  const ty = useSharedValue(Math.random() * height);
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.2);
+  const gradId = useMemo(() => `bokeh-grad-${Math.random()}`, []);
+
+  useEffect(() => {
+    tx.value = withRepeat(withTiming(Math.random() * width, { duration: 15000 + Math.random() * 5000, easing: Easing.inOut(Easing.sin) }), -1, true);
+    ty.value = withRepeat(withTiming(Math.random() * height, { duration: 15000 + Math.random() * 5000, easing: Easing.inOut(Easing.sin) }), -1, true);
+    scale.value = withDelay(delay, withRepeat(withTiming(1.6, { duration: 10000, easing: Easing.inOut(Easing.sin) }), -1, true));
+    opacity.value = withDelay(delay, withRepeat(withTiming(0.4, { duration: 8000, easing: Easing.inOut(Easing.sin) }), -1, true));
+  }, [delay, tx, ty, scale, opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value - size / 2 }, { translateY: ty.value - size / 2 }, { scale: scale.value }],
+    opacity: opacity.value
+  }));
+
   return (
-    <Animated.View style={[styles.cubeWrapper, animatedStyle]}>
-      <Svg width={size} height={size} viewBox="0 0 100 100">
-        <Path d="M50 20 L80 35 L50 50 L20 35 Z" fill={colors.primary} opacity={0.12} /><Path d="M50 50 L80 35 L80 65 L50 80 Z" fill={colors.primary} opacity={0.08} /><Path d="M50 50 L20 35 L20 65 L50 80 Z" fill={colors.primary} opacity={0.04} />
+    <Animated.View style={[{ position: 'absolute', width: size, height: size }, animatedStyle]}>
+      <Svg width={size} height={size}>
+        <Defs>
+          <RadialGradient id={gradId} cx="50%" cy="50%" rx="50%" ry="50%">
+            <Stop offset="0%" stopColor={color} stopOpacity="1" />
+            <Stop offset="100%" stopColor={color} stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={size / 2} cy={size / 2} r={size / 2} fill={`url(#${gradId})`} />
       </Svg>
     </Animated.View>
   );
 };
 
-const FloatingParticle = () => {
+const DreamscapeBokehSystem = () => {
   const { colors } = useTheme();
-  const tx = useSharedValue(Math.random() * width);
-  const ty = useSharedValue(Math.random() * height);
-  const opacity = useSharedValue(0.2 + Math.random() * 0.5);
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <BokehOrb color={colors.primary} size={width * 1.5} delay={0} />
+      <BokehOrb color={colors.secondary || colors.primary} size={width * 1.2} delay={2000} />
+      <BokehOrb color={colors.primary} size={width * 1.3} delay={4000} />
+      <BokehOrb color={colors.info || colors.primary} size={width * 1.1} delay={6000} />
+    </View>
+  );
+};
+
+// --- QUANTUM DUST (GLOWING COSMOS) SYSTEM ---
+const QuantumParticle = ({ cloudX, cloudY, index, color }: { cloudX: SharedValue<number>, cloudY: SharedValue<number>, index: number, color: string }) => {
+  const angle = useMemo(() => Math.random() * Math.PI * 2, []);
+  const dist = useMemo(() => 50 + Math.random() * 80, []);
+  const size = useMemo(() => 2 + Math.random() * 1.5, []);
+  const pulse = useSharedValue(0.2 + Math.random() * 0.4);
+
   useEffect(() => {
-    tx.value = withRepeat(withTiming(Math.random() * width, { duration: 15000 + Math.random() * 10000, easing: Easing.inOut(Easing.sin) }), -1, true);
-    ty.value = withRepeat(withTiming(Math.random() * height, { duration: 15000 + Math.random() * 10000, easing: Easing.inOut(Easing.sin) }), -1, true);
-    opacity.value = withRepeat(withTiming(0.1, { duration: 2000 + Math.random() * 3000 }), -1, true);
-  }, [opacity, tx, ty]);
-  return <Animated.View style={[styles.particle, { backgroundColor: colors.primary }, useAnimatedStyle(() => ({ transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: 1 }], opacity: opacity.value }))] } />;
+    pulse.value = withRepeat(withTiming(1, { duration: 1500 + Math.random() * 2500, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const orbitSpeed = (Date.now() / 4000) + (index * 0.15);
+    const tx = cloudX.value + Math.cos(angle + orbitSpeed) * dist;
+    const ty = cloudY.value + Math.sin(angle + orbitSpeed) * dist;
+
+    return {
+      transform: [{ translateX: tx }, { translateY: ty }, { scale: pulse.value }],
+      opacity: pulse.value * 0.8,
+      backgroundColor: color,
+      shadowColor: color,
+      shadowRadius: 4,
+      shadowOpacity: 0.6,
+    };
+  });
+
+  return <Animated.View style={[styles.particle, { width: size, height: size, borderRadius: size / 2 }, animatedStyle]} />;
+};
+
+const QuantumCloud = ({ color }: { color: string }) => {
+  const cloudX = useSharedValue(Math.random() * width);
+  const cloudY = useSharedValue(Math.random() * height);
+
+  useEffect(() => {
+    cloudX.value = withRepeat(withTiming(Math.random() * width, { duration: 20000 + Math.random() * 10000, easing: Easing.inOut(Easing.sin) }), -1, true);
+    cloudY.value = withRepeat(withTiming(Math.random() * height, { duration: 20000 + Math.random() * 10000, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, []);
+
+  return (
+    <>
+      {[...Array(25)].map((_, i) => <QuantumParticle key={i} index={i} cloudX={cloudX} cloudY={cloudY} color={color} />)}
+    </>
+  );
+};
+
+const QuantumDustSystem = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <QuantumCloud color={colors.primary} />
+      <QuantumCloud color={colors.secondary || colors.primary} />
+      <QuantumCloud color="#FFD700" />
+      <QuantumCloud color={colors.primary} />
+    </View>
+  );
 };
 
 const AuraOrb = ({ delay = 0, initialX = 0, initialY = 0, size = 400, color = '#fff' }) => {
@@ -335,30 +432,32 @@ const AuroraEffect = () => {
 // --- MATRIX RAIN ---
 const MatrixColumn = ({ x, delay, color }: { x: number, delay: number, color: string }) => {
   const ty = useSharedValue(-height * 0.5);
+  const gradId = useMemo(() => `matrix-grad-${Math.random()}`, []);
+
   useEffect(() => {
-    ty.value = withDelay(delay, withRepeat(withTiming(height, { duration: 4000 + Math.random() * 3000, easing: Easing.linear }), -1, false));
+    ty.value = withDelay(delay, withRepeat(withTiming(height * 1.5, { duration: 4000 + Math.random() * 3000, easing: Easing.linear }), -1, false));
   }, [delay]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: x }, { translateY: ty.value }],
-    opacity: interpolate(ty.value, [-height * 0.5, height * 0.8], [0, 1, 0], 'clamp'),
+    opacity: interpolate(ty.value, [-height * 0.5, height * 0.8, height * 1.5], [0, 1, 0]),
   }));
 
+  const colWidth = 6;
+  const colHeight = height * 0.4;
+
   return (
-    <Animated.View style={[styles.matrixColumn, animatedStyle]}>
-      {[...Array(12)].map((_, i) => (
-        <View 
-          key={i} 
-          style={[
-            styles.matrixBit, 
-            { 
-              backgroundColor: color, 
-              opacity: (i + 1) / 12,
-              height: 15 + Math.random() * 10 
-            }
-          ]} 
-        />
-      ))}
+    <Animated.View style={[styles.matrixColumn, animatedStyle, { width: colWidth, height: colHeight }]}>
+      <Svg width={colWidth} height={colHeight}>
+        <Defs>
+          <LinearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={color} stopOpacity="0" />
+            <Stop offset="0.8" stopColor={color} stopOpacity="0.6" />
+            <Stop offset="1" stopColor={color} stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width={colWidth} height={colHeight} fill={`url(#${gradId})`} rx={colWidth / 2} />
+      </Svg>
     </Animated.View>
   );
 };
@@ -369,7 +468,7 @@ const MatrixRain = () => {
     const count = 15;
     return [...Array(count)].map((_, i) => ({
       id: i,
-      x: (width / count) * i + (Math.random() * 10),
+      x: (width / count) * i + (Math.random() * (width / count / 2)),
       delay: Math.random() * 4000
     }));
   }, []);
@@ -398,13 +497,13 @@ const VortexRing = ({ radius, color, speed, index }: { radius: number, color: st
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }, animatedStyle]}>
       <Svg width={radius * 2.2} height={radius * 2.2} viewBox={`0 0 ${radius * 2.2} ${radius * 2.2}`}>
-        <Circle 
-          cx={radius * 1.1} 
-          cy={radius * 1.1} 
-          r={radius} 
-          stroke={color} 
-          strokeWidth={2 + index} 
-          fill="none" 
+        <Circle
+          cx={radius * 1.1}
+          cy={radius * 1.1}
+          r={radius}
+          stroke={color}
+          strokeWidth={2 + index}
+          fill="none"
           strokeDasharray={strokeDash}
           strokeLinecap="round"
         />
@@ -418,12 +517,12 @@ const VortexSystem = () => {
   return (
     <View style={styles.vortexContainer}>
       {[...Array(8)].map((_, i) => (
-        <VortexRing 
-          key={i} 
+        <VortexRing
+          key={i}
           index={i}
-          radius={50 + (i * 35)} 
-          color={i % 2 === 0 ? colors.primary : colors.secondary || colors.primary} 
-          speed={8000 + (i * 3000)} 
+          radius={50 + (i * 35)}
+          color={i % 2 === 0 ? colors.primary : colors.secondary || colors.primary}
+          speed={8000 + (i * 3000)}
         />
       ))}
     </View>
@@ -434,46 +533,50 @@ const VortexSystem = () => {
 const CyberGrid = () => {
   const { colors } = useTheme();
   const move = useSharedValue(0);
-  
+
   useEffect(() => {
     move.value = withRepeat(withTiming(60, { duration: 3000, easing: Easing.linear }), -1, false);
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ perspective: 1000 }, { rotateX: '70deg' }, { translateY: move.value }],
+    transform: [
+      { perspective: 1000 },
+      { rotateX: '70deg' },
+      { translateY: move.value }
+    ],
     opacity: 0.3,
   }));
+
+  const gridPath = useMemo(() => {
+    let p = "";
+    // Horizontal Lines
+    for (let i = 0; i < 25; i++) {
+      const y = i * 60;
+      p += `M0 ${y} L${width * 2} ${y} `;
+    }
+    // Vertical Lines
+    const stepX = (width * 2) / 15;
+    for (let i = 0; i < 16; i++) {
+      const x = i * stepX;
+      p += `M${x} 0 L${x} ${height * 1.5} `;
+    }
+    return p;
+  }, []);
 
   return (
     <View style={styles.gridContainer}>
       <Animated.View style={[styles.gridInner, animatedStyle]}>
-        <Svg width={width * 2} height={height * 1.5} viewBox={`0 0 ${width * 2} ${height * 1.5}`}>
-          {/* Horizontal Lines */}
-          {[...Array(25)].map((_, i) => (
-            <Line 
-              key={`h-${i}`} 
-              x1="0" 
-              y1={i * 60} 
-              x2={width * 2} 
-              y2={i * 60} 
-              stroke={colors.primary} 
-              strokeWidth="1.5" 
-              opacity={0.4}
-            />
-          ))}
-          {/* Vertical Lines */}
-          {[...Array(16)].map((_, i) => (
-            <Line 
-              key={`v-${i}`} 
-              x1={i * (width * 2 / 15)} 
-              y1="0" 
-              x2={i * (width * 2 / 15)} 
-              y2={height * 1.5} 
-              stroke={colors.primary} 
-              strokeWidth="1.5" 
-              opacity={0.4}
-            />
-          ))}
+        <Svg
+          width={width * 2}
+          height={height * 1.5}
+          viewBox={`0 0 ${width * 2} ${height * 1.5}`}
+        >
+          <Path
+            d={gridPath}
+            stroke={colors.primary}
+            strokeWidth={1.5}
+            opacity={0.4}
+          />
         </Svg>
       </Animated.View>
     </View>
@@ -483,32 +586,32 @@ const CyberGrid = () => {
 const DynamicParticle = ({ el }: { el: any }) => {
   const tx = useSharedValue(el.x);
   const ty = useSharedValue(el.y);
-  
+
   useEffect(() => {
     tx.value = withRepeat(withTiming(Math.random() * width, { duration: 10000 / el.speed, easing: Easing.inOut(Easing.sin) }), -1, true);
     ty.value = withRepeat(withTiming(Math.random() * height, { duration: 10000 / el.speed, easing: Easing.inOut(Easing.sin) }), -1, true);
   }, [tx, ty, el.speed]);
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.particle, 
+        styles.particle,
         { backgroundColor: el.color, width: el.size, height: el.size, borderRadius: el.size / 2 },
         useAnimatedStyle(() => ({ transform: [{ translateX: tx.value }, { translateY: ty.value }] }))
-      ]} 
+      ]}
     />
   );
 };
 
 const DynamicShape = ({ el, opacity, type }: { el: any, opacity: number, type: 'triangle' | 'square' }) => {
   const rotation = useSharedValue(0);
-  
+
   useEffect(() => {
     rotation.value = withRepeat(withTiming(360, { duration: (type === 'square' ? 8000 : 5000) / el.speed, easing: Easing.linear }), -1, false);
   }, [rotation, el.speed, type]);
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         { position: 'absolute', left: el.x, top: el.y },
         useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }))
@@ -527,13 +630,13 @@ const DynamicShape = ({ el, opacity, type }: { el: any, opacity: number, type: '
 
 const DynamicCircle = ({ el, opacity }: { el: any, opacity: number }) => {
   const pulse = useSharedValue(1);
-  
+
   useEffect(() => {
     pulse.value = withRepeat(withTiming(1.2, { duration: 2000 / el.speed, easing: Easing.inOut(Easing.sin) }), -1, true);
   }, [pulse, el.speed]);
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         { position: 'absolute', left: el.x, top: el.y },
         useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }))
@@ -548,14 +651,14 @@ const DynamicCircle = ({ el, opacity }: { el: any, opacity: number }) => {
 
 const DynamicIsometricCube = ({ el, opacity }: { el: any, opacity: number }) => {
   const progress = useSharedValue(0);
-  useEffect(() => { 
-    progress.value = withRepeat(withTiming(1, { duration: 15000 / el.speed, easing: Easing.linear }), -1, false); 
+  useEffect(() => {
+    progress.value = withRepeat(withTiming(1, { duration: 15000 / el.speed, easing: Easing.linear }), -1, false);
   }, [el.speed, progress]);
-  
-  const animatedStyle = useAnimatedStyle(() => ({ 
+
+  const animatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: el.x }, 
-      { translateY: el.y + Math.sin(progress.value * Math.PI * 2) * 20 }, 
+      { translateX: el.x },
+      { translateY: el.y + Math.sin(progress.value * Math.PI * 2) * 20 },
       { rotate: `${progress.value * 360}deg` }
     ],
     opacity: opacity
@@ -591,19 +694,19 @@ const DynamicWireframeCube = ({ color, size, speed = 1 }: { color: string, size:
     return v;
   }, []);
 
-  const edges = useMemo(() => [[0,1],[1,3],[3,2],[2,0],[4,5],[5,7],[7,6],[6,4],[0,4],[1,5],[3,7],[2,6]], []);
+  const edges = useMemo(() => [[0, 1], [1, 3], [3, 2], [2, 0], [4, 5], [5, 7], [7, 6], [6, 4], [0, 4], [1, 5], [3, 7], [2, 6]], []);
 
   return (
     <View style={StyleSheet.absoluteFill}>
       {edges.map((edge, i) => (
-        <WireframeLine 
-          key={i} 
-          idx1={edge[0]} 
-          idx2={edge[1]} 
-          vertices={vertices} 
-          angleX={angleX} 
-          angleY={angleY} 
-          angleZ={angleZ} 
+        <WireframeLine
+          key={i}
+          idx1={edge[0]}
+          idx2={edge[1]}
+          vertices={vertices}
+          angleX={angleX}
+          angleY={angleY}
+          angleZ={angleZ}
           color={color}
           size={size}
         />
@@ -614,7 +717,7 @@ const DynamicWireframeCube = ({ color, size, speed = 1 }: { color: string, size:
 
 const DynamicEffect = ({ config }: { config: any }) => {
   const { colors } = useTheme();
-  
+
   const elements = useMemo(() => {
     const count = config.count || 10;
     return [...Array(count)].map((_, i) => ({
@@ -639,11 +742,11 @@ const DynamicEffect = ({ config }: { config: any }) => {
     return (
       <View style={styles.backgroundContainer} pointerEvents="none">
         {elements.map(el => (
-          <DynamicShape 
-            key={el.id} 
-            el={el} 
-            opacity={config.opacity || (config.type === 'shapes' ? 0.6 : 0.5)} 
-            type={config.type === 'squares' ? 'square' : 'triangle'} 
+          <DynamicShape
+            key={el.id}
+            el={el}
+            opacity={config.opacity || (config.type === 'shapes' ? 0.6 : 0.5)}
+            type={config.type === 'squares' ? 'square' : 'triangle'}
           />
         ))}
       </View>
@@ -678,22 +781,116 @@ const DynamicEffect = ({ config }: { config: any }) => {
   if (config.type === 'wireframe') {
     return (
       <View style={styles.backgroundContainer} pointerEvents="none">
-        <DynamicWireframeCube 
-          color={config.color || colors.primary} 
-          size={config.size || width * 0.15} 
+        <DynamicWireframeCube
+          color={config.color || colors.primary}
+          size={config.size || width * 0.15}
           speed={config.speed || 1}
         />
       </View>
     );
   }
-
   return null;
+};
+// --- LIQUID SILK (FLOWING FABRIC) SYSTEM ---
+const SilkPath = ({ color, delay, duration }: { color: string, delay: number, duration: number }) => {
+  const t = useSharedValue(0);
+
+  useEffect(() => {
+    t.value = withDelay(delay, withRepeat(withTiming(Math.PI * 2, { duration, easing: Easing.inOut(Easing.sin) }), -1, false));
+  }, [delay, duration]);
+
+  const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+  const animatedProps = useAnimatedProps(() => {
+    const cp1x = width * 0.2 + Math.sin(t.value) * 100;
+    const cp1y = height * 0.3 + Math.cos(t.value) * 150;
+    const cp2x = width * 0.8 + Math.cos(t.value * 0.8) * 120;
+    const cp2y = height * 0.7 + Math.sin(t.value * 0.8) * 150;
+
+    // Create a smooth waving path
+    const d = `M -50 ${height * 0.2} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${width + 50} ${height * 0.8}`;
+    return { d };
+  });
+
+  return (
+    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+      <AnimatedPath
+        animatedProps={animatedProps}
+        stroke={color}
+        strokeWidth={80}
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.08}
+      />
+      {/* Thinner inner highlight */}
+      <AnimatedPath
+        animatedProps={animatedProps}
+        stroke={color}
+        strokeWidth={30}
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.05}
+      />
+    </Svg>
+  );
+};
+
+const LiquidSilkSystem = () => {
+  const { colors } = useTheme();
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <SilkPath color={colors.primary} delay={0} duration={15000} />
+      <SilkPath color={colors.secondary || colors.primary} delay={2000} duration={18000} />
+      <SilkPath color={colors.primary} delay={5000} duration={22000} />
+    </View>
+  );
+};
+
+// --- PRISM RAY (CRYSTAL SCAN) SYSTEM ---
+const PrismRaySystem = () => {
+  const { colors } = useTheme();
+  const tx = useSharedValue(-width);
+  const rotation = useSharedValue(35); // Diagonal angle
+  const gradId = useMemo(() => `prism-grad-${Math.random()}`, []);
+
+  useEffect(() => {
+    tx.value = withRepeat(withTiming(width * 1.5, { duration: 12000, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value }, { rotate: `${rotation.value}deg` }],
+    opacity: 0.25
+  }));
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <Animated.View style={[{ position: 'absolute', top: -height * 0.5, height: height * 2, width: width * 0.8 }, animatedStyle]}>
+        <Svg width="100%" height="100%">
+          <Defs>
+            <LinearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor={colors.primary} stopOpacity="0" />
+              <Stop offset="0.45" stopColor={colors.primary} stopOpacity="0.4" />
+              <Stop offset="0.5" stopColor={colors.secondary || colors.primary} stopOpacity="0.8" />
+              <Stop offset="0.55" stopColor={colors.primary} stopOpacity="0.4" />
+              <Stop offset="1" stopColor={colors.primary} stopOpacity="0" />
+            </LinearGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill={`url(#${gradId})`} />
+        </Svg>
+      </Animated.View>
+
+      {/* Subtle secondary ray in different direction */}
+      <View style={[StyleSheet.absoluteFill, { opacity: 0.1 }]}>
+        <AuraOrb color={colors.primary} size={width * 1.2} initialX={-width * 0.4} initialY={height * 0.3} delay={0} />
+      </View>
+    </View>
+  );
 };
 
 export const BackgroundEffects = () => {
   const { colors } = useTheme();
   const { backgroundEffect, customBackgroundConfig } = useThemeStore();
-  
+
   interface CubeData {
     id: number;
     size: number;
@@ -707,7 +904,7 @@ export const BackgroundEffects = () => {
 
   if (backgroundEffect === 'none') return null;
   if (backgroundEffect === 'dynamic' && customBackgroundConfig) return <DynamicEffect config={customBackgroundConfig} />;
-  if (backgroundEffect === 'particles') return <View style={styles.backgroundContainer} pointerEvents="none">{[...Array(15)].map((_, i) => <FloatingParticle key={i} />)}</View>;
+  if (backgroundEffect === 'quantum') return <View style={styles.backgroundContainer} pointerEvents="none"><QuantumDustSystem /></View>;
   if (backgroundEffect === 'waves') return <View style={styles.backgroundContainer} pointerEvents="none"><AuraOrb color={colors.primary} initialX={-100} initialY={-100} size={width * 1.2} delay={0} /><AuraOrb color={colors.secondary} initialX={width * 0.2} initialY={height * 0.5} size={width} delay={2000} /></View>;
   if (backgroundEffect === 'crystals') return <View style={styles.backgroundContainer} pointerEvents="none"><AtomicSystem /></View>;
   if (backgroundEffect === 'tesseract') return <View style={styles.backgroundContainer} pointerEvents="none"><Tesseract4D /></View>;
@@ -715,24 +912,9 @@ export const BackgroundEffects = () => {
   if (backgroundEffect === 'matrix') return <View style={styles.backgroundContainer} pointerEvents="none"><MatrixRain /></View>;
   if (backgroundEffect === 'vortex') return <View style={styles.backgroundContainer} pointerEvents="none"><VortexSystem /></View>;
   if (backgroundEffect === 'grid') return <View style={styles.backgroundContainer} pointerEvents="none"><CyberGrid /></View>;
+  if (backgroundEffect === 'bokeh') return <View style={styles.backgroundContainer} pointerEvents="none"><DreamscapeBokehSystem /></View>;
+  if (backgroundEffect === 'silk') return <View style={styles.backgroundContainer} pointerEvents="none"><LiquidSilkSystem /></View>;
+  if (backgroundEffect === 'prism') return <View style={styles.backgroundContainer} pointerEvents="none"><PrismRaySystem /></View>;
 
-  return <View style={styles.backgroundContainer} pointerEvents="none">{cubes.map(cube => <IsometricCube key={cube.id} size={cube.size} initialX={cube.x} initialY={cube.y} delay={cube.delay} duration={cube.duration} />)}</View>;
+  return null;
 };
-
-const styles = StyleSheet.create({
-  cubeWrapper: { position: 'absolute' },
-  particle: { position: 'absolute', width: 4, height: 4, borderRadius: 2 },
-  auraOrb: { position: 'absolute' },
-  saturnContainer: { ...StyleSheet.absoluteFillObject },
-  saturnGroup: { width: width, alignItems: 'center', justifyContent: 'center', position: 'absolute' },
-  ringsOverlay: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  planetCore: { zIndex: 10 },
-  backgroundContainer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  matrixColumn: { position: 'absolute', width: 6, alignItems: 'center' },
-  matrixBit: { width: 4, marginBottom: 2, borderRadius: 2 },
-  vortexContainer: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  gridContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
-  gridInner: { width: width * 2, height: height * 1.5 },
-});

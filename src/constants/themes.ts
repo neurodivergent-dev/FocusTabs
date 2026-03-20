@@ -1,22 +1,26 @@
 // Uygulama temaları için sabitler
+export interface ThemeColors {
+  primary: string;
+  secondary: string;
+  background: string;
+  card: string;
+  cardBackground: string;
+  cardBorder: string;
+  text: string;
+  subText: string;
+  border: string;
+  success: string;
+  warning: string;
+  error: string;
+  info: string;
+}
+
 export interface ThemeOption {
   id: string;
   name: string;
-  colors: {
-    primary: string;
-    secondary: string;
-    background: string;
-    card: string;
-    cardBackground: string; // Added for compatibility
-    cardBorder: string; // Added for compatibility
-    text: string;
-    subText: string;
-    border: string;
-    success: string;
-    warning: string;
-    error: string;
-    info: string;
-  };
+  colors: ThemeColors;
+  lightColors?: ThemeColors;
+  darkColors?: ThemeColors;
 }
 
 const lightBase = {

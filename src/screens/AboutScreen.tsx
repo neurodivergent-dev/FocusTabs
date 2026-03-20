@@ -22,6 +22,8 @@ import {
   Palette,
   CalendarDays,
   Play,
+  Brain,
+  Sparkles,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "../components/ThemeProvider";
@@ -110,10 +112,23 @@ export const AboutScreen: React.FC = () => {
           },
           animatedStyle
         ]}>
-          <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
-            <Icon size={22} color={color} />
+          <LinearGradient
+            colors={['transparent', color + '08']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+          <View style={[styles.iconContainer, { backgroundColor: color + '12', borderColor: color + '20' }]}>
+            <Icon size={24} color={color} strokeWidth={2.5} />
           </View>
-          <Text style={[styles.featureLabel, { color: colors.text }]}>{label}</Text>
+          <Text 
+            style={[styles.featureLabel, { color: colors.text }]} 
+            numberOfLines={2} 
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {label}
+          </Text>
         </Animated.View>
       </TouchableWithoutFeedback>
     );
@@ -212,6 +227,8 @@ export const AboutScreen: React.FC = () => {
             <FeatureCard icon={ShieldCheck} label={t("about.features.privacy")} color={colors.secondary} />
             <FeatureCard icon={Palette} label={t("about.features.themePalette")} color={colors.info} />
             <FeatureCard icon={CalendarDays} label={t("about.features.calendar")} color={colors.primary} />
+            <FeatureCard icon={Sparkles} label={t("about.features.aiCoach")} color={colors.warning} />
+            <FeatureCard icon={Brain} label={t("about.features.agenticAI")} color={colors.info} />
           </View>
         </LinearGradient>
 
@@ -422,27 +439,35 @@ const styles = StyleSheet.create({
   },
   featureCard: {
     width: '48%',
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 12,
+    borderRadius: 28,
+    padding: 20,
+    marginBottom: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    borderWidth: 1,
   },
   featureLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 4,
     textAlign: 'center',
-    letterSpacing: 0.2,
+    letterSpacing: -0.2,
+    lineHeight: 18,
+    paddingHorizontal: 4,
   },
   connectButtons: {
     flexDirection: "row",

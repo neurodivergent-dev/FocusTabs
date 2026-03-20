@@ -14,7 +14,7 @@ import { useThemeStore } from "../src/store/themeStore";
 import { THEMES } from "../src/constants/themes";
 import { useTheme } from "../src/components/ThemeProvider";
 import ThemedButton from "../src/components/ThemedButton";
-import { ChevronLeft, Palette, Box, Sparkles, Waves, CircleOff, Atom, Hexagon, Star, ChevronDown, Activity, Wind, Grid3X3, Music, Volume2, Trees, CloudRain, Moon, Bell } from "lucide-react-native";
+import { ChevronLeft, Palette, Box, Sparkles, Waves, CircleOff, Atom, Hexagon, Star, ChevronDown, Activity, Wind, Grid3X3, Music, Volume2, Trees, CloudRain, Moon, Bell, Zap, Circle } from "lucide-react-native";
 import Animated, { FadeIn, FadeOut, Layout, FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { BackgroundEffectType } from "../src/store/themeStore";
@@ -47,7 +47,7 @@ export default function ThemeSettingsScreen() {
   };
 
   const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({
-    themes: true,
+    themes: false,
     effects: false,
     sounds: false,
     preview: false
@@ -60,22 +60,22 @@ export default function ThemeSettingsScreen() {
     }));
   };
 
-  const CollapsibleSection = ({ 
-    id, 
-    title, 
-    icon: Icon, 
-    children, 
-    isOpen 
-  }: { 
-    id: string, 
-    title: string, 
-    icon: any, 
-    children: React.ReactNode, 
-    isOpen: boolean 
+  const CollapsibleSection = ({
+    id,
+    title,
+    icon: Icon,
+    children,
+    isOpen
+  }: {
+    id: string,
+    title: string,
+    icon: any,
+    children: React.ReactNode,
+    isOpen: boolean
   }) => (
     <View style={[styles.sectionWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <TouchableOpacity 
-        style={styles.sectionHeader} 
+      <TouchableOpacity
+        style={styles.sectionHeader}
         onPress={() => toggleSection(id)}
         activeOpacity={0.7}
       >
@@ -91,9 +91,7 @@ export default function ThemeSettingsScreen() {
       </TouchableOpacity>
 
       {isOpen && (
-        <Animated.View 
-          entering={FadeInDown.duration(300)} 
-          exiting={FadeOut.duration(200)}
+        <Animated.View
           layout={Layout.springify()}
           style={styles.sectionContent}
         >
@@ -129,7 +127,7 @@ export default function ThemeSettingsScreen() {
 
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <ChevronLeft size={24} color="#FFFFFF" />
-            <Text 
+            <Text
               style={[styles.backText, { color: "#FFFFFF" }]}
               numberOfLines={1}
               adjustsFontSizeToFit
@@ -138,7 +136,7 @@ export default function ThemeSettingsScreen() {
             </Text>
           </TouchableOpacity>
           <View style={styles.titleContainer}>
-            <Text 
+            <Text
               style={[styles.headerTitle, { color: "#FFFFFF" }]}
               numberOfLines={1}
               adjustsFontSizeToFit
@@ -149,7 +147,7 @@ export default function ThemeSettingsScreen() {
           <View style={styles.rightPlaceholder} />
         </LinearGradient>
 
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
@@ -169,10 +167,10 @@ export default function ThemeSettingsScreen() {
             </Text>
           </View>
 
-          <CollapsibleSection 
-            id="themes" 
-            title={t("themeSettings.themes", "Temalar")} 
-            icon={Palette} 
+          <CollapsibleSection
+            id="themes"
+            title={t("themeSettings.themes", "Temalar")}
+            icon={Palette}
             isOpen={openSections.themes}
           >
             <View style={styles.themesGrid}>
@@ -198,7 +196,7 @@ export default function ThemeSettingsScreen() {
                       <View
                         style={[
                           styles.themePreview,
-                          { 
+                          {
                             backgroundColor: theme.colors.primary,
                             shadowColor: theme.colors.primary,
                             shadowOffset: { width: 0, height: 4 },
@@ -214,7 +212,7 @@ export default function ThemeSettingsScreen() {
                       style={[
                         styles.themeCardTitle,
                         { color: colors.text },
-                        themeId === theme.id && { 
+                        themeId === theme.id && {
                           fontWeight: "700",
                           color: theme.colors.primary,
                         },
@@ -233,16 +231,16 @@ export default function ThemeSettingsScreen() {
             </View>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            id="effects" 
-            title={t("themeSettings.backgroundEffects", "Efektler")} 
-            icon={Box} 
+          <CollapsibleSection
+            id="effects"
+            title={t("themeSettings.backgroundEffects", "Efektler")}
+            icon={Box}
             isOpen={openSections.effects}
           >
             <View style={styles.effectsContainer}>
               {[
-                { id: 'shapes', name: t("themeSettings.effectShapes", "3D Şekiller"), icon: Box },
-                { id: 'particles', name: t("themeSettings.effectParticles", "Parçacıklar"), icon: Sparkles },
+                { id: 'bokeh', name: t("themeSettings.effectBokeh", "Rüya Odaklaması"), icon: Circle },
+                { id: 'quantum', name: t("themeSettings.effectQuantum", "Kuantum Tozu"), icon: Sparkles },
                 { id: 'waves', name: t("themeSettings.effectWaves", "Aura"), icon: Waves },
                 { id: 'crystals', name: t("themeSettings.effectCrystals", "Atom Modeli"), icon: Atom },
                 { id: 'tesseract', name: t("themeSettings.effectTesseract", "Tesseract"), icon: Hexagon },
@@ -250,13 +248,15 @@ export default function ThemeSettingsScreen() {
                 { id: 'matrix', name: t("themeSettings.effectMatrix", "Matrix Akışı"), icon: Activity },
                 { id: 'vortex', name: t("themeSettings.effectVortex", "Girdap Enerjisi"), icon: Wind },
                 { id: 'grid', name: t("themeSettings.effectGrid", "Siber Izgara"), icon: Grid3X3 },
+                { id: 'silk', name: t("themeSettings.effectSilk", "Sıvı İpek"), icon: Wind },
+                { id: 'prism', name: t("themeSettings.effectPrism", "Prizma Işığı"), icon: Zap },
                 { id: 'none', name: t("themeSettings.effectNone", "Yok"), icon: CircleOff },
               ].map((effect) => (
                 <TouchableOpacity
                   key={effect.id}
                   style={[
                     styles.effectCard,
-                    { 
+                    {
                       backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
                       borderColor: backgroundEffect === effect.id ? colors.primary : 'transparent',
                       borderWidth: backgroundEffect === effect.id ? 2 : 1,
@@ -265,13 +265,13 @@ export default function ThemeSettingsScreen() {
                   onPress={() => setBackgroundEffect(effect.id as BackgroundEffectType)}
                 >
                   <View style={[
-                    styles.effectIconContainer, 
+                    styles.effectIconContainer,
                     { backgroundColor: backgroundEffect === effect.id ? colors.primary + '20' : colors.subText + '10' }
                   ]}>
                     <effect.icon size={20} color={backgroundEffect === effect.id ? colors.primary : colors.subText} />
                   </View>
                   <Text style={[
-                    styles.effectName, 
+                    styles.effectName,
                     { color: backgroundEffect === effect.id ? colors.text : colors.subText }
                   ]}>
                     {effect.name}
@@ -281,10 +281,10 @@ export default function ThemeSettingsScreen() {
             </View>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            id="sounds" 
-            title={t("themeSettings.ambientSounds", "Atmosfer Sesleri")} 
-            icon={Music} 
+          <CollapsibleSection
+            id="sounds"
+            title={t("themeSettings.ambientSounds", "Atmosfer Sesleri")}
+            icon={Music}
             isOpen={openSections.sounds}
           >
             <View style={styles.effectsContainer}>
@@ -300,7 +300,7 @@ export default function ThemeSettingsScreen() {
                   key={sound.id}
                   style={[
                     styles.effectCard,
-                    { 
+                    {
                       backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
                       borderColor: ambientSound === sound.id ? colors.primary : 'transparent',
                       borderWidth: ambientSound === sound.id ? 2 : 1,
@@ -309,13 +309,13 @@ export default function ThemeSettingsScreen() {
                   onPress={() => setAmbientSound(sound.id as any)}
                 >
                   <View style={[
-                    styles.effectIconContainer, 
+                    styles.effectIconContainer,
                     { backgroundColor: ambientSound === sound.id ? colors.primary + '20' : colors.subText + '10' }
                   ]}>
                     <sound.icon size={20} color={ambientSound === sound.id ? colors.primary : colors.subText} />
                   </View>
                   <Text style={[
-                    styles.effectName, 
+                    styles.effectName,
                     { color: ambientSound === sound.id ? colors.text : colors.subText }
                   ]}>
                     {sound.name}
@@ -325,10 +325,10 @@ export default function ThemeSettingsScreen() {
             </View>
           </CollapsibleSection>
 
-          <CollapsibleSection 
-            id="preview" 
-            title={t("themeSettings.preview", "Önizleme")} 
-            icon={Sparkles} 
+          <CollapsibleSection
+            id="preview"
+            title={t("themeSettings.preview", "Önizleme")}
+            icon={Sparkles}
             isOpen={openSections.preview}
           >
             <View style={[styles.previewCardContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }]}>
@@ -350,23 +350,23 @@ export default function ThemeSettingsScreen() {
                     "Bu bir tema önizlemesidir. Renklerin ve bileşenlerin nasıl göründüğünü kontrol edin."
                   )}
                 </Text>
-                
+
                 <View style={styles.buttonPreviewContainer}>
                   <ThemedButton
                     title={t("themeSettings.primaryButton", "Birincil Buton")}
-                    onPress={() => {}}
+                    onPress={() => { }}
                     style={styles.previewButton}
                   />
                   <View style={styles.buttonRow}>
                     <ThemedButton
                       title={t("themeSettings.secondaryButton", "İkincil")}
-                      onPress={() => {}}
+                      onPress={() => { }}
                       variant="secondary"
                       style={[styles.previewButton, { flex: 1, marginRight: 8 }]}
                     />
                     <ThemedButton
                       title={t("themeSettings.dangerButton", "Sil")}
-                      onPress={() => {}}
+                      onPress={() => { }}
                       variant="danger"
                       style={[styles.previewButton, { flex: 1 }]}
                     />
@@ -634,7 +634,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 4,
   },
   sectionHeader: {
     flexDirection: 'row',

@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useAIStore } from "../store/aiStore";
+import { groqService } from "./groqService";
 
 class AIService {
   private genAI: GoogleGenerativeAI | null = null;
@@ -23,9 +24,7 @@ class AIService {
 
   // Genel istek fonksiyonu (Hata yönetimi ve kota kontrolü ile)
   private async requestAI(prompt: string, cacheKey: string, forceRefresh = false, useFallback = false): Promise<string> {
-    this.init();
-    if (!this.genAI) return "";
-
+    const { activeProvider, groqModel } = useAIStore.getState();
     const now = Date.now();
 
     // 1. Önbellek kontrolü
@@ -33,16 +32,33 @@ class AIService {
       return this.cache[cacheKey].msg;
     }
 
-    // 2. Cooldown kontrolü (Chat için cooldown'u esnetelim)
-    const isChat = cacheKey.startsWith('chat_');
-    const cooldown = isChat ? 1000 : this.COOLDOWN_MS;
-
-    if (!forceRefresh && (now - this.lastRequestTime < cooldown)) {
+    // 2. Cooldown kontrolü
+    if (!forceRefresh && (now - this.lastRequestTime < this.COOLDOWN_MS)) {
       return this.cache[cacheKey]?.msg || "";
     }
 
+    if (activeProvider === 'groq') {
+      try {
+        console.log(`[AI SERVICE] Groq'a istek gönderiliyor (${groqModel})...`);
+        const text = await groqService.chat(prompt, [], "You are a helpful productivity assistant. Respond ONLY with the requested text, no chatter.", groqModel);
+
+        if (text) {
+          this.cache[cacheKey] = { msg: text, time: now };
+          this.lastRequestTime = now;
+        }
+        return text;
+      } catch (e) {
+        console.error("Groq Request Error:", e);
+        return "";
+      }
+    }
+
+    // Default Gemini
+    this.init();
+    if (!this.genAI) return "";
+
     try {
-      console.log(`[AI SERVICE] Gemini'ye istek gönderiliyor (${useFallback ? this.FALLBACK_MODEL : this.MODEL_NAME})... ForceRefresh: ${forceRefresh}`);
+      console.log(`[AI SERVICE] Gemini'ye istek gönderiliyor (${useFallback ? this.FALLBACK_MODEL : this.MODEL_NAME})...`);
       this.lastRequestTime = now;
       const model = this.genAI.getGenerativeModel({ model: useFallback ? this.FALLBACK_MODEL : this.MODEL_NAME });
 
@@ -50,15 +66,11 @@ class AIService {
       const response = await result.response;
       const text = response.text().trim().replace(/^"|"$/g, '');
 
-      // Önbelleğe al
       this.cache[cacheKey] = { msg: text, time: now };
       return text;
     } catch (e) {
       if (e instanceof Error && e.message?.includes('429')) {
-        console.log("Kota doldu, fallback veya cache deneniyor...");
-        if (!useFallback) {
-          return this.requestAI(prompt, cacheKey, forceRefresh, true);
-        }
+        if (!useFallback) return this.requestAI(prompt, cacheKey, forceRefresh, true);
       }
       return "";
     }
@@ -92,7 +104,7 @@ class AIService {
     const prompt = `Analyze these productivity stats: ${JSON.stringify(stats)}. 
     Give one very short (max 15 words), encouraging advice or insight in ${language}. 
     YOU CAN use basic Markdown like **bold** for emphasis. 
-    DO NOT use quotes. Be direct and helpful.`;
+    DO NOT use quotes or markdown tables. Be direct and helpful.`;
     const nowLocal = new Date();
     const today = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
     return this.requestAI(prompt, `insight_${today}_${language}`, forceRefresh);
@@ -121,12 +133,7 @@ class AIService {
 
   // Yeni hedef önerisi oluşturma
   async suggestGoal(existingGoals: string[], language: string = 'en'): Promise<{ text: string, category: import('../types/goal').GoalCategory }> {
-    this.init();
-    if (!this.genAI) return { text: "", category: "other" };
-
-    try {
-      const model = this.genAI.getGenerativeModel({ model: this.MODEL_NAME });
-      const prompt = `You are a productivity coach. Existing goals: ${existingGoals.length > 0 ? existingGoals.join(", ") : "None"}. 
+    const prompt = `You are a productivity coach. Existing goals: ${existingGoals.length > 0 ? existingGoals.join(", ") : "None"}. 
       Suggest ONE new, specific, and creative daily goal. 
       RULES:
       1. MUST be concrete (e.g., "Read 10 pages", "Do 20 pushups", "Clean your desk", "Write 1 function").
@@ -136,17 +143,19 @@ class AIService {
       5. Return ONLY a JSON object: {"text": "Specific Goal", "category": "category_name"}.
       6. No markdown, no quotes around the JSON.`;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const jsonStr = response.text().trim().replace(/```json|```/g, '');
+    const result = await this.requestAI(prompt, `suggest_${existingGoals.join("_").substring(0, 20)}_${language}`);
+
+    try {
+      if (!result) throw new Error("No suggestion");
+      const jsonStr = result.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(jsonStr);
       return {
-        text: parsed.text.replace(/^"|"$/g, ''),
+        text: parsed.text?.replace(/^"|"$/g, '') || "",
         category: parsed.category || "other"
       };
     } catch (e) {
       console.error("AI Suggestion Hatası:", e);
-      return { text: "10 sayfa kitap oku", category: "personal" };
+      return { text: language === 'tr' ? "10 sayfa kitap oku" : "Read 10 pages", category: "personal" };
     }
   }
 
@@ -191,26 +200,67 @@ class AIService {
 
   // AI Chatbot fonksiyonu
   async chat(message: string, history: { role: string, parts: { text: string }[] }[], goalContext: string, language: string = 'en', customPrompt?: string | null): Promise<string> {
-    this.init();
-    if (!this.genAI) return "";
+    const { activeProvider, groqModel } = useAIStore.getState();
+    const { isUnlimitedGoalsEnabled, userName } = require('../store/settingsStore').useSettingsStore.getState();
 
     try {
-      const model = this.genAI.getGenerativeModel({
-        model: this.MODEL_NAME,
-        systemInstruction: `${customPrompt || `You are an expert Productivity Coach but also a very close, informal friend for the "FocusTabs" user.
-        Your tone is EXTREMELY casual, intimate (samimi), and brotherly. Use slang like "aga", "kanka", "bro", "reis" naturally. 
-        Don't be a cold corporate bot; talk like you've known the user for years.
+      // Get current user local time and date info
+      const now = new Date();
+      const isoDate = now.toISOString().split('T')[0];
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const dayName = now.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'long' });
+      const localTime = now.toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+
+      // Calculate tomorrow's date
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      const tomorrowISO = tomorrow.toISOString().split('T')[0];
+
+      const systemInstruction = `${customPrompt || `You are an AGENTIC AI (Agentic Assistant) and an expert Productivity Coach. You are also a very professional formal friend for the "FocusTabs" user.
+        You don't just talk; you are empowered to take control of the app through ACTIONS. You are the heart of the "FocusTabs" ecosystem.
+        Your tone is PROFESSIONAL, CLEAR, and CONCISE. Provide structured and direct advice without unnecessary chatter.
+        Maintain a supportive but respectful and professional demeanor at all times.
         
         RULES:
-        1. Keep responses helpful but VERY casual and informal (max 250 words).
-        2. Use Markdown for readability.
-        3. Language: ${language}.
-        4. Be supportive like a best friend, but keep the focus on their tasks.
-        5. If asked about something unrelated, answer like a buddy but remind them of their goals.`}
+        1. PERSO: You are AGENTIC. You don't just chat; you act. Use ACTIONS to help the user.
+        2. TONE: Professional and net (clear). No slang or informal language. Max 250 words.
+        3. FORMAT: Use Markdown for beautiful, readable, and structured responses. DO NOT use markdown tables; they are not supported. Use bullet points or numbered lists instead.
+        4. LANGUAGE: Always respond in ${language}.
+        5. GOALS: Stay focused on productivity. Use CREATE_GOAL or START_TIMER proactively.
+        6. RELIABILITY: Only one action tag per response, and it MUST be at the end.`}
 
-        CONTEXT:
+        BACKGROUND EFFECTS INFO:
+        - none: No background effect.
+        - bokeh: Soft, glowing background orbs (Dreamscape).
+        - quantum: Floating cosmos particles (Quantum Dust).
+        - waves: Gentle aura energy waves.
+        - crystals: Atomic/molecular model system.
+        - tesseract: Rotating 4D hypercube wireframe.
+        - aurora: Beautiful northern lights (Aurora).
+        - matrix: Classic digital rain effect.
+        - vortex: Spiral energy rings.
+        - grid: Cyber retro grid floor.
+        - silk: Flowing fabric/liquid silk movement.
+        - prism: Crystal scan light rays.
+
+        USER LOCAL CONTEXT:
+        - Current Local Date: ${isoDate}
+        - Current Day: ${dayName}
+        - Current Local Time: ${localTime}
+        - Current Timezone: ${timeZone}
+        - Reference for "tomorrow": ${tomorrowISO}
+        - Unlimited Goals Mode: ${isUnlimitedGoalsEnabled ? 'ENABLED (Ignore 3-goal limit)' : 'DISABLED (Respect 3-goal limit)'}
+        - User's Name: ${userName || 'User'} (Always address the user by their name in a professional but friendly way)
+
+        GOAL CONTEXT:
         You have access to the user's current goals and subtasks:
         ${goalContext}
+        
+        IMPORTANT RULES FOR ACTIONS:
+        - RESTRICTION: FocusTabs normally allows a maximum of 3 goals per day. ALWAYS check the GOAL CONTEXT and Unlimited Goals Mode. If the mode is DISABLED and the user already has 3 goals for a specific date, DO NOT use CREATE_GOAL for that date. Explain the limit. If mode is ENABLED, you can create more than 3.
+        - You can ONLY perform ONE action per response.
+        - The action tag MUST be at the end of your message.
+        - DO NOT wrap the JSON inside the action tag with markdown code blocks (like \`\`\`json). JUST put the raw JSON string inside the action tag.
         
         ACTIONS:
         1. CREATE GOAL: Append this at the end if the user wants to add a new task:
@@ -220,7 +270,7 @@ class AIService {
         2. START TIMER: Append this if the user wants to start a timer for an EXISTING goal.
            - Format: [ACTION:START_TIMER:{"goalId": "EXACT_ID", "duration": seconds}]
            
-        3. DECOMPOSE GOAL: Append this if the user wants to break down an EXISTING goal into subtasks.
+        3. DECOMPOSE GOAL: Append this if the user wants to break down an EXISTING goal into subtasks. This will automatically generate EXACTLY 3 sub-steps.
            - Format: [ACTION:DECOMPOSE_GOAL:{"goalId": "EXACT_ID"}]
            
         4. DELETE GOAL: Append this if the user asks to REMOVE a goal.
@@ -241,7 +291,7 @@ class AIService {
 
         9. SET APP THEME: Append this to change the color theme.
            - Format: [ACTION:SET_APP_THEME:{"themeId": "ID"}]
-           - Available IDs: default, neon, matrix, plasma, sunset, ocean, forest, sakura, vaporwave, bordeaux, emerald.
+              - Available IDs: default, neon, matrix, plasma, sunset, ocean, gold, forest, nova, zenith, cosmos, nebula, supernova, galaxy, void, universe, dimension-x, atlantis, sakura, vaporwave, enchanted, ottoman, vampire, midnight, dragon, ice, dna, amber, peacock, scorpion, phantom, exquisite, bordeaux, emerald.
 
         10. SET LANGUAGE: Append this to change the app language.
             - Format: [ACTION:SET_LANGUAGE:{"lang": "tr|en"}]
@@ -253,7 +303,7 @@ class AIService {
             - Format: [ACTION:RESET_ALL_DATA]
 
         13. SET BACKGROUND EFFECT: Append this to change background visual effect.
-            - Format: [ACTION:SET_BACKGROUND_EFFECT:{"effect": "none|shapes|particles|waves|crystals|tesseract|aurora"}]
+            - Format: [ACTION:SET_BACKGROUND_EFFECT:{"effect": "none|bokeh|quantum|waves|crystals|tesseract|aurora|matrix|vortex|grid|silk|prism"}]
 
         14. EXPORT DATA: Append this if the user wants to export or backup their data as JSON.
             - Format: [ACTION:EXPORT_DATA]
@@ -263,7 +313,7 @@ class AIService {
 
         16. NAVIGATE: Use this to direct the user to a specific screen.
             - Format: [ACTION:NAVIGATE:{"route": "ROUTE_NAME"}]
-            - Available Routes: / (Home), /calendar, /stats, /ai-chat, /settings, /about, /ai-settings, /backup-settings, /theme-settings, /privacy-policy, /timer, /pomodoro, /easter-egg.
+            - Available Routes: / (Home), /calendar, /stats, /ai-chat, /settings, /about, /ai-settings, /backup-settings, /theme-settings, /privacy-policy, /timer, /pomodoro.
             - Use /easter-egg only if the user specifically asks for secret modes, 4D raymarching, or "reality breach".
 
         17. RATE APP: Append this if the user wants to rate the app.
@@ -273,9 +323,10 @@ class AIService {
             - Format: [ACTION:CLEAR_CHAT]
             - A confirmation will be shown to the user.
 
-        19. CREATE THEME: Append this to create and apply a custom color theme. Use valid HEX colors.
-            - Format: [ACTION:CREATE_THEME:{"name": "...", "colors": {"primary": "#...", "secondary": "#...", "background": "#...", "card": "#...", "text": "#...", "subText": "#...", "border": "#...", "success": "#...", "warning": "#...", "error": "#...", "info": "#..."}}]
-            - Choose colors that look harmonious and match the requested style.
+        19. CREATE THEME: Create a custom theme with both Light and Dark mode versions.
+            - Format: [ACTION:CREATE_THEME:{"name": "...", "lightColors": {"primary": "#...", "secondary": "#...", "background": "#...", "card": "#...", "text": "#...", "subText": "#...", "border": "#...", "success": "#...", "warning": "#...", "error": "#...", "info": "#..."}, "darkColors": {"primary": "#...", "secondary": "#...", "background": "#...", "card": "#...", "text": "#...", "subText": "#...", "border": "#...", "success": "#...", "warning": "#...", "error": "#...", "info": "#..."}}]
+            - KEY RULE: Keep the primary and secondary colors CONSISTENT across both light and dark versions to maintain the theme's identity. Only change background, card, and text colors to provide proper contrast for each mode.
+            - CLEANLINESS: DO NOT list HEX codes, card colors, or technical details in your conversational message. Just describe the theme's vibe and confirm it's been applied.
         
         20. SET_CUSTOM_BACKGROUND: Append this to create a unique AI-driven background.
             - Format: [ACTION:SET_CUSTOM_BACKGROUND:{"type": "particles|shapes|waves|circles|squares|cubes|wireframe", "count": number, "speed": number, "color": "HEX", "size": number}]
@@ -297,6 +348,10 @@ class AIService {
             - Format: [ACTION:SET_AMBIENT:{"soundId": "river|forest|lofi|rain|zen|none"}]
             - Available IDs: river, forest, lofi, rain, zen, none. Use "none" to mute.
 
+        25. SET_POWER_MODE: Append this to enable or disable Unlimited Goals Mode (Power Mode).
+            - Format: [ACTION:SET_POWER_MODE:{"enabled": true|false}]
+            - Removing the 3-goal limit might disperse the user's focus. Remind them of this if they enable it.
+
         APP INFO & PRIVACY:
         - App Name: FocusTabs. Version: v1.0.0.
         - Purpose: Minimalist daily goal tracking with focus tools.
@@ -305,16 +360,35 @@ class AIService {
         - Developer: neurodivergent-dev (Melih).
         
         - Refine user input into professional text for goals.
-        - You can ONLY perform ONE action per response.`
-      });
+        - You can ONLY perform ONE action per response.`;
 
-      const chat = model.startChat({
-        history: history,
-      });
+      if (activeProvider === 'groq') {
+        // Map history to OpenAI format.
+        // history already contains the current message (due to addChatMessage in screen).
+        // Since we pass current message as 'message' parameter, we should exclude the last item from history to avoid duplication.
+        const groqHistory = history.slice(0, -1).map(h => ({
+          role: h.role === 'model' ? 'assistant' : 'user',
+          content: h.parts[0].text
+        }));
 
-      const result = await chat.sendMessage(message);
-      const response = await result.response;
-      return response.text().trim();
+        return groqService.chat(message, groqHistory, systemInstruction, groqModel);
+      } else {
+        // Default Gemini implementation
+        this.init();
+        if (!this.genAI) return "";
+        const model = this.genAI.getGenerativeModel({
+          model: this.MODEL_NAME,
+          systemInstruction: systemInstruction
+        });
+
+        const chat = model.startChat({
+          history: history,
+        });
+
+        const result = await chat.sendMessage(message);
+        const response = await result.response;
+        return response.text().trim();
+      }
     } catch (e) {
       console.error("AI Chat Error:", e);
       return "";

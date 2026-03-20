@@ -10,6 +10,7 @@ import {
   Platform,
   Keyboard,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -38,6 +39,7 @@ import { BackgroundEffects } from "../components/BackgroundEffects";
 import { useTheme } from "../components/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { soundService } from "../services/SoundService";
+import { useSettingsStore } from "../store/settingsStore";
 
 export const HomeScreen: React.FC = () => {
   useDailyReset();
@@ -133,16 +135,36 @@ export const HomeScreen: React.FC = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const { userName, userImage } = useSettingsStore();
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    let base = t('home.greeting.default');
+    if (hour >= 5 && hour < 12) base = t('home.greeting.morning');
+    else if (hour >= 12 && hour < 18) base = t('home.greeting.afternoon');
+    else if (hour >= 18 && hour < 22) base = t('home.greeting.evening');
+    else base = t('home.greeting.night');
+
+    return userName ? `${base}, ${userName}` : base;
+  }, [userName, t, i18n.language]);
+
+  const greetingSuffix = useMemo(() => {
+    if (allTodayGoals.length === 0) return t('home.greeting.suffix_no_goals');
+    if (completedCount === allTodayGoals.length) return t('home.greeting.suffix_all_done');
+    const remaining = allTodayGoals.length - completedCount;
+    return t('home.greeting.suffix_today', { count: remaining });
+  }, [allTodayGoals.length, completedCount, t, i18n.language]);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <BackgroundEffects />
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      <Animated.View style={[styles.headerContainer, { height: insets.top + (isZenMode ? 0 : 160) }, zenUIStyle]}>
+      <Animated.View style={[styles.headerContainer, { height: insets.top + (isZenMode ? 0 : 200) }, zenUIStyle]}>
         <LinearGradient
           colors={[colors.primary, colors.secondary || colors.primary]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[styles.header, { paddingTop: insets.top + 20 }]}
+          style={[styles.header, { paddingTop: insets.top + 12 }]}
         >
           <View style={styles.headerDecorationCircle1} />
           <View style={styles.headerDecorationCircle2} />
@@ -150,11 +172,38 @@ export const HomeScreen: React.FC = () => {
           <View style={styles.headerTopRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: "#FFFFFF" }]}>
-                {t("app.name")}
+                {greeting || t("app.name")}
               </Text>
               <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.85)" }]}>
-                {t("app.slogan")}
+                {greetingSuffix || t("app.slogan")}
               </Text>
+            </View>
+
+            <View style={styles.headerRightActions}>
+              <TouchableOpacity 
+                onPress={toggleZenMode} 
+                style={[
+                  styles.headerActionCircle, 
+                  { backgroundColor: isZenMode ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)' }
+                ]}
+                activeOpacity={0.7}
+              >
+                {isZenMode ? <EyeOff size={22} color="#FFFFFF" /> : <Eye size={22} color="#FFFFFF" />}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                activeOpacity={0.8}
+                onPress={() => router.push("/settings")}
+                style={[styles.headerProfileContainer, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)' }]}
+              >
+                {userImage ? (
+                  <Image source={{ uri: userImage }} style={styles.headerProfileImage} />
+                ) : (
+                  <Text style={styles.headerProfileLetter}>
+                    {userName ? userName.charAt(0).toUpperCase() : "?"}
+                  </Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -171,20 +220,6 @@ export const HomeScreen: React.FC = () => {
           )}
         </LinearGradient>
       </Animated.View>
-
-      <TouchableOpacity 
-        onPress={toggleZenMode} 
-        style={[
-          styles.zenToggleFloating, 
-          { 
-            top: insets.top + 10,
-            backgroundColor: isZenMode ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)' 
-          }
-        ]}
-        activeOpacity={0.7}
-      >
-        {isZenMode ? <EyeOff size={22} color="#FFFFFF" /> : <Eye size={22} color="#FFFFFF" />}
-      </TouchableOpacity>
 
       <Animated.View 
         style={[styles.keyboardView, zenUIStyle]}
@@ -285,7 +320,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingBottom: 28, position: 'relative', overflow: 'hidden', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   headerDecorationCircle1: { position: 'absolute', top: -40, right: -20, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255, 255, 255, 0.1)' },
   headerDecorationCircle2: { position: 'absolute', bottom: -30, left: -40, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255, 255, 255, 0.05)' },
-  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   title: { fontSize: 30, fontWeight: "800", letterSpacing: -0.5, marginBottom: 4 },
   subtitle: { fontSize: 16, fontWeight: "500", opacity: 0.9 },
   progressCard: { borderRadius: 20, padding: 16, marginTop: 8 },
@@ -343,5 +378,38 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 2,
     textTransform: 'uppercase',
+  },
+  headerProfileContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerActionCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  headerProfileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  headerProfileLetter: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

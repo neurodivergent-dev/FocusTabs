@@ -316,6 +316,10 @@ export const useDailyGoalsStore = create<DailyGoalsStore>((set, get) => ({
   },
 
   hasReachedMaxGoals: (date?: string) => {
+    // Check if unlimited goals is enabled in settings
+    const { useSettingsStore } = require('./settingsStore');
+    if (useSettingsStore.getState().isUnlimitedGoalsEnabled) return false;
+
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const targetDate = date || today;

@@ -12,6 +12,9 @@ export interface ChatMessage {
 
 interface AIState {
   apiKey: string | null;
+  groqApiKey: string | null;
+  activeProvider: 'gemini' | 'groq';
+  groqModel: string;
   isAIEnabled: boolean;
   lastCelebrationMessage: string | null;
   lastCelebrationDate: string | null;
@@ -21,7 +24,10 @@ interface AIState {
   chatSoundsEnabled: boolean;
   chatSoundType: 'pop' | 'digital' | 'minimal';
   setApiKey: (key: string | null) => Promise<void>;
+  setGroqKey: (key: string | null) => Promise<void>;
   setPollinationsApiKey: (key: string | null) => Promise<void>;
+  setActiveProvider: (provider: 'gemini' | 'groq') => void;
+  setGroqModel: (model: string) => void;
   loadApiKey: () => Promise<void>;
   toggleAI: (enabled: boolean) => Promise<void>;
   setCelebrationCache: (message: string) => void;
@@ -42,6 +48,9 @@ export const useAIStore = create<AIState>()(
   persist(
     (set) => ({
       apiKey: null,
+      groqApiKey: null,
+      activeProvider: 'gemini',
+      groqModel: 'llama-3.1-8b-instant',
       isAIEnabled: false,
       lastCelebrationMessage: null,
       lastCelebrationDate: null,
@@ -63,6 +72,16 @@ export const useAIStore = create<AIState>()(
         }
       },
 
+      setGroqKey: async (key: string | null) => {
+        if (key) {
+          await SecureStore.setItemAsync('groq_api_key', key);
+          set({ groqApiKey: key });
+        } else {
+          await SecureStore.deleteItemAsync('groq_api_key');
+          set({ groqApiKey: null });
+        }
+      },
+
       setPollinationsApiKey: async (key: string | null) => {
         if (key) {
           await SecureStore.setItemAsync(POLLINATIONS_API_KEY_STORAGE_KEY, key);
@@ -73,13 +92,17 @@ export const useAIStore = create<AIState>()(
         }
       },
 
+      setActiveProvider: (provider: 'gemini' | 'groq') => set({ activeProvider: provider }),
+      setGroqModel: (model: string) => set({ groqModel: model }),
+
       loadApiKey: async () => {
         try {
           const key = await SecureStore.getItemAsync(API_KEY_STORAGE_KEY);
+          const gKey = await SecureStore.getItemAsync('groq_api_key');
           const pKey = await SecureStore.getItemAsync(POLLINATIONS_API_KEY_STORAGE_KEY);
           const enabledStatus = await SecureStore.getItemAsync(AI_ENABLED_STORAGE_KEY);
-          const isEnabled = key ? (enabledStatus === null ? true : enabledStatus === 'true') : false;
-          set({ apiKey: key, pollinationsApiKey: pKey, isAIEnabled: isEnabled });
+          const isEnabled = (key || gKey) ? (enabledStatus === null ? true : enabledStatus === 'true') : false;
+          set({ apiKey: key, groqApiKey: gKey, pollinationsApiKey: pKey, isAIEnabled: isEnabled });
         } catch (e) {
           console.error('AI ayarları yüklenemedi:', e);
         }
@@ -127,9 +150,10 @@ export const useAIStore = create<AIState>()(
     {
       name: 'ai-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // Sadece bu alanları persist et (API key SecureStore'da olduğu için burada tutmuyoruz)
       partialize: (state) => ({ 
         isAIEnabled: state.isAIEnabled,
+        activeProvider: state.activeProvider,
+        groqModel: state.groqModel,
         lastCelebrationMessage: state.lastCelebrationMessage,
         lastCelebrationDate: state.lastCelebrationDate,
         chatMessages: state.chatMessages,

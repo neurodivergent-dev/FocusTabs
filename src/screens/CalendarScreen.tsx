@@ -28,6 +28,10 @@ import {
   DollarSign,
   Tag,
   RotateCcw,
+  CircleDashed,
+  CircleDot,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react-native";
 import { GoalCard } from "../components/GoalCard";
 import { AddGoalForm } from "../components/AddGoalForm";
@@ -279,108 +283,84 @@ export const CalendarScreen: React.FC = () => {
   useEffect(() => {
     if (!selectedDate) return;
 
-    // console.log(
-    //   "Updating markings, completion data count:",
-    //   completionData.length
-    // );
-
     const marked: Record<string, MarkedDate> = {};
     const today = getCurrentDate();
-
-    // Debug
-    // console.log("Today:", today, "Selected date:", selectedDate);
 
     // Create markings from completionData
     if (completionData.length > 0) {
       completionData.forEach((item) => {
-        // Date validation, especially check for potential errors in May
-        if (!item.date || !item.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          // console.error(`Invalid date format: ${item.date}`);
-          return; // Skip this item
-        }
+        if (!item.date || !item.date.match(/^\d{4}-\d{2}-\d{2}$/)) return;
 
-        // Only mark if there are completed tasks or total tasks greater than zero
-        if (item.completedCount > 0 || item.totalCount > 0) {
-          const color = getCompletionColor(item.percentage, item.totalCount);
+        const isSelected = item.date === selectedDate;
+        const color = getCompletionColor(item.percentage, item.totalCount);
+        const opacity = item.completedCount > 0 ? Math.max(0.1, item.percentage / 100) : 0;
 
-          // Use date directly
-          // console.log(
-          //   `Marking date: ${item.date}, Completion: ${item.completedCount}/${item.totalCount}`
-          // );
-
-          marked[item.date] = {
-            selected: item.date === selectedDate, // Selection state based on original date
-            selectedColor: colors.primary,
-            marked: true, // Enable dot indicator
-            dotColor: color,
-            customStyles: {
-              container: {
-                backgroundColor:
-                  item.date === selectedDate ? colors.primary : "transparent",
-              },
-              text: {
-                color: item.date === selectedDate ? "#FFFFFF" : colors.text,
-                fontWeight: (item.date === selectedDate ? "bold" : "normal") as "bold" | "normal",
-              },
+        marked[item.date] = {
+          selected: isSelected,
+          marked: item.completedCount > 0,
+          dotColor: color,
+          customStyles: {
+            container: {
+              backgroundColor: isSelected ? colors.primary : (item.completedCount > 0 ? color + Math.floor(opacity * 255).toString(16).padStart(2, '0') : 'transparent'),
+              borderRadius: 10,
+              borderWidth: item.date === today ? 1.5 : 0,
+              borderColor: colors.primary,
+              // Shadow for selected or high completion
+              ...(isSelected || item.percentage >= 100 ? {
+                shadowColor: color,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 4,
+              } : {}),
             },
-          };
-        }
+            text: {
+              color: isSelected ? "#FFFFFF" : colors.text,
+              fontWeight: (isSelected ? "bold" : "500") as "bold" | "500",
+            },
+          },
+        };
       });
     }
 
-    // Mark today's date (even if not in completionData)
+    // Mark today's date if not in completionData
     if (!marked[today]) {
       marked[today] = {
         selected: today === selectedDate,
-        selectedColor: colors.primary,
-        // Just draw a border for today, don't show dot indicator
-        marked: false, // Don't show special dot indicator for today
         customStyles: {
           container: {
-            backgroundColor:
-              today === selectedDate ? colors.primary : "transparent",
-            borderWidth: 1,
+            backgroundColor: today === selectedDate ? colors.primary : "transparent",
+            borderWidth: 1.5,
             borderColor: colors.primary,
+            borderRadius: 10,
           },
           text: {
-            color: today === selectedDate ? "#FFFFFF" : colors.text,
-            fontWeight: (today === selectedDate ? "bold" : "normal") as "bold" | "normal",
+            color: today === selectedDate ? "#FFFFFF" : colors.primary,
+            fontWeight: "bold",
           },
         },
       };
     }
 
-    // Always mark selected date
+    // Ensure selected date is marked even if no data
     if (selectedDate && !marked[selectedDate]) {
       marked[selectedDate] = {
         selected: true,
-        selectedColor: colors.primary,
-        // Don't show dot indicator for selected date, just mark as selected
-        marked: false,
         customStyles: {
           container: {
             backgroundColor: colors.primary,
+            borderRadius: 10,
           },
           text: {
             color: "#FFFFFF",
-            fontWeight: "bold" as const,
+            fontWeight: "bold",
           },
         },
       };
     }
 
-    // Update markings
-    // console.log("Marked dates:", Object.keys(marked).join(", "));
     setMarkedDates(marked);
-  }, [
-    completionData,
-    selectedDate,
-    colors.primary,
-    colors.text,
-    colors.subText,
-    colors,
-    getCompletionColor,
-  ]);
+  }, [completionData, selectedDate, colors, getCompletionColor]);
 
   // Completion status text
   const getCompletionText = (percentage: number, totalCount?: number) => {
@@ -619,41 +599,47 @@ export const CalendarScreen: React.FC = () => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 20 }]}
+        contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 100 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View
+        <Animated.View
+          entering={FadeInDown.duration(600)}
           style={[
-            styles.calendarContainer,
-            { backgroundColor: colors.background },
+            styles.calendarCard,
+            { backgroundColor: colors.card, borderColor: colors.border + '30', borderWidth: 1 },
           ]}
         >
-          {/* Set key prop to force re-render when theme or language changes */}
-          <Calendar
-            key={`calendar-${themeVersion}-${i18n.language}-${isDarkMode ? "dark" : "light"}`}
-            current={displayDate}
-            onDayPress={handleDateSelect}
-            onMonthChange={handleMonthChange}
-            markedDates={markedDates}
-            markingType="custom"
-            theme={calendarTheme}
-            enableSwipeMonths={true}
-            hideExtraDays={false}
-            firstDay={getFirstDayOfWeek()} // First day of week based on language
-            renderArrow={(direction: string) =>
-              direction === "left" ? (
-                <ChevronLeft size={20} color={colors.primary} />
-              ) : (
-                <ChevronRight size={20} color={colors.primary} />
-              )
-            }
-            style={{
-              backgroundColor: colors.background,
-              borderRadius: 10,
-              padding: 6,
-            }}
-          />
-        </View>
+          <LinearGradient
+            colors={[isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)', 'transparent']}
+            style={styles.calendarGradient}
+          >
+            {/* Set key prop to force re-render when theme or language changes */}
+            <Calendar
+              key={`calendar-${themeVersion}-${i18n.language}-${isDarkMode ? "dark" : "light"}`}
+              current={displayDate}
+              onDayPress={handleDateSelect}
+              onMonthChange={handleMonthChange}
+              markedDates={markedDates}
+              markingType="custom"
+              theme={calendarTheme}
+              enableSwipeMonths={true}
+              hideExtraDays={false}
+              firstDay={getFirstDayOfWeek()} // First day of week based on language
+              renderArrow={(direction: string) =>
+                direction === "left" ? (
+                  <ChevronLeft size={20} color={colors.primary} />
+                ) : (
+                  <ChevronRight size={20} color={colors.primary} />
+                )
+              }
+              style={{
+                backgroundColor: colors.background,
+                borderRadius: 10,
+                padding: 6,
+              }}
+            />
+          </LinearGradient>
+        </Animated.View>
 
         {calendarLoading ? (
           <View
@@ -730,8 +716,8 @@ export const CalendarScreen: React.FC = () => {
                           },
                         ]}
                       >
-                        <Text style={[styles.completionPercentage, { 
-                          color: getCompletionColor(selectedDateData.percentage, selectedDateData.totalCount) 
+                        <Text style={[styles.completionPercentage, {
+                          color: getCompletionColor(selectedDateData.percentage, selectedDateData.totalCount)
                         }]}>
                           {Math.round(selectedDateData.percentage)}%
                         </Text>
@@ -766,19 +752,8 @@ export const CalendarScreen: React.FC = () => {
                 </View>
               )}
 
-              {/* Goals list */}
+              {/* Timeline Goals List */}
               <View style={styles.goalsListContainer}>
-                <View style={styles.goalsListHeader}>
-                  <Text style={[styles.goalsListTitle, { color: colors.text }]}>
-                    {t("calendar.goalsForDate")}
-                  </Text>
-                  {dateGoals.length > 0 && (
-                    <View style={[styles.countPill, { backgroundColor: colors.primary + '15' }]}>
-                      <Text style={[styles.countPillText, { color: colors.primary }]}>{dateGoals.length}</Text>
-                    </View>
-                  )}
-                </View>
-
                 {dateGoalsLoading ? (
                   <ActivityIndicator
                     size="small"
@@ -786,33 +761,46 @@ export const CalendarScreen: React.FC = () => {
                     style={styles.goalsLoader}
                   />
                 ) : dateGoals.length > 0 ? (
-                  <View style={styles.goalsList}>
+                  <View style={styles.timelineList}>
+                    <View style={[styles.timelineVerticalLine, { backgroundColor: colors.border + '40' }]} />
                     {dateGoals.map((item, index) => (
-                      <Animated.View 
-                        key={item.id} 
-                        entering={FadeInDown.delay(index * 100).springify().damping(15)}
-                      >
-                        <GoalCard
-                          goal={item}
-                          onToggleComplete={toggleGoalCompletion}
-                          onUpdateGoal={updateGoal}
-                          onDelete={handleDeleteGoal}
-                          onStartTimer={startGoalTimer}
-                          onStopTimer={stopGoalTimer}
-                          onResetTimer={resetGoalTimer}
-                          onDecompose={(id) => decomposeGoal(id, i18n.language)}
-                          onToggleSubTask={toggleSubTask}
-                          onDeleteSubTask={deleteSubTask}
-                          onUpdateSubTask={updateSubTask}
-                          isActiveTimer={activeTimerGoalId === item.id}
-                          isAIEnabled={isAIEnabled}
-                          isPastDate={isPastDate}
-                        />
-                      </Animated.View>
+                      <View key={item.id} style={styles.timelineItem}>
+                        <View style={styles.timelineSide}>
+                          <View style={[
+                            styles.timelineDot,
+                            { backgroundColor: item.completed ? colors.success : colors.card, borderColor: item.completed ? colors.success : colors.primary }
+                          ]}>
+                            {item.completed && <CheckCircle2 size={12} color="#FFFFFF" />}
+                          </View>
+                        </View>
+                        <View style={styles.timelineContent}>
+                          <Animated.View
+                            entering={FadeInDown.delay(index * 100).springify().damping(15)}
+                          >
+                            <GoalCard
+                              goal={item}
+                              onToggleComplete={toggleGoalCompletion}
+                              onUpdateGoal={updateGoal}
+                              onDelete={handleDeleteGoal}
+                              onStartTimer={startGoalTimer}
+                              onStopTimer={stopGoalTimer}
+                              onResetTimer={resetGoalTimer}
+                              onDecompose={(id) => decomposeGoal(id, i18n.language)}
+                              onToggleSubTask={toggleSubTask}
+                              onDeleteSubTask={deleteSubTask}
+                              onUpdateSubTask={updateSubTask}
+                              isActiveTimer={activeTimerGoalId === item.id}
+                              isAIEnabled={isAIEnabled}
+                              isPastDate={isPastDate}
+                            />
+                          </Animated.View>
+                        </View>
+                      </View>
                     ))}
                   </View>
                 ) : (
                   <View style={styles.noGoalsPlaceholder}>
+                    <CircleDashed size={48} color={colors.subText} opacity={0.3} style={{ marginBottom: 12 }} />
                     <Text style={[styles.noGoalsPlaceholderText, { color: colors.subText }]}>
                       {t("calendar.noGoalsForDate")}
                     </Text>
@@ -844,23 +832,76 @@ export const CalendarScreen: React.FC = () => {
             </Text>
             <View style={styles.legendGrid}>
               {[
-                { color: colors.subText, label: t("calendar.legend.noGoals") },
-                { color: colors.error, label: t("calendar.legend.notCompleted") },
-                { color: colors.warning, label: t("calendar.legend.partiallyCompleted") },
-                { color: colors.info, label: t("calendar.legend.mostlyCompleted") },
-                { color: colors.success, label: t("calendar.legend.fullyCompleted") },
+                {
+                  color: colors.subText,
+                  label: t("calendar.legend.noGoals"),
+                  icon: CircleDashed,
+                  bgColor: colors.subText + '10'
+                },
+                {
+                  color: colors.error,
+                  label: t("calendar.legend.notCompleted"),
+                  icon: XCircle,
+                  bgColor: colors.error + '10'
+                },
+                {
+                  color: colors.warning,
+                  label: t("calendar.legend.partiallyCompleted"),
+                  icon: CircleDot,
+                  bgColor: colors.warning + '10'
+                },
+                {
+                  color: colors.info,
+                  label: t("calendar.legend.mostlyCompleted"),
+                  icon: Sparkles,
+                  bgColor: colors.info + '10'
+                },
+                {
+                  color: colors.success,
+                  label: t("calendar.legend.fullyCompleted"),
+                  icon: CheckCircle2,
+                  bgColor: colors.success + '10'
+                },
               ].map((item, index) => (
-                <View key={index} style={[styles.legendPillContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                <Animated.View
+                  key={index}
+                  entering={FadeInDown.delay(index * 100).springify().damping(15)}
+                  style={[
+                    styles.legendPillContainer,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderWidth: 1
+                    }
+                  ]}
+                >
                   <LinearGradient
-                    colors={[isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)', isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)']}
+                    colors={[
+                      isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.8)',
+                      isDarkMode ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.4)'
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
                     style={styles.legendPillGradient}
                   >
-                    <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                    <Text style={[styles.legendText, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>
-                      {item.label}
-                    </Text>
+                    <View style={[styles.legendIconWrapper, { backgroundColor: item.bgColor }]}>
+                      <item.icon size={16} color={item.color} strokeWidth={2.5} />
+                    </View>
+                    <View style={styles.legendTextContainer}>
+                      <Text
+                        style={[styles.legendText, { color: colors.text }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                      >
+                        {item.label}
+                      </Text>
+                    </View>
+                    <View style={[styles.legendStatusPill, { backgroundColor: item.color + '20' }]}>
+                      <View style={[styles.legendStatusDot, { backgroundColor: item.color }]} />
+                    </View>
                   </LinearGradient>
-                </View>
+                </Animated.View>
               ))}
             </View>
           </LinearGradient>
@@ -870,13 +911,13 @@ export const CalendarScreen: React.FC = () => {
       </ScrollView>
 
       {isUndoVisible && (
-        <Animated.View 
-          entering={FadeInDown} 
-          exiting={SlideOutDown} 
+        <Animated.View
+          entering={FadeInDown}
+          exiting={SlideOutDown}
           style={[
-            styles.undoToast, 
-            { 
-              backgroundColor: colors.card, 
+            styles.undoToast,
+            {
+              backgroundColor: colors.card,
               borderLeftColor: colors.primary,
               bottom: 40,
             }
@@ -884,11 +925,11 @@ export const CalendarScreen: React.FC = () => {
         >
           <View style={styles.undoContent}>
             <Text style={[styles.undoText, { color: colors.text }]}>{t("common.goalDeleted")}</Text>
-            <TouchableOpacity 
-              style={[styles.undoButton, { backgroundColor: colors.primary + '20' }]} 
-              onPress={async () => { 
-                await undoDelete(); 
-                setIsUndoVisible(false); 
+            <TouchableOpacity
+              style={[styles.undoButton, { backgroundColor: colors.primary + '20' }]}
+              onPress={async () => {
+                await undoDelete();
+                setIsUndoVisible(false);
               }}
             >
               <RotateCcw size={16} color={colors.primary} style={{ marginRight: 6 }} />
@@ -1150,32 +1191,100 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   legendGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: 'space-between',
+    gap: 12,
   },
   legendPillContainer: {
-    borderRadius: 14,
-    marginBottom: 12,
-    width: "48%",
+    borderRadius: 20,
     overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   legendPillGradient: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  legendIconWrapper: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 10,
   },
-  legendText: {
-    fontSize: 12,
-    fontWeight: '600',
+  legendTextContainer: {
     flex: 1,
+    justifyContent: 'center',
+    paddingRight: 8,
+  },
+  legendText: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  legendStatusPill: {
+    width: 24,
+    height: 12,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  legendStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  calendarCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  calendarGradient: {
+    padding: 8,
+  },
+  timelineList: {
+    paddingLeft: 10,
+    position: 'relative',
+  },
+  timelineVerticalLine: {
+    position: 'absolute',
+    left: 17,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    borderRadius: 1,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  timelineSide: {
+    width: 36,
+    alignItems: 'center',
+    paddingTop: 12,
+  },
+  timelineDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    zIndex: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timelineContent: {
+    flex: 1,
+    paddingLeft: 8,
   },
   bottomPadding: {
     height: 125,
@@ -1193,19 +1302,19 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 20,
   },
-  undoToast: { 
-    position: 'absolute', 
-    left: 20, 
-    right: 20, 
-    paddingVertical: 12, 
-    paddingHorizontal: 16, 
-    borderRadius: 16, 
-    borderLeftWidth: 4, 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 4 }, 
-    shadowOpacity: 0.15, 
-    shadowRadius: 10, 
-    elevation: 5 
+  undoToast: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5
   },
   undoContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   undoText: { fontSize: 14, fontWeight: '600' },

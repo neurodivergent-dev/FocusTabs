@@ -29,6 +29,7 @@ import {
   Volume2,
   VolumeX,
   Radio,
+  Server,
 } from "lucide-react-native";
 import { useTheme } from "../src/components/ThemeProvider";
 import { useTranslation } from "react-i18next";
@@ -46,6 +47,12 @@ export default function AISettingsScreen() {
   const { 
     apiKey, 
     setApiKey, 
+    groqApiKey,
+    setGroqKey,
+    activeProvider,
+    setActiveProvider,
+    groqModel,
+    setGroqModel,
     isAIEnabled, 
     toggleAI, 
     customSystemPrompt, 
@@ -58,17 +65,22 @@ export default function AISettingsScreen() {
     setChatSoundType,
   } = useAIStore();
   const [inputKey, setInputKey] = useState(apiKey || "");
+  const [inputGroqKey, setInputGroqKey] = useState(groqApiKey || "");
+  const [inputGroqModel, setInputGroqModel] = useState(groqModel || "llama-3.1-8b-instant");
   const [inputPollinationsKey, setInputPollinationsKey] = useState(pollinationsApiKey || "");
   const [inputPrompt, setInputPrompt] = useState(customSystemPrompt || "");
   const [isSaved, setIsSaved] = useState(false);
+  const [isGroqSaved, setIsGroqSaved] = useState(false);
   const [isPollinationsSaved, setIsPollinationsSaved] = useState(false);
   const [isPromptSaved, setIsPromptSaved] = useState(false);
   const [resetAlertVisible, setResetAlertVisible] = useState(false);
 
   useEffect(() => {
     setInputKey(apiKey || "");
+    setInputGroqKey(groqApiKey || "");
+    setInputGroqModel(groqModel || "llama-3.1-8b-instant");
     setInputPollinationsKey(pollinationsApiKey || "");
-  }, [apiKey, pollinationsApiKey]);
+  }, [apiKey, groqApiKey, groqModel, pollinationsApiKey]);
 
   const handleBack = () => {
     soundService.playClick();
@@ -81,9 +93,20 @@ export default function AISettingsScreen() {
       setIsSaved(true);
       soundService.playComplete();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      // 3 saniye sonra "Kaydedildi" yazısını kaldır
       setTimeout(() => setIsSaved(false), 3000);
+    } catch (error) {
+      Alert.alert(t("settings.ai.error"), t("settings.ai.invalidKey"));
+    }
+  };
+
+  const handleSaveGroq = async () => {
+    try {
+      await setGroqKey(inputGroqKey.trim() || null);
+      setGroqModel(inputGroqModel.trim() || "llama-3.1-8b-instant");
+      setIsGroqSaved(true);
+      soundService.playComplete();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(() => setIsGroqSaved(false), 3000);
     } catch (error) {
       Alert.alert(t("settings.ai.error"), t("settings.ai.invalidKey"));
     }
@@ -179,17 +202,145 @@ export default function AISettingsScreen() {
                 </Text>
               </View>
               <Switch
-                value={isAIEnabled && !!apiKey}
-                disabled={!apiKey}
+                value={isAIEnabled && (activeProvider === 'gemini' ? !!apiKey : !!groqApiKey)}
+                disabled={!(activeProvider === 'gemini' ? !!apiKey : !!groqApiKey)}
                 onValueChange={toggleAI}
                 trackColor={{ false: "#767577", true: colors.primary + '80' }}
-                thumbColor={(isAIEnabled && !!apiKey) ? colors.primary : "#f4f3f4"}
+                thumbColor={(isAIEnabled && (activeProvider === 'gemini' ? !!apiKey : !!groqApiKey)) ? colors.primary : "#f4f3f4"}
               />
             </View>
           </View>
 
-          {/* Gemini API Key */}
+          {/* Provider Selection */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <Zap size={20} color={colors.primary} />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                AI Provider
+              </Text>
+            </View>
+            <View style={styles.providerGrid}>
+              <TouchableOpacity
+                style={[
+                  styles.providerOption,
+                  { 
+                    backgroundColor: activeProvider === 'gemini' ? colors.primary + '15' : 'transparent',
+                    borderColor: activeProvider === 'gemini' ? colors.primary : colors.border,
+                  }
+                ]}
+                onPress={() => {
+                  setActiveProvider('gemini');
+                  soundService.playClick();
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              >
+                <Sparkles size={20} color={activeProvider === 'gemini' ? colors.primary : colors.subText} />
+                <Text style={[styles.providerLabel, { color: activeProvider === 'gemini' ? colors.text : colors.subText }]}>Gemini</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.providerOption,
+                  { 
+                    backgroundColor: activeProvider === 'groq' ? colors.primary + '15' : 'transparent',
+                    borderColor: activeProvider === 'groq' ? colors.primary : colors.border,
+                  }
+                ]}
+                onPress={() => {
+                  setActiveProvider('groq');
+                  soundService.playClick();
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              >
+                <Zap size={20} color={activeProvider === 'groq' ? colors.primary : colors.subText} />
+                <Text style={[styles.providerLabel, { color: activeProvider === 'groq' ? colors.text : colors.subText }]}>Groq / OpenAI</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Groq Settings */}
+          {activeProvider === 'groq' && (
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.cardHeader}>
+                <Server size={20} color={colors.primary} />
+                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                  Groq / OpenAI Settings
+                </Text>
+              </View>
+              
+              <Text style={[styles.cardDesc, { color: colors.subText, marginBottom: 12 }]}>
+                {isDarkMode ? "Groq veya OpenAI uyumlu bir API anahtarı girin." : "Enter a Groq or OpenAI compatible API key."}
+              </Text>
+
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colors.text,
+                    backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                    borderColor: colors.border,
+                  },
+                ]}
+                placeholder="gsk_..."
+                placeholderTextColor={colors.subText}
+                value={inputGroqKey}
+                onChangeText={setInputGroqKey}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+
+              <Text style={[styles.cardDesc, { color: colors.text, fontWeight: '600', marginBottom: 8, marginTop: 4 }]}>
+                Model ID
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colors.text,
+                    backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                    borderColor: colors.border,
+                    marginBottom: 20
+                  },
+                ]}
+                placeholder="llama-3.1-8b-instant"
+                placeholderTextColor={colors.subText}
+                value={inputGroqModel}
+                onChangeText={setInputGroqModel}
+                autoCapitalize="none"
+              />
+
+              <TouchableOpacity 
+                style={[styles.saveButton, { backgroundColor: colors.primary }]} 
+                onPress={handleSaveGroq}
+              >
+                {isGroqSaved ? (
+                  <View style={styles.saveContent}>
+                    <CheckCircle2 size={20} color="#FFFFFF" />
+                    <Text style={styles.saveButtonText}>{t("common.success")}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.saveContent}>
+                    <Save size={20} color="#FFFFFF" />
+                    <Text style={styles.saveButtonText}>{t("settings.ai.saveKey")}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.helpLink, { marginTop: 12 }]}
+                onPress={() => Linking.openURL("https://console.groq.com/keys")}
+              >
+                <Text style={[styles.helpLinkText, { color: colors.primary }]}>
+                  Groq Dashboard
+                </Text>
+                <ExternalLink size={14} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Gemini API Key */}
+          {activeProvider === 'gemini' && (
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardHeader}>
               <ShieldCheck size={20} color={colors.primary} />
               <Text style={[styles.cardTitle, { color: colors.text }]}>
@@ -246,6 +397,7 @@ export default function AISettingsScreen() {
               )}
             </TouchableOpacity>
           </View>
+          )}
 
           {/* Pollinations API Key */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -645,7 +797,26 @@ const styles = StyleSheet.create({
   },
   soundOptionLabel: {
     fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  providerGrid: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  providerOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+  },
+  providerLabel: {
+    fontSize: 14,
+    fontWeight: "700",
   },
 });
